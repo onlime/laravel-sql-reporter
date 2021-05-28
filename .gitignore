@@ -1,0 +1,8 @@
+/.phpunit.result.cache
+/vendor/
+/.idea
+/composer.lock
+
+# TODO: fix tests and add them to repo
+/tests
+/phpunit.xml
