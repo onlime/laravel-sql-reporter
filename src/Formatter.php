@@ -69,7 +69,7 @@ class Formatter
             'origin'   => $this->originLine(),
             'status'   => sprintf('Executed %s queries in %s', count($queryLog), $totalTime),
             'user'     => Auth::user()?->username(),
-            'env'      => App::environment(),
+            'env'      => $this->app->environment(),
             'agent'    => Request::userAgent() ?? PHP_SAPI,
             'ip'       => $ip,
             'host'     => gethostbyaddr($ip),

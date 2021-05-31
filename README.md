@@ -65,7 +65,7 @@ $ php artisan vendor:publish --provider="Torann\GeoIP\GeoIPServiceProvider"
 
 ### How does this package differ from `mnabialek/laravel-sql-logger` ?
 
-This package was inspired by [mnabialek/laravel-sql-logger](https://github.com/mnabialek/laravel-sql-logger) and basically, it does the same thing: Logging your SQL queries. Here's the difference:
+This package was inspired by [mnabialek/laravel-sql-logger](https://github.com/mnabialek/laravel-sql-logger) and basically does the same thing: Logging your SQL queries. Here's the difference:
 
 - Query logging is not triggered upon each query execution but instead at a final step, using `RequestHandled` and `CommandFinished` events.
 - This allows us to include much more information about the whole query executions like total query count, total execution time, and very detailed header information like origin (request URL/console command), authenticated user, app environment, client browser agent / IP / hostname.
