@@ -1,12 +1,13 @@
 # Laravel SQL Reporter
 
 [![Packagist](https://img.shields.io/packagist/dt/onlime/laravel-sql-reporter.svg)](https://packagist.org/packages/onlime/laravel-sql-reporter)
-[![Build Status](https://travis-ci.org/onlime/laravel-sql-reporter.svg?branch=master)](https://travis-ci.org/onlime/laravel-sql-reporter)
+[![Build Status](https://github.com/onlime/laravel-sql-reporter/actions/workflows/ci.yml/badge.svg)](https://github.com/onlime/laravel-sql-reporter/actions/workflows/ci.yml)
 [![Coverage Status](https://coveralls.io/repos/github/onlime/laravel-sql-reporter/badge.svg)](https://coveralls.io/github/onlime/laravel-sql-reporter)
-[![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/onlime/laravel-sql-reporter/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/onlime/laravel-sql-reporter/)
 
-This module allows you to log SQL queries (and slow SQL queries) to log file in Laravel framework. It's useful mainly
+This module allows you to log SQL queries to log file in Laravel framework. It's useful mainly
 when developing your application to verify whether your queries are valid and to make sure your application doesn't run too many or too slow database queries.
+
+It reports a lot of metadata like total query count, total execution time, origin (request URL/console command), authenticated user, app environment, client browser agent / IP / hostname. You're also able to limit queries by a regex pattern, so you could e.g. only log 
 
 ## Installation
 
@@ -26,7 +27,7 @@ when developing your application to verify whether your queries are valid and to
     
     By default you should not edit published file because all the settings are loaded from `.env` file by default.
 
-3. In your .env file add the following entries:
+3. In your `.env` file add the following entries:
 
     ```ini
     SQL_REPORTER_DIRECTORY="logs/sql"
@@ -42,15 +43,21 @@ when developing your application to verify whether your queries are valid and to
     SQL_REPORTER_FORMAT_ENTRY_FORMAT="-- Query [query_nr] [[query_time]]\\n[query]"
     ```
     
-    and adjust values to your needs. You can skip variables for which you want to use default values. 
+    and adjust values to your needs. You can skip variables for which you want to use default values.
+
+    To only log DML / modifying queries like `INSERT`, `UPDATE`, `DELETE`, I recommend to use:
+
+    ```ini
+   SQL_REPORTER_QUERIES_PATTERN="/^(?!SELECT).*$/i"
+   ```
     
-    If you have also `.env.sample` it's also recommended to add those entries also in `.env.sample` file just to make sure everyone know about those env variables. Be aware that `SQL_REPORTER_DIRECTORY` is directory inside storage directory. If you want you can change it editing `config/sql-reporter.php` file.
+    If you have also `.env.example` it's recommended to add those entries also in `.env.example` file just to make sure everyone knows about those env variables. Be aware that `SQL_REPORTER_DIRECTORY` is directory inside storage directory.
     
     To find out more about those setting please take a look at [Configuration file](config/sql-reporter.php)
     
 4. Make sure directory specified in `.env` file exists in storage path and you have valid file permissions to create and modify files in this directory (If it does not exist this package will automatically create it when needed but it's recommended to create it manually with valid file permissions)
 
-5. Make sure on live server you will set logging SQL queries to false in your `.env` file. This package is recommended to be used only for development to not impact production application performance.
+5. Make sure on live server you will set logging SQL queries to false in your `.env` file: `SQL_REPORTER_QUERIES_ENABLED=false`. This package is recommended to be used only for development to not impact production application performance.
 
 ## Optional
 
