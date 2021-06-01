@@ -27,7 +27,7 @@ class SqlLogger
      */
     public function log()
     {
-        foreach (DB::getQueryLog() as $query ) {
+        foreach (DB::getQueryLog() as $query) {
             $sqlQuery = new SqlQuery(++$this->queryNumber, $query['query'], $query['bindings'], $query['time']);
             $this->writer->save($sqlQuery);
         }
