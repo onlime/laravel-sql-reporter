@@ -7,7 +7,9 @@
 This module allows you to log SQL queries to log file in Laravel framework. It's useful mainly
 when developing your application to verify whether your queries are valid and to make sure your application doesn't run too many or too slow database queries.
 
-It reports a lot of metadata like total query count, total execution time, origin (request URL/console command), authenticated user, app environment, client browser agent / IP / hostname. You're also able to limit queries by a regex pattern, so you could e.g. only log 
+You may also use this in production as it should not cause a lot of overhead. Logged queries can be limited by query pattern, and logging only occurs at the end of each request or artisan command execution.
+
+It reports a lot of metadata like total query count, total execution time, origin (request URL/console command), authenticated user, app environment, client browser agent / IP / hostname.
 
 ## Installation
 
@@ -25,7 +27,7 @@ It reports a lot of metadata like total query count, total execution time, origi
     $ php artisan vendor:publish --provider="Onlime\LaravelSqlReporter\Providers\ServiceProvider"
     ```
     
-    By default you should not edit published file because all the settings are loaded from `.env` file by default.
+    By default, you should not edit published file because all the settings are loaded from `.env` file by default.
 
 3. In your `.env` file add the following entries:
 
@@ -55,7 +57,7 @@ It reports a lot of metadata like total query count, total execution time, origi
     
     To find out more about those setting please take a look at [Configuration file](config/sql-reporter.php)
     
-4. Make sure directory specified in `.env` file exists in storage path and you have valid file permissions to create and modify files in this directory (If it does not exist this package will automatically create it when needed but it's recommended to create it manually with valid file permissions)
+4. Make sure directory specified in `.env` file exists in storage path, and you have valid permissions to create and modify files in this directory (If it does not exist this package will automatically create it when needed, but it's recommended to create it manually with valid file permissions)
 
 5. Make sure on live server you will set logging SQL queries to false in your `.env` file: `SQL_REPORTER_QUERIES_ENABLED=false`. This package is recommended to be used only for development to not impact production application performance.
 
@@ -66,6 +68,23 @@ For optional GeoIP support (adding country information to client IP in log heade
 ```bash
 $ composer require torann/geoip
 $ php artisan vendor:publish --provider="Torann\GeoIP\GeoIPServiceProvider"
+```
+
+It will be auto-detected, no configuration needed for this.
+
+## Development
+
+Checkout project and run tests:
+
+```bash
+$ git clone https://github.com/onlime/laravel-sql-reporter.git
+$ cd laravel-sql-reporter
+$ composer install
+
+# run unit tests
+$ vendor/bin/phpunit
+# run unit tests with coverage report
+$ XDEBUG_MODE=coverage vendor/bin/phpunit
 ```
 
 ## FAQ
@@ -124,9 +143,16 @@ Please star his great package on GitHub! You may use `composer thanks` for this.
 
 All changes are listed in [CHANGELOG](CHANGELOG.md)
 
+## Caveats
+
+- If your application crashes, this package will not log any queries, as logging is only triggered at the end. As alternative, you could use [mnabialek/laravel-sql-logger](https://github.com/mnabialek/laravel-sql-logger) which triggers sql logging on each query execution.
+- It's currently not possible to log slow queries into a separate logfile. I wanted to keep that package simpel.
+
 ## Todo
 
+- [ ] Improve unit testing to reach 100% coverage
 - [ ] Add browser type information to log headers, using hisorange/browser-detect
+- [ ] Support for Lumen
 
 ## License
 
