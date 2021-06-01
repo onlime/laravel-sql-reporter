@@ -1,8 +1,11 @@
 # Laravel SQL Reporter
 
-[![Packagist](https://img.shields.io/packagist/dt/onlime/laravel-sql-reporter.svg)](https://packagist.org/packages/onlime/laravel-sql-reporter)
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/onlime/laravel-sql-reporter.svg)](https://packagist.org/packages/onlime/laravel-sql-reporter)
+[![Packagist Downloads](https://img.shields.io/packagist/dt/onlime/laravel-sql-reporter.svg)](https://packagist.org/packages/onlime/laravel-sql-reporter)
+[![PHP from Packagist](https://img.shields.io/packagist/php-v/onlime/laravel-sql-reporter.svg)](https://packagist.org/packages/onlime/laravel-sql-reporter)
 [![Build Status](https://github.com/onlime/laravel-sql-reporter/actions/workflows/ci.yml/badge.svg)](https://github.com/onlime/laravel-sql-reporter/actions/workflows/ci.yml)
 [![Coverage Status](https://coveralls.io/repos/github/onlime/laravel-sql-reporter/badge.svg)](https://coveralls.io/github/onlime/laravel-sql-reporter)
+[![GitHub License](https://img.shields.io/github/license/onlime/laravel-sql-reporter.svg)](https://github.com/onlime/laravel-sql-reporter/blob/main/LICENSE)
 
 This module allows you to log SQL queries to log file in Laravel framework. It's useful mainly
 when developing your application to verify whether your queries are valid and to make sure your application doesn't run too many or too slow database queries.
