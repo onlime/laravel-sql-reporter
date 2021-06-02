@@ -40,7 +40,8 @@ It reports a lot of metadata like total query count, total execution time, origi
     SQL_REPORTER_LOG_EXTENSION=".sql"
     SQL_REPORTER_QUERIES_ENABLED=true
     SQL_REPORTER_QUERIES_OVERRIDE_LOG=false
-    SQL_REPORTER_QUERIES_PATTERN="#.*#i"
+    SQL_REPORTER_QUERIES_INCLUDE_PATTERN="#.*#i"
+    SQL_REPORTER_QUERIES_EXCLUDE_PATTERN="/^$/"
     SQL_REPORTER_QUERIES_MIN_EXEC_TIME=0
     SQL_REPORTER_QUERIES_FILE_NAME="[Y-m]-log"
     SQL_REPORTER_FORMAT_HEADER_FIELDS="origin,datetime,status,user,env,agent,ip,host,referer"
@@ -49,10 +50,12 @@ It reports a lot of metadata like total query count, total execution time, origi
     
     and adjust values to your needs. You can skip variables for which you want to use default values.
 
-    To only log DML / modifying queries like `INSERT`, `UPDATE`, `DELETE`, I recommend to use:
+    To only log DML / modifying queries like `INSERT`, `UPDATE`, `DELETE`, but not logging any updates on
+    `last_visit`, I recommend to use:
 
     ```ini
-   SQL_REPORTER_QUERIES_PATTERN="/^(?!SELECT).*$/i"
+   SQL_REPORTER_QUERIES_INCLUDE_PATTERN="/^(?!SELECT).*$/i"
+   SQL_REPORTER_QUERIES_EXCLUDE_PATTERN="/^UPDATE.*last_visit/i"
    ```
     
     If you have also `.env.example` it's recommended to add those entries also in `.env.example` file just to make sure everyone knows about those env variables. Be aware that `SQL_REPORTER_DIRECTORY` is directory inside storage directory.

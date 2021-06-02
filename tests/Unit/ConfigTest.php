@@ -91,12 +91,21 @@ class ConfigTest extends UnitTestCase
     }
 
     /** @test */
-    public function it_returns_valid_value_for_queriesPattern()
+    public function it_returns_valid_value_for_queriesIncludePattern()
     {
         $value = 'sample pattern';
-        $this->repository->shouldReceive('get')->once()->with('sql-reporter.queries.pattern')
+        $this->repository->shouldReceive('get')->once()->with('sql-reporter.queries.include_pattern')
             ->andReturn($value);
-        $this->assertSame($value, $this->config->queriesPattern());
+        $this->assertSame($value, $this->config->queriesIncludePattern());
+    }
+
+    /** @test */
+    public function it_returns_valid_value_for_queriesExcludePattern()
+    {
+        $value = 'sample pattern';
+        $this->repository->shouldReceive('get')->once()->with('sql-reporter.queries.exclude_pattern')
+            ->andReturn($value);
+        $this->assertSame($value, $this->config->queriesExcludePattern());
     }
 
     /** @test */

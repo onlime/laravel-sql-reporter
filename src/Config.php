@@ -84,13 +84,23 @@ class Config
     }
 
     /**
-     * Get pattern for all queries.
+     * Get include pattern for queries.
      *
      * @return string
      */
-    public function queriesPattern(): string
+    public function queriesIncludePattern(): string
     {
-        return $this->repository->get('sql-reporter.queries.pattern');
+        return $this->repository->get('sql-reporter.queries.include_pattern');
+    }
+
+    /**
+     * Get exclude pattern for queries.
+     *
+     * @return string
+     */
+    public function queriesExcludePattern(): string
+    {
+        return $this->repository->get('sql-reporter.queries.exclude_pattern');
     }
 
     /**

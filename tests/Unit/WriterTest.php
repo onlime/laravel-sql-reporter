@@ -100,7 +100,8 @@ class WriterTest extends UnitTestCase
         $this->formatter->shouldReceive('getLine')->once()->with($query)->andReturn($lineContent);
         $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('-- header');
         $this->config->shouldReceive('queriesEnabled')->once()->withNoArgs()->andReturn(true);
-        $this->config->shouldReceive('queriesPattern')->once()->withNoArgs()->andReturn('#.*#i');
+        $this->config->shouldReceive('queriesIncludePattern')->once()->withNoArgs()->andReturn('#.*#i');
+        $this->config->shouldReceive('queriesExcludePattern')->once()->withNoArgs()->andReturn('/^$/');
         $this->config->shouldReceive('logDirectory')->times(3)->withNoArgs()->andReturn($this->directory);
         $this->config->shouldReceive('queriesOverrideLog')->once()->withNoArgs()->andReturn(false);
         $this->config->shouldReceive('queriesMinExecTime')->once()->withNoArgs()->andReturn(0);
@@ -127,7 +128,8 @@ class WriterTest extends UnitTestCase
         $this->formatter->shouldReceive('getLine')->once()->with($query)->andReturn($lineContent);
         $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('-- header');
         $this->config->shouldReceive('queriesEnabled')->once()->withNoArgs()->andReturn(true);
-        $this->config->shouldReceive('queriesPattern')->once()->withNoArgs()->andReturn('#.*#i');
+        $this->config->shouldReceive('queriesIncludePattern')->once()->withNoArgs()->andReturn('#.*#i');
+        $this->config->shouldReceive('queriesExcludePattern')->once()->withNoArgs()->andReturn('/^$/');
         $this->config->shouldReceive('logDirectory')->times(3)->withNoArgs()->andReturn($this->directory);
         $this->config->shouldReceive('queriesOverrideLog')->once()->withNoArgs()->andReturn(false);
         $this->config->shouldReceive('queriesMinExecTime')->once()->withNoArgs()->andReturn(0);
@@ -154,7 +156,8 @@ class WriterTest extends UnitTestCase
         $this->formatter->shouldReceive('getLine')->once()->with($query)->andReturn($lineContent);
         $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('-- header');
         $this->config->shouldReceive('queriesEnabled')->once()->withNoArgs()->andReturn(true);
-        $this->config->shouldReceive('queriesPattern')->once()->withNoArgs()->andReturn('#.*#i');
+        $this->config->shouldReceive('queriesIncludePattern')->once()->withNoArgs()->andReturn('#.*#i');
+        $this->config->shouldReceive('queriesExcludePattern')->once()->withNoArgs()->andReturn('/^$/');
         $this->config->shouldReceive('logDirectory')->times(3)->withNoArgs()->andReturn($this->directory);
         $this->config->shouldReceive('queriesOverrideLog')->once()->withNoArgs()->andReturn(true);
         $this->config->shouldReceive('queriesMinExecTime')->once()->withNoArgs()->andReturn(0);
@@ -182,7 +185,8 @@ class WriterTest extends UnitTestCase
         $this->formatter->shouldReceive('getLine')->twice()->andReturn($lineContent);
         $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('-- header');
         $this->config->shouldReceive('queriesEnabled')->twice()->withNoArgs()->andReturn(true);
-        $this->config->shouldReceive('queriesPattern')->twice()->withNoArgs()->andReturn('#.*#i');
+        $this->config->shouldReceive('queriesIncludePattern')->twice()->withNoArgs()->andReturn('#.*#i');
+        $this->config->shouldReceive('queriesExcludePattern')->twice()->withNoArgs()->andReturn('/^$/');
         $this->config->shouldReceive('logDirectory')->times(4)->withNoArgs()->andReturn($this->directory);
         $this->config->shouldReceive('queriesOverrideLog')->once()->withNoArgs()->andReturn(true);
         $this->config->shouldReceive('queriesMinExecTime')->twice()->withNoArgs()->andReturn(0);
@@ -206,7 +210,8 @@ class WriterTest extends UnitTestCase
         $this->formatter->shouldReceive('getLine')->once()->with($query)->andReturn($lineContent);
         $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('');
         $this->config->shouldReceive('queriesEnabled')->once()->withNoArgs()->andReturn(true);
-        $this->config->shouldReceive('queriesPattern')->once()->withNoArgs()->andReturn('#^SELECT .*$#i');
+        $this->config->shouldReceive('queriesIncludePattern')->once()->withNoArgs()->andReturn('#^SELECT .*$#i');
+        $this->config->shouldReceive('queriesExcludePattern')->once()->withNoArgs()->andReturn('/^$/');
         $this->config->shouldReceive('logDirectory')->times(3)->withNoArgs()->andReturn($this->directory);
         $this->config->shouldReceive('queriesMinExecTime')->once()->withNoArgs()->andReturn(0);
         $this->filename->shouldReceive('getLogfile')->twice()->withNoArgs()->andReturn($expectedFileName);
@@ -224,7 +229,7 @@ class WriterTest extends UnitTestCase
     {
         $query = new SqlQuery(1, 'select * FROM test', [], 5.41);
         $this->config->shouldReceive('queriesEnabled')->once()->withNoArgs()->andReturn(true);
-        $this->config->shouldReceive('queriesPattern')->once()->withNoArgs()->andReturn('#^(?:UPDATE|INSERT) .*$#i');
+        $this->config->shouldReceive('queriesIncludePattern')->once()->withNoArgs()->andReturn('#^(?:UPDATE|INSERT) .*$#i');
         $this->config->shouldReceive('queriesMinExecTime')->once()->withNoArgs()->andReturn(0);
         $this->config->shouldReceive('logDirectory')->once()->withNoArgs()->andReturn($this->directory);
         $this->writer->save($query);
@@ -243,7 +248,8 @@ class WriterTest extends UnitTestCase
         $this->formatter->shouldReceive('getLine')->once()->with($query)->andReturn($lineContent);
         $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('');
         $this->config->shouldReceive('queriesEnabled')->once()->withNoArgs()->andReturn(true);
-        $this->config->shouldReceive('queriesPattern')->once()->withNoArgs()->andReturn('#^(?:UPDATE|INSERT) .*$#i');
+        $this->config->shouldReceive('queriesIncludePattern')->once()->withNoArgs()->andReturn('#^(?:UPDATE|INSERT) .*$#i');
+        $this->config->shouldReceive('queriesExcludePattern')->once()->withNoArgs()->andReturn('/^$/');
         $this->config->shouldReceive('logDirectory')->times(3)->withNoArgs()->andReturn($this->directory);
         $this->config->shouldReceive('queriesMinExecTime')->once()->withNoArgs()->andReturn(0);
         $this->filename->shouldReceive('getLogfile')->twice()->withNoArgs()->andReturn($expectedFileName);
@@ -267,7 +273,8 @@ class WriterTest extends UnitTestCase
         $this->formatter->shouldReceive('getLine')->once()->with($query)->andReturn($lineContent);
         $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('');
         $this->config->shouldReceive('queriesEnabled')->once()->withNoArgs()->andReturn(true);
-        $this->config->shouldReceive('queriesPattern')->once()->withNoArgs()->andReturn('#^(?:UPDATE test SET x = \? |INSERT ).*$#i');
+        $this->config->shouldReceive('queriesIncludePattern')->once()->withNoArgs()->andReturn('#^(?:UPDATE test SET x = \? |INSERT ).*$#i');
+        $this->config->shouldReceive('queriesExcludePattern')->once()->withNoArgs()->andReturn('/^$/');
         $this->config->shouldReceive('logDirectory')->times(3)->withNoArgs()->andReturn($this->directory);
         $this->filename->shouldReceive('getLogfile')->twice()->withNoArgs()->andReturn($expectedFileName);
         $this->config->shouldReceive('queriesMinExecTime')->once()->withNoArgs()->andReturn(0);

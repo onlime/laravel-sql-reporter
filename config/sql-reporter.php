@@ -83,7 +83,17 @@ return [
          * '/^SELECT.*$/i' will log only SELECT queries
          * '/^(?!SELECT).*$/i' will log all queries other than SELECT (modifying queries)
          */
-        'pattern' => env('SQL_REPORTER_QUERIES_PATTERN', '/.*/i'),
+        'include_pattern' => env('SQL_REPORTER_QUERIES_INCLUDE_PATTERN', '/.*/i'),
+
+        /*
+         * Pattern that should not be matched to log query. This limits the queries that were
+         * matched by 'include_pattern'. By default no queries are excluded.
+         *
+         * examples:
+         * '/^$/' don't exclude any queries
+         * '/^UPDATE.*last_visit/i' excludes UPDATE queries that modify `last_visit`
+         */
+        'exclude_pattern' => env('SQL_REPORTER_QUERIES_EXCLUDE_PATTERN', '/^$/'),
 
         /*
          * Only log queries with slow execution time (in milliseconds)
