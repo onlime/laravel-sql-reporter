@@ -31,9 +31,9 @@
         }
     },
     "autoload-dev": {
-      "psr-4": {
-        "Onlime\\LaravelSqlReporter\\Tests\\": "tests"
-      }
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
     },
     "extra": {
         "laravel": {

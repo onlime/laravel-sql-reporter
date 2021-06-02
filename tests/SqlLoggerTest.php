@@ -1,6 +1,6 @@
 <?php
 
-namespace Onlime\LaravelSqlReporter\Tests;
+namespace Tests;
 
 use Illuminate\Support\Facades\DB;
 use Mockery;

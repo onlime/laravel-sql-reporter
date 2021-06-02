@@ -1,6 +1,6 @@
 <?php
 
-namespace Onlime\LaravelSqlReporter\Tests;
+namespace Tests;
 
 use ArrayAccess;
 use Carbon\Carbon;
