@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests;
+namespace Tests\Unit;
 
 use Illuminate\Container\Container;
 use Illuminate\Database\DatabaseManager;
@@ -29,7 +29,7 @@ class EventServiceProviderTest extends UnitTestCase
 //        $app->shouldReceive('configFileLocation')->atLeast()->once()
 //            ->withNoArgs()->andReturn($baseDir . '/sql-reporter.php');
 
-        $configFile = realpath(__DIR__ . '/../config/sql-reporter.php');
+        $configFile = realpath(__DIR__ . '/../../config/sql-reporter.php');
         $provider->shouldReceive('mergeConfigFrom')->once()->with(
             $configFile,
             'sql-reporter'

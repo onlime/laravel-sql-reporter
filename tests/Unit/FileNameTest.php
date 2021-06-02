@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests;
+namespace Tests\Unit;
 
 use Carbon\Carbon;
 use Illuminate\Container\Container;

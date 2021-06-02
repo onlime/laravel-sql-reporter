@@ -13,8 +13,8 @@
         </report>
     </coverage>
     <testsuites>
-        <testsuite name="LaravelSqlReporter">
-            <directory suffix="Test.php">./tests</directory>
+        <testsuite name="Unit">
+            <directory suffix="Test.php">./tests/Unit</directory>
         </testsuite>
     </testsuites>
 </phpunit>

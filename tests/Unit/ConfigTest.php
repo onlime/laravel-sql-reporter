@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests;
+namespace Tests\Unit;
 
 use Illuminate\Contracts\Config\Repository;
 use Onlime\LaravelSqlReporter\Config;

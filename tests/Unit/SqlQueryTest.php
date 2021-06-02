@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests;
+namespace Tests\Unit;
 
 use Illuminate\Support\Carbon;
 use Onlime\LaravelSqlReporter\SqlQuery;
