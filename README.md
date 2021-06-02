@@ -4,7 +4,6 @@
 [![Packagist Downloads](https://img.shields.io/packagist/dt/onlime/laravel-sql-reporter.svg)](https://packagist.org/packages/onlime/laravel-sql-reporter)
 [![PHP from Packagist](https://img.shields.io/packagist/php-v/onlime/laravel-sql-reporter.svg)](https://packagist.org/packages/onlime/laravel-sql-reporter)
 [![Build Status](https://github.com/onlime/laravel-sql-reporter/actions/workflows/ci.yml/badge.svg)](https://github.com/onlime/laravel-sql-reporter/actions/workflows/ci.yml)
-[![Coverage Status](https://coveralls.io/repos/github/onlime/laravel-sql-reporter/badge.svg)](https://coveralls.io/github/onlime/laravel-sql-reporter)
 [![GitHub License](https://img.shields.io/github/license/onlime/laravel-sql-reporter.svg)](https://github.com/onlime/laravel-sql-reporter/blob/main/LICENSE)
 
 This module allows you to log SQL queries to log file in Laravel framework. It's useful mainly
@@ -22,7 +21,7 @@ It reports a lot of metadata like total query count, total execution time, origi
    ```
    in console to install this module (Notice `--dev` flag - it's recommended to use this package only for development). 
 
-   Laravel uses Package Auto-Discovery and it will automatically load this service provider so you don't need to add anything into the `providers` section of `config/app.php`.
+   Laravel uses package auto-discovery, and it will automatically load this service provider, so you don't need to add anything into the `providers` section of `config/app.php`.
     
 2. Run the following in your console to publish the default configuration file:
     
@@ -154,6 +153,7 @@ All changes are listed in [CHANGELOG](CHANGELOG.md)
 ## Todo
 
 - [ ] Improve unit testing to reach 100% coverage
+- [ ] Integrate Coveralls.io and add test coverage status badge to README
 - [ ] Add browser type information to log headers, using hisorange/browser-detect
 - [ ] Support for Lumen
 
