@@ -29,7 +29,7 @@ class SqlLogger
     {
         foreach (DB::getQueryLog() as $query) {
             $sqlQuery = new SqlQuery(++$this->queryNumber, $query['query'], $query['bindings'], $query['time']);
-            $this->writer->save($sqlQuery);
+            $this->writer->writeQuery($sqlQuery);
         }
     }
 }

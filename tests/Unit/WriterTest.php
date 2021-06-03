@@ -73,7 +73,7 @@ class WriterTest extends UnitTestCase
         $this->config->shouldReceive('queriesEnabled')->once()->withNoArgs()->andReturn(false);
         $this->config->shouldReceive('logDirectory')->once()->withNoArgs()->andReturn($this->directory);
         $this->assertFileDoesNotExist($this->directory);
-        $this->writer->save($query);
+        $this->writer->writeQuery($query);
         $this->assertFileExists($this->directory);
         $this->assertEmpty($this->filesystem->allFiles($this->directory));
     }
@@ -85,7 +85,7 @@ class WriterTest extends UnitTestCase
         $this->config->shouldReceive('queriesEnabled')->once()->withNoArgs()->andReturn(false);
         $this->config->shouldNotReceive('logDirectory');
         $this->assertFileDoesNotExist($this->directory);
-        $this->writer->save($query);
+        $this->writer->writeQuery($query);
         $this->assertFileDoesNotExist($this->directory);
     }
 
@@ -106,7 +106,7 @@ class WriterTest extends UnitTestCase
         $this->config->shouldReceive('queriesOverrideLog')->once()->withNoArgs()->andReturn(false);
         $this->config->shouldReceive('queriesMinExecTime')->once()->withNoArgs()->andReturn(0);
         $this->filename->shouldReceive('getLogfile')->times(2)->withNoArgs()->andReturn($expectedFileName);
-        $this->writer->save($query);
+        $this->writer->writeQuery($query);
         $this->assertFileExists($this->directory);
         $this->assertCount(1, $this->filesystem->allFiles($this->directory));
         $this->assertFileExists($this->directory . '/' . $expectedFileName);
@@ -135,7 +135,7 @@ class WriterTest extends UnitTestCase
         $this->config->shouldReceive('queriesMinExecTime')->once()->withNoArgs()->andReturn(0);
         $this->filename->shouldReceive('getLogfile')->times(2)->withNoArgs()->andReturn($expectedFileName);
         $this->assertFileExists($this->directory . '/' . $expectedFileName);
-        $this->writer->save($query);
+        $this->writer->writeQuery($query);
         $this->assertCount(1, $this->filesystem->allFiles($this->directory));
         $this->assertFileExists($this->directory . '/' . $expectedFileName);
         $this->assertSame($expectedContent, file_get_contents($this->directory . '/' . $expectedFileName));
@@ -163,7 +163,7 @@ class WriterTest extends UnitTestCase
         $this->config->shouldReceive('queriesMinExecTime')->once()->withNoArgs()->andReturn(0);
         $this->filename->shouldReceive('getLogfile')->times(2)->withNoArgs()->andReturn($expectedFileName);
         $this->assertFileExists($this->directory . '/' . $expectedFileName);
-        $this->writer->save($query);
+        $this->writer->writeQuery($query);
         $this->assertCount(1, $this->filesystem->allFiles($this->directory));
         $this->assertFileExists($this->directory . '/' . $expectedFileName);
         $this->assertSame($expectedContent, file_get_contents($this->directory . '/' . $expectedFileName));
@@ -192,8 +192,8 @@ class WriterTest extends UnitTestCase
         $this->config->shouldReceive('queriesMinExecTime')->twice()->withNoArgs()->andReturn(0);
         $this->filename->shouldReceive('getLogfile')->times(3)->withNoArgs()->andReturn($expectedFileName);
         $this->assertFileExists($this->directory . '/' . $expectedFileName);
-        $this->writer->save($query1);
-        $this->writer->save($query2);
+        $this->writer->writeQuery($query1);
+        $this->writer->writeQuery($query2);
         $this->assertCount(1, $this->filesystem->allFiles($this->directory));
         $this->assertFileExists($this->directory . '/' . $expectedFileName);
         $this->assertSame($expectedContent, file_get_contents($this->directory . '/' . $expectedFileName));
@@ -216,7 +216,7 @@ class WriterTest extends UnitTestCase
         $this->config->shouldReceive('queriesMinExecTime')->once()->withNoArgs()->andReturn(0);
         $this->filename->shouldReceive('getLogfile')->twice()->withNoArgs()->andReturn($expectedFileName);
         $this->config->shouldReceive('queriesOverrideLog')->once()->withNoArgs()->andReturn(false);
-        $this->writer->save($query);
+        $this->writer->writeQuery($query);
         $this->assertFileExists($this->directory);
         $this->assertCount(1, $this->filesystem->allFiles($this->directory));
 
@@ -232,7 +232,7 @@ class WriterTest extends UnitTestCase
         $this->config->shouldReceive('queriesIncludePattern')->once()->withNoArgs()->andReturn('#^(?:UPDATE|INSERT) .*$#i');
         $this->config->shouldReceive('queriesMinExecTime')->once()->withNoArgs()->andReturn(0);
         $this->config->shouldReceive('logDirectory')->once()->withNoArgs()->andReturn($this->directory);
-        $this->writer->save($query);
+        $this->writer->writeQuery($query);
         $this->assertFileExists($this->directory);
         $this->assertCount(0, $this->filesystem->allFiles($this->directory));
     }
@@ -254,7 +254,7 @@ class WriterTest extends UnitTestCase
         $this->config->shouldReceive('queriesMinExecTime')->once()->withNoArgs()->andReturn(0);
         $this->filename->shouldReceive('getLogfile')->twice()->withNoArgs()->andReturn($expectedFileName);
         $this->config->shouldReceive('queriesOverrideLog')->once()->withNoArgs()->andReturn(false);
-        $this->writer->save($query);
+        $this->writer->writeQuery($query);
         $this->assertFileExists($this->directory);
         $this->assertCount(1, $this->filesystem->allFiles($this->directory));
 
@@ -279,11 +279,61 @@ class WriterTest extends UnitTestCase
         $this->filename->shouldReceive('getLogfile')->twice()->withNoArgs()->andReturn($expectedFileName);
         $this->config->shouldReceive('queriesMinExecTime')->once()->withNoArgs()->andReturn(0);
         $this->config->shouldReceive('queriesOverrideLog')->once()->withNoArgs()->andReturn(false);
-        $this->writer->save($query);
+        $this->writer->writeQuery($query);
         $this->assertFileExists($this->directory);
         $this->assertCount(1, $this->filesystem->allFiles($this->directory));
 
         $this->assertFileExists($this->directory . '/' . $expectedFileName);
         $this->assertSame($expectedContent, file_get_contents($this->directory . '/' . $expectedFileName));
+    }
+
+    /** @test */
+    public function it_only_logs_slow_queries()
+    {
+        $query1 = new SqlQuery(1, 'test1', [], 5.41);
+        $query2 = new SqlQuery(2, 'test2', [], 500.5);
+
+        $this->config->shouldReceive('queriesEnabled')->twice()->withNoArgs()->andReturn(true);
+        $this->config->shouldReceive('logDirectory')->once()->withNoArgs()->andReturn($this->directory);
+        $this->config->shouldReceive('queriesMinExecTime')->twice()->withNoArgs()->andReturn(500);
+        $this->config->shouldReceive('queriesIncludePattern')->once()->withNoArgs()->andReturn('/.*/i');
+        $this->config->shouldReceive('queriesExcludePattern')->once()->withNoArgs()->andReturn('/^$/');
+        $this->config->shouldReceive('queriesOverrideLog')->once()->withNoArgs()->andReturn(false);
+
+        $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('');
+        $this->formatter->shouldReceive('getLine')->once()->with($query2)->andReturn('');
+
+        $writer = Mockery::mock(Writer::class, [$this->formatter, $this->config, $this->filename])
+            ->makePartial()->shouldAllowMockingProtectedMethods();
+        $writer->shouldReceive('writeLine')->twice()->andReturn(false);
+
+        $this->assertFalse($writer->writeQuery($query1));
+        $this->assertTrue($writer->writeQuery($query2));
+    }
+
+    /** @test */
+    public function it_respects_query_patterns()
+    {
+        $query1 = new SqlQuery(1, 'select foo from bar', [], 5.41);
+        $query2 = new SqlQuery(2, 'update bar set foo = ?', [1], 3.55);
+        $query3 = new SqlQuery(3, 'update bar set last_visit = ?', ['2021-06-03 10:26:00'], 3.22);
+
+        $this->config->shouldReceive('queriesEnabled')->times(3)->withNoArgs()->andReturn(true);
+        $this->config->shouldReceive('logDirectory')->once()->withNoArgs()->andReturn($this->directory);
+        $this->config->shouldReceive('queriesMinExecTime')->times(3)->withNoArgs()->andReturn(0);
+        $this->config->shouldReceive('queriesIncludePattern')->times(3)->withNoArgs()->andReturn('/^(?!SELECT).*$/i');
+        $this->config->shouldReceive('queriesExcludePattern')->twice()->withNoArgs()->andReturn('/^UPDATE.*last_visit/i');
+        $this->config->shouldReceive('queriesOverrideLog')->once()->withNoArgs()->andReturn(false);
+
+        $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('');
+        $this->formatter->shouldReceive('getLine')->once()->with($query2)->andReturn('');
+
+        $writer = Mockery::mock(Writer::class, [$this->formatter, $this->config, $this->filename])
+            ->makePartial()->shouldAllowMockingProtectedMethods();
+        $writer->shouldReceive('writeLine')->twice()->andReturn(false);
+
+        $this->assertFalse($writer->writeQuery($query1));
+        $this->assertTrue($writer->writeQuery($query2));
+        $this->assertFalse($writer->writeQuery($query3));
     }
 }

@@ -26,39 +26,44 @@ class Writer
     ) {}
 
     /**
-     * Save queries to log.
+     * Write a query to log.
      *
      * @param SqlQuery $query
+     * @return bool true if query was written to log, false if skipped
      */
-    public function save(SqlQuery $query)
+    public function writeQuery(SqlQuery $query): bool
     {
         $this->createDirectoryIfNotExists($query->number());
 
         if ($this->shouldLogQuery($query)) {
             if (0 === $this->logCount) {
                 // only write header information on first query to be logged
-                $this->saveLine(
+                $this->writeLine(
                     $this->formatter->getHeader(),
                     $this->config->queriesOverrideLog()
                 );
             }
-            $this->saveLine(
+            $this->writeLine(
                 $this->formatter->getLine($query)
             );
             $this->logCount++;
+            return true;
         }
+        return false;
     }
 
     /**
      * Create directory if it does not exist yet.
      *
      * @param int $queryNumber
+     * @return bool true on successful directory creation
      */
-    protected function createDirectoryIfNotExists(int $queryNumber)
+    protected function createDirectoryIfNotExists(int $queryNumber): bool
     {
         if ($queryNumber == 1 && ! file_exists($directory = $this->directory())) {
-            mkdir($directory, 0777, true);
+            return mkdir($directory, 0777, true);
         }
+        return false;
     }
 
     /**
@@ -66,7 +71,7 @@ class Writer
      *
      * @return string
      */
-    protected function directory()
+    protected function directory(): string
     {
         return rtrim($this->config->logDirectory(), '\\/');
     }
@@ -75,10 +80,9 @@ class Writer
      * Verify whether query should be logged.
      *
      * @param SqlQuery $query
-     *
      * @return bool
      */
-    protected function shouldLogQuery(SqlQuery $query)
+    protected function shouldLogQuery(SqlQuery $query): bool
     {
         return $this->config->queriesEnabled() &&
             $query->time() >= $this->config->queriesMinExecTime() &&
@@ -87,14 +91,15 @@ class Writer
     }
 
     /**
-     * Save data to log file.
+     * Write data to log file.
      *
      * @param string $line
      * @param bool $override
+     * @return int|false the number of bytes that were written to the file, or false on failure.
      */
-    protected function saveLine(string $line, bool $override = false)
+    protected function writeLine(string $line, bool $override = false): int|false
     {
-        file_put_contents(
+        return file_put_contents(
             $this->directory() . DIRECTORY_SEPARATOR . $this->fileName->getLogfile(),
             $line . PHP_EOL,
             $override ? 0 : FILE_APPEND
