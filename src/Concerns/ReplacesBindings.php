@@ -14,7 +14,7 @@ trait ReplacesBindings
      *
      * @return string
      */
-    protected function replaceBindings($sql, array $bindings)
+    protected function replaceBindings(string $sql, array $bindings): string
     {
         $generalRegex = $this->getRegex();
 
@@ -53,7 +53,7 @@ trait ReplacesBindings
      *
      * @return string
      */
-    protected function getNamedParameterRegex($name)
+    protected function getNamedParameterRegex($name): string
     {
         if (mb_substr($name, 0, 1) == ':') {
             $name = mb_substr($name, 1);

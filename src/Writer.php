@@ -7,18 +7,9 @@ class Writer
     /**
      * Log record counter.
      * This is only used to count queries that are actually logged.
-     *
-     * @var int
      */
     private int $logCount = 0;
 
-    /**
-     * Writer constructor.
-     *
-     * @param Formatter $formatter
-     * @param Config $config
-     * @param FileName $fileName
-     */
     public function __construct(
         private Formatter $formatter,
         private Config $config,
@@ -68,8 +59,6 @@ class Writer
 
     /**
      * Get directory where file should be located.
-     *
-     * @return string
      */
     protected function directory(): string
     {
@@ -78,9 +67,6 @@ class Writer
 
     /**
      * Verify whether query should be logged.
-     *
-     * @param SqlQuery $query
-     * @return bool
      */
     protected function shouldLogQuery(SqlQuery $query): bool
     {

@@ -5,7 +5,6 @@ namespace Onlime\LaravelSqlReporter;
 use Carbon\Carbon;
 use Illuminate\Container\Container;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Request;
@@ -29,11 +28,8 @@ class Formatter
 
     /**
      * Get formatted single query line(s).
-     *
-     * @param SqlQuery $query
-     * @return string
      */
-    public function getLine(SqlQuery $query)
+    public function getLine(SqlQuery $query): string
     {
         $replace = [
             '[query_nr]'   => $query->number(),
@@ -48,10 +44,8 @@ class Formatter
 
     /**
      * Get formatted header lines.
-     *
-     * @return string
      */
-    public function getHeader()
+    public function getHeader(): string
     {
         $headerFields = $this->config->headerFields();
         if (empty($headerFields)) {
@@ -97,21 +91,16 @@ class Formatter
 
     /**
      * Format time.
-     *
-     * @param float $time
-     * @return string
      */
-    protected function time($time)
+    protected function time(float $time): string
     {
         return $this->config->useSeconds() ? ($time / 1000.0) . 's' : $time . 'ms';
     }
 
     /**
      * Get origin line.
-     *
-     * @return string
      */
-    protected function originLine()
+    protected function originLine(): string
     {
         return $this->app->runningInConsole()
                 ? '(console) ' . $this->getArtisanLine()
@@ -120,21 +109,16 @@ class Formatter
 
     /**
      * Get query line.
-     *
-     * @param SqlQuery $query
-     * @return string
      */
-    protected function getQueryLine(SqlQuery $query)
+    protected function getQueryLine(SqlQuery $query): string
     {
         return $query->get() . ';';
     }
 
     /**
      * Get Artisan line.
-     *
-     * @return string
      */
-    protected function getArtisanLine()
+    protected function getArtisanLine(): string
     {
         $command = $this->app['request']->server('argv', []);
 
@@ -147,20 +131,16 @@ class Formatter
 
     /**
      * Get request line.
-     *
-     * @return string
      */
-    protected function getRequestLine()
+    protected function getRequestLine(): string
     {
         return $this->app['request']->method() . ' ' . $this->app['request']->fullUrl();
     }
 
     /**
      * Get separator line.
-     *
-     * @return string
      */
-    protected function separatorLine()
+    protected function separatorLine(): string
     {
         return '-- ' . str_repeat('-', 50);
     }

@@ -21,7 +21,7 @@ class FileName
     /**
      * Create file name for query log.
      */
-    public function getLogfile()
+    public function getLogfile(): string
     {
         return
             $this->parseFileName($this->config->queriesFileName()) .
@@ -31,22 +31,16 @@ class FileName
 
     /**
      * Get file suffix.
-     *
-     * @return string
      */
-    protected function suffix()
+    protected function suffix(): string
     {
         return $this->app->runningInConsole() ? $this->config->consoleSuffix() : '';
     }
 
     /**
      * Parse file name to include date in it.
-     *
-     * @param string $fileName
-     *
-     * @return string
      */
-    protected function parseFileName($fileName)
+    protected function parseFileName(string $fileName): string
     {
         return preg_replace_callback('#(\[.*\])#U', function ($matches) {
             $format = str_replace(['[',']'], [], $matches[1]);

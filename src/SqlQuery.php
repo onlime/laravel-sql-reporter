@@ -8,14 +8,6 @@ class SqlQuery
 {
     use ReplacesBindings;
 
-    /**
-     * SqlQuery constructor.
-     *
-     * @param int $number
-     * @param string $sql
-     * @param array $bindings
-     * @param float $time
-     */
     public function __construct(
         private int $number,
         private string $sql,
@@ -25,50 +17,40 @@ class SqlQuery
 
     /**
      * Get query number.
-     *
-     * @return int
      */
-    public function number()
+    public function number(): int
     {
         return $this->number;
     }
 
     /**
      * Get raw SQL (without bindings).
-     *
-     * @return string
      */
-    public function raw()
+    public function raw(): string
     {
         return $this->sql;
     }
 
     /**
      * Get bindings.
-     *
-     * @return array
      */
-    public function bindings()
+    public function bindings(): array
     {
         return $this->bindings;
     }
 
     /**
      * Get query execution time.
-     *
-     * @return float
      */
-    public function time()
+    public function time(): float
     {
         return $this->time;
     }
 
     /**
      * Get full query with values from bindings inserted.
-     *
-     * @return string
      */
-    public function get()
+    public function get(): string
     {
         return $this->replaceBindings($this->sql, $this->bindings);
     }

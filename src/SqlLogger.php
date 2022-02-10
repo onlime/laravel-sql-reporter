@@ -8,8 +8,6 @@ class SqlLogger
 {
     /**
      * Number of executed queries.
-     *
-     * @var int
      */
     private int $queryNumber = 0;
 

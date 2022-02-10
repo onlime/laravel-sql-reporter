@@ -3,6 +3,7 @@
 namespace Onlime\LaravelSqlReporter\Listeners;
 
 use Illuminate\Console\Events\CommandFinished;
+use Illuminate\Events\Dispatcher;
 use Illuminate\Foundation\Http\Events\RequestHandled;
 use Onlime\LaravelSqlReporter\SqlLogger;
 
@@ -20,10 +21,10 @@ class SqlQueryLogSubscriber
     /**
      * Register the listeners for the subscriber.
      *
-     * @param \Illuminate\Events\Dispatcher $events
+     * @param Dispatcher $events
      * @return void
      */
-    public function subscribe($events)
+    public function subscribe(Dispatcher $events)
     {
         $events->listen(
             [
@@ -36,9 +37,6 @@ class SqlQueryLogSubscriber
 
     /**
      * Handle the event.
-     *
-     * @param  object  $event
-     * @return void
      */
     public function handle($event)
     {

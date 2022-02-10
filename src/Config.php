@@ -8,15 +8,13 @@ class Config
 {
     /**
      * Config constructor.
-     *
-     * @param ConfigRepository $repository
      */
-    public function __construct(protected ConfigRepository $repository) {}
+    public function __construct(
+        protected ConfigRepository $repository
+    ) {}
 
     /**
      * Get directory where log files should be saved.
-     *
-     * @return string
      */
     public function logDirectory(): string
     {
@@ -25,28 +23,22 @@ class Config
 
     /**
      * Whether query execution time should be converted to seconds.
-     *
-     * @return bool
      */
     public function useSeconds(): bool
     {
-        return (bool) $this->repository->get('sql-reporter.general.use_seconds');
+        return (bool)$this->repository->get('sql-reporter.general.use_seconds');
     }
 
     /**
      * Get suffix for console logs.
-     *
-     * @return string
      */
     public function consoleSuffix(): string
     {
-        return (string) $this->repository->get('sql-reporter.general.console_log_suffix');
+        return (string)$this->repository->get('sql-reporter.general.console_log_suffix');
     }
 
     /**
      * Get file extension for logs.
-     *
-     * @return string
      */
     public function fileExtension(): string
     {
@@ -55,18 +47,14 @@ class Config
 
     /**
      * Whether all queries should be logged.
-     *
-     * @return bool
      */
     public function queriesEnabled(): bool
     {
-        return (bool) $this->repository->get('sql-reporter.queries.enabled');
+        return (bool)$this->repository->get('sql-reporter.queries.enabled');
     }
 
     /**
      * Minimum execution time (in milliseconds) for queries to be logged.
-     *
-     * @return float
      */
     public function queriesMinExecTime(): float
     {
@@ -75,18 +63,14 @@ class Config
 
     /**
      * Whether SQL log should be overridden for each request.
-     *
-     * @return bool
      */
     public function queriesOverrideLog(): bool
     {
-        return (bool) $this->repository->get('sql-reporter.queries.override_log');
+        return (bool)$this->repository->get('sql-reporter.queries.override_log');
     }
 
     /**
      * Get include pattern for queries.
-     *
-     * @return string
      */
     public function queriesIncludePattern(): string
     {
@@ -95,8 +79,6 @@ class Config
 
     /**
      * Get exclude pattern for queries.
-     *
-     * @return string
      */
     public function queriesExcludePattern(): string
     {
@@ -105,8 +87,6 @@ class Config
 
     /**
      * Get file name (without extension) for all queries.
-     *
-     * @return string
      */
     public function queriesFileName(): string
     {
@@ -115,8 +95,6 @@ class Config
 
     /**
      * Get header fields that should be printed in header before query loglines.
-     *
-     * @return array
      */
     public function headerFields(): array
     {
@@ -125,8 +103,6 @@ class Config
 
     /**
      * Get query format that should be used to save query.
-     *
-     * @return string
      */
     public function entryFormat(): string
     {
