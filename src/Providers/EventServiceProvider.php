@@ -24,7 +24,7 @@ class EventServiceProvider extends ServiceProvider
     protected $config;
 
     /**
-     * {@inheritdoc}
+     * @inheritdoc
      */
     public function register()
     {
@@ -39,7 +39,7 @@ class EventServiceProvider extends ServiceProvider
     }
 
     /**
-     * {@inheritdoc}
+     * @inheritdoc
      */
     public function boot()
     {

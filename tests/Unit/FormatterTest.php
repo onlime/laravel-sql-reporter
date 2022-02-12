@@ -2,7 +2,6 @@
 
 namespace Tests\Unit;
 
-use ArrayAccess;
 use Carbon\Carbon;
 use Illuminate\Container\Container;
 use Illuminate\Http\Request;
@@ -19,7 +18,7 @@ class FormatterTest extends UnitTestCase
     public function it_formats_header_in_valid_way_when_running_via_http()
     {
         $config = Mockery::mock(Config::class);
-        $app = Mockery::mock(Container::class, ArrayAccess::class);
+        $app = Mockery::mock(Container::class);
         $app->shouldReceive('runningInConsole')->once()->withNoArgs()->andReturn(false);
         $app->shouldReceive('environment')->once()->withNoArgs()->andReturn('testing');
         $config->shouldReceive('useSeconds')->once()->withNoArgs()->andReturn(false);
@@ -67,7 +66,7 @@ EOT;
     public function it_formats_header_in_valid_way_when_running_in_console()
     {
         $config = Mockery::mock(Config::class);
-        $app = Mockery::mock(Container::class, ArrayAccess::class);
+        $app = Mockery::mock(Container::class);
         $app->shouldReceive('runningInConsole')->once()->withNoArgs()->andReturn(true);
         $app->shouldReceive('environment')->once()->withNoArgs()->andReturn('testing');
         $config->shouldReceive('useSeconds')->once()->withNoArgs()->andReturn(false);
@@ -110,7 +109,7 @@ EOT;
     public function it_formats_line_in_valid_way_when_milliseconds_are_used()
     {
         $config = Mockery::mock(Config::class);
-        $app = Mockery::mock(Container::class, ArrayAccess::class);
+        $app = Mockery::mock(Container::class);
         $config->shouldReceive('useSeconds')->once()->withNoArgs()->andReturn(false);
         $config->shouldReceive('entryFormat')->once()->withNoArgs()
             ->andReturn('/* Query [query_nr] - [datetime] [[query_time]] */\n[query]\n[separator]\n');
@@ -143,7 +142,7 @@ EOT;
     public function it_formats_line_in_valid_way_when_custom_entry_format_was_used()
     {
         $config = Mockery::mock(Config::class);
-        $app = Mockery::mock(Container::class, ArrayAccess::class);
+        $app = Mockery::mock(Container::class);
         $config->shouldReceive('useSeconds')->once()->withNoArgs()->andReturn(false);
         $config->shouldReceive('entryFormat')->once()->withNoArgs()
             ->andReturn("[separator]\n[query_nr] : [datetime] [query_time]\n[query]\n[separator]\n");
@@ -177,7 +176,7 @@ EOT;
     public function it_formats_line_in_valid_way_when_seconds_are_used()
     {
         $config = Mockery::mock(Config::class);
-        $app = Mockery::mock(Container::class, ArrayAccess::class);
+        $app = Mockery::mock(Container::class);
         $config->shouldReceive('useSeconds')->once()->withNoArgs()->andReturn(true);
         $config->shouldReceive('entryFormat')->once()->withNoArgs()
             ->andReturn('/* Query [query_nr] - [datetime] [[query_time]] */\n[query]\n[separator]\n');

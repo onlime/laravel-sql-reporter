@@ -3,7 +3,6 @@
 namespace Tests\Unit;
 
 use Illuminate\Container\Container;
-use Illuminate\Database\DatabaseManager;
 use Onlime\LaravelSqlReporter\Config;
 use Onlime\LaravelSqlReporter\Providers\EventServiceProvider;
 use Onlime\LaravelSqlReporter\SqlLogger;
@@ -14,7 +13,7 @@ class EventServiceProviderTest extends UnitTestCase
     /** @test */
     public function it_merges_config_and_publishes_when_nothing_should_be_logged()
     {
-        $app = Mockery::mock(Container::class, \ArrayAccess::class);
+        $app = Mockery::mock(Container::class);
         Container::setInstance($app);
         $config = Mockery::mock(Config::class);
 
