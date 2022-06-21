@@ -191,4 +191,21 @@ EOF;
 
         $this->assertSame($expectedSql, $query->get());
     }
+
+    /** @test */
+    public function it_returns_valid_sql_query_object_when_bindings_are_null()
+    {
+        $number = 56;
+        $sql = 'SELECT * FROM everywhere WHERE user = ?';
+        $time = 516.32;
+
+        $query = new SqlQuery($number, $sql, null, $time);
+
+        $expectedSql = 'SELECT * FROM everywhere WHERE user = ?';
+
+        $this->assertSame($number, $query->number());
+        $this->assertSame($expectedSql, $query->get());
+        $this->assertSame([], $query->bindings());
+        $this->assertSame($time, $query->time());
+    }
 }

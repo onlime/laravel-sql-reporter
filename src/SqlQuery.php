@@ -11,7 +11,7 @@ class SqlQuery
     public function __construct(
         private int $number,
         private string $sql,
-        private array $bindings,
+        private ?array $bindings,
         private float $time
     ) {}
 
@@ -36,7 +36,7 @@ class SqlQuery
      */
     public function bindings(): array
     {
-        return $this->bindings;
+        return $this->bindings ?? [];
     }
 
     /**
@@ -52,6 +52,6 @@ class SqlQuery
      */
     public function get(): string
     {
-        return $this->replaceBindings($this->sql, $this->bindings);
+        return $this->replaceBindings($this->sql, $this->bindings());
     }
 }
