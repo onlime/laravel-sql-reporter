@@ -24,7 +24,8 @@ class Formatter
     public function __construct(
         private Container $app,
         private Config $config
-    ) {}
+    ) {
+    }
 
     /**
      * Get formatted single query line(s).
@@ -67,7 +68,7 @@ class Formatter
             'agent'    => Request::userAgent() ?? PHP_SAPI,
             'ip'       => $ip,
             'host'     => gethostbyaddr($ip),
-            'referer'  => Request::header('referer')
+            'referer'  => Request::header('referer'),
         ];
         $headers = Arr::only($data, $headerFields);
 

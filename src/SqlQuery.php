@@ -13,7 +13,8 @@ class SqlQuery
         private string $sql,
         private ?array $bindings,
         private float $time
-    ) {}
+    ) {
+    }
 
     /**
      * Get query number.

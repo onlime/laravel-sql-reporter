@@ -2,10 +2,10 @@
 
 namespace Onlime\LaravelSqlReporter\Providers;
 
+use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\DB;
 use Onlime\LaravelSqlReporter\Config;
 use Onlime\LaravelSqlReporter\Listeners\SqlQueryLogSubscriber;
-use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 
 class EventServiceProvider extends ServiceProvider
 {
@@ -24,7 +24,7 @@ class EventServiceProvider extends ServiceProvider
     protected $config;
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      */
     public function register()
     {
@@ -39,7 +39,7 @@ class EventServiceProvider extends ServiceProvider
     }
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      */
     public function boot()
     {

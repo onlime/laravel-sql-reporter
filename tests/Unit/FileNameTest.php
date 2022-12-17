@@ -4,9 +4,9 @@ namespace Tests\Unit;
 
 use Carbon\Carbon;
 use Illuminate\Container\Container;
+use Mockery;
 use Onlime\LaravelSqlReporter\Config;
 use Onlime\LaravelSqlReporter\FileName;
-use Mockery;
 
 class FileNameTest extends UnitTestCase
 {

@@ -42,7 +42,7 @@ class SqlQueryTest extends UnitTestCase
     /** @test */
     public function it_returns_valid_query_with_replaced_bindings()
     {
-        $sql = <<<EOF
+        $sql = <<<'EOF'
 SELECT * FROM tests WHERE a = ? AND CONCAT(?, '%'
  , ?) = ? AND column = ?
 EOF;
@@ -61,7 +61,7 @@ EOF;
     /** @test */
     public function it_returns_valid_query_with_replaced_bindings_for_immutable_date()
     {
-        $sql = <<<EOF
+        $sql = <<<'EOF'
 SELECT * FROM tests WHERE a = ? AND CONCAT(?, '%'
  , ?) = ? AND column = ?
 EOF;
@@ -96,7 +96,7 @@ EOF;
     /** @test */
     public function it_returns_valid_query_for_named_bindings()
     {
-        $sql = <<<EOF
+        $sql = <<<'EOF'
 SELECT * FROM tests WHERE a = ? AND b = :email AND c = ? AND D = :something AND true;
 EOF;
         $bindings = ["'test", 52, 'example', 53, 77];
@@ -112,13 +112,13 @@ EOF;
     /** @test */
     public function it_returns_valid_query_for_multiple_named_bindings_in_other_order()
     {
-        $sql = <<<EOF
+        $sql = <<<'EOF'
 SELECT * FROM tests WHERE a = :email AND b = :something AND c = :test AND true;
 EOF;
         $bindings = [':test' => 'other value', ':email' => 'test@example.com', ':something' => 'test'];
         $query = new SqlQuery(56, $sql, $bindings, 130);
 
-        $expectedSql = <<<EOF
+        $expectedSql = <<<'EOF'
 SELECT * FROM tests WHERE a = 'test@example.com' AND b = 'test' AND c = 'other value' AND true;
 EOF;
 
@@ -128,13 +128,13 @@ EOF;
     /** @test */
     public function it_returns_valid_query_when_empty_string_as_column_and_date_binding()
     {
-        $sql = <<<EOF
+        $sql = <<<'EOF'
 SELECT id, '' AS title FROM test WHERE created_at >= :from AND created_at <= :to
 EOF;
         $bindings = [':from' => '2018-03-19 21:01:01', ':to' => '2018-03-19 22:01:01'];
         $query = new SqlQuery(56, $sql, $bindings, 130);
 
-        $expectedSql = <<<EOF
+        $expectedSql = <<<'EOF'
 SELECT id, '' AS title FROM test WHERE created_at >= '2018-03-19 21:01:01' AND created_at <= '2018-03-19 22:01:01'
 EOF;
 
@@ -144,14 +144,14 @@ EOF;
     /** @test */
     public function it_handles_both_colon_and_non_colon_parameters()
     {
-        $sql = <<<EOF
+        $sql = <<<'EOF'
 SELECT * FROM tests WHERE a = :email AND b = :something;
 EOF;
         // one binding name stats with colon, other without it - both should work
         $bindings = [':email' => 'test@example.com', 'something' => 'test'];
         $query = new SqlQuery(56, $sql, $bindings, 130);
 
-        $expectedSql = <<<EOF
+        $expectedSql = <<<'EOF'
 SELECT * FROM tests WHERE a = 'test@example.com' AND b = 'test';
 EOF;
 
@@ -161,14 +161,14 @@ EOF;
     /** @test */
     public function it_leaves_null_values_not_changed()
     {
-        $sql = <<<EOF
+        $sql = <<<'EOF'
 UPDATE tests SET a = :email, b = :something WHERE id=:id;
 EOF;
 
         $bindings = [':email' => 'test@example.com', 'something' => null, 'id' => 5];
         $query = new SqlQuery(56, $sql, $bindings, 130);
 
-        $expectedSql = <<<EOF
+        $expectedSql = <<<'EOF'
 UPDATE tests SET a = 'test@example.com', b = null WHERE id=5;
 EOF;
 
@@ -178,14 +178,14 @@ EOF;
     /** @test */
     public function it_converts_booleans_to_int()
     {
-        $sql = <<<EOF
+        $sql = <<<'EOF'
 SELECT * FROM users WHERE archived = :archived AND active = :active;
 EOF;
 
         $bindings = [':archived' => true, ':active' => false];
         $query = new SqlQuery(56, $sql, $bindings, 130);
 
-        $expectedSql = <<<EOF
+        $expectedSql = <<<'EOF'
 SELECT * FROM users WHERE archived = 1 AND active = 0;
 EOF;
 

@@ -18,7 +18,8 @@ class SqlLogger
      */
     public function __construct(
         private Writer $writer
-    ) {}
+    ) {
+    }
 
     /**
      * Log queries

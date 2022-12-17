@@ -16,7 +16,8 @@ class FileName
     public function __construct(
         private Container $app,
         private Config $config
-    ) {}
+    ) {
+    }
 
     /**
      * Create file name for query log.
@@ -43,7 +44,7 @@ class FileName
     protected function parseFileName(string $fileName): string
     {
         return preg_replace_callback('#(\[.*\])#U', function ($matches) {
-            $format = str_replace(['[',']'], [], $matches[1]);
+            $format = str_replace(['[', ']'], [], $matches[1]);
             return Carbon::now()->format($format);
         }, $fileName);
     }

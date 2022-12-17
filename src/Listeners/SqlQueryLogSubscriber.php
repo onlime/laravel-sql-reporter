@@ -16,7 +16,8 @@ class SqlQueryLogSubscriber
      */
     public function __construct(
         private SqlLogger $logger,
-    ) {}
+    ) {
+    }
 
     /**
      * Register the listeners for the subscriber.

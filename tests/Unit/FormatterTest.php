@@ -7,10 +7,10 @@ use Illuminate\Container\Container;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Mockery;
 use Onlime\LaravelSqlReporter\Config;
 use Onlime\LaravelSqlReporter\Formatter;
 use Onlime\LaravelSqlReporter\SqlQuery;
-use Mockery;
 
 class FormatterTest extends UnitTestCase
 {

@@ -3,10 +3,10 @@
 namespace Tests\Unit;
 
 use Illuminate\Container\Container;
+use Mockery;
 use Onlime\LaravelSqlReporter\Config;
 use Onlime\LaravelSqlReporter\Providers\EventServiceProvider;
 use Onlime\LaravelSqlReporter\SqlLogger;
-use Mockery;
 
 class EventServiceProviderTest extends UnitTestCase
 {

@@ -4,12 +4,12 @@ namespace Tests\Unit;
 
 use Carbon\Carbon;
 use Illuminate\Filesystem\Filesystem;
+use Mockery;
 use Onlime\LaravelSqlReporter\Config;
 use Onlime\LaravelSqlReporter\FileName;
 use Onlime\LaravelSqlReporter\Formatter;
 use Onlime\LaravelSqlReporter\SqlQuery;
 use Onlime\LaravelSqlReporter\Writer;
-use Mockery;
 
 class WriterTest extends UnitTestCase
 {

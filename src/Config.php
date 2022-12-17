@@ -11,7 +11,8 @@ class Config
      */
     public function __construct(
         protected ConfigRepository $repository
-    ) {}
+    ) {
+    }
 
     /**
      * Get directory where log files should be saved.
@@ -26,7 +27,7 @@ class Config
      */
     public function useSeconds(): bool
     {
-        return (bool)$this->repository->get('sql-reporter.general.use_seconds');
+        return (bool) $this->repository->get('sql-reporter.general.use_seconds');
     }
 
     /**
@@ -34,7 +35,7 @@ class Config
      */
     public function consoleSuffix(): string
     {
-        return (string)$this->repository->get('sql-reporter.general.console_log_suffix');
+        return (string) $this->repository->get('sql-reporter.general.console_log_suffix');
     }
 
     /**
@@ -50,7 +51,7 @@ class Config
      */
     public function queriesEnabled(): bool
     {
-        return (bool)$this->repository->get('sql-reporter.queries.enabled');
+        return (bool) $this->repository->get('sql-reporter.queries.enabled');
     }
 
     /**
@@ -66,7 +67,7 @@ class Config
      */
     public function queriesOverrideLog(): bool
     {
-        return (bool)$this->repository->get('sql-reporter.queries.override_log');
+        return (bool) $this->repository->get('sql-reporter.queries.override_log');
     }
 
     /**

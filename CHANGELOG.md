@@ -3,6 +3,8 @@
 ## [1.0.x (Unreleased)](https://github.com/onlime/laravel-sql-reporter/compare/v1.0.0...main)
 
 - Allow bindings to be null.
+- Drop Laravel 8 / PHP 8.0 support
+- Integrated laravel/pint as dev requirement for PHP style fixing
 
 ## [v1.0.0 (2022-02-10)](https://github.com/onlime/laravel-sql-reporter/releases/tag/compare/v0.9.1...v1.0.0)
 

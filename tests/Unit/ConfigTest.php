@@ -3,8 +3,8 @@
 namespace Tests\Unit;
 
 use Illuminate\Contracts\Config\Repository;
-use Onlime\LaravelSqlReporter\Config;
 use Mockery;
+use Onlime\LaravelSqlReporter\Config;
 
 class ConfigTest extends UnitTestCase
 {
