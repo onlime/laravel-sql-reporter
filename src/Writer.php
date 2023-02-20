@@ -20,7 +20,6 @@ class Writer
     /**
      * Write a query to log.
      *
-     * @param SqlQuery $query
      * @return bool true if query was written to log, false if skipped
      */
     public function writeQuery(SqlQuery $query): bool
@@ -47,7 +46,6 @@ class Writer
     /**
      * Create directory if it does not exist yet.
      *
-     * @param int $queryNumber
      * @return bool true on successful directory creation
      */
     protected function createDirectoryIfNotExists(int $queryNumber): bool
@@ -80,8 +78,6 @@ class Writer
     /**
      * Write data to log file.
      *
-     * @param string $line
-     * @param bool $override
      * @return int|false the number of bytes that were written to the file, or false on failure.
      */
     protected function writeLine(string $line, bool $override = false): int|false

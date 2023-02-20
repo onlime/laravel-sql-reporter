@@ -17,9 +17,6 @@ class Formatter
 
     /**
      * Formatter constructor.
-     *
-     * @param Container $app
-     * @param Config $config
      */
     public function __construct(
         private Container $app,

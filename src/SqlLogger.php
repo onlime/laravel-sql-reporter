@@ -13,8 +13,6 @@ class SqlLogger
 
     /**
      * SqlLogger constructor.
-     *
-     * @param Writer $writer
      */
     public function __construct(
         private Writer $writer

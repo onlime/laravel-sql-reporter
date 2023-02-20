@@ -8,11 +8,6 @@ trait ReplacesBindings
 {
     /**
      * Replace bindings.
-     *
-     * @param string $sql
-     * @param array $bindings
-     *
-     * @return string
      */
     protected function replaceBindings(string $sql, array $bindings): string
     {
@@ -50,8 +45,6 @@ trait ReplacesBindings
      * Get regex to be used for named parameter with given name.
      *
      * @param string $name
-     *
-     * @return string
      */
     protected function getNamedParameterRegex($name): string
     {
