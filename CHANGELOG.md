@@ -1,6 +1,10 @@
 # CHANGELOG
 
-## [1.0.x (Unreleased)](https://github.com/onlime/laravel-sql-reporter/compare/v1.0.0...main)
+## [1.0.x (Unreleased)](https://github.com/onlime/laravel-sql-reporter/compare/v1.0.1...main)
+
+- ...
+
+## [1.0.1 (2023-02-26)](https://github.com/onlime/laravel-sql-reporter/compare/v1.0.0...v1.0.1)
 
 - Allow bindings to be null.
 - Drop Laravel 8 / PHP 8.0 support
