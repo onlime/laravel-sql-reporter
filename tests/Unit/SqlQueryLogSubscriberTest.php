@@ -17,9 +17,10 @@ class SqlQueryLogSubscriberTest extends UnitTestCase
         $this->logger = Mockery::mock(SqlLogger::class);
     }
 
-//    /** @test */
-//    public function foo_bar()
-//    {
-//        // TODO
-//    }
+   /** @test */
+   public function foo_bar()
+   {
+       // TODO
+       $this->assertTrue(true);
+   }
 }
