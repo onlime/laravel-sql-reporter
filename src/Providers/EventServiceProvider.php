@@ -18,10 +18,7 @@ class EventServiceProvider extends ServiceProvider
         SqlQueryLogSubscriber::class,
     ];
 
-    /**
-     * @var Config
-     */
-    protected $config;
+    protected Config $config;
 
     /**
      * {@inheritdoc}

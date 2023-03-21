@@ -11,8 +11,6 @@ class SqlQueryLogSubscriber
 {
     /**
      * Create the event listener.
-     *
-     * @return void
      */
     public function __construct(
         private SqlLogger $logger,
@@ -21,24 +19,22 @@ class SqlQueryLogSubscriber
 
     /**
      * Register the listeners for the subscriber.
-     *
-     * @return void
      */
-    public function subscribe(Dispatcher $events)
+    public function subscribe(Dispatcher $events): void
     {
         $events->listen(
             [
                 RequestHandled::class,
                 CommandFinished::class,
             ],
-            [SqlQueryLogSubscriber::class, 'handle']
+            [self::class, 'handle']
         );
     }
 
     /**
      * Handle the event.
      */
-    public function handle($event)
+    public function handle($event): void
     {
         $this->logger->log();
     }
