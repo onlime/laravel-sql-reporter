@@ -1,8 +1,14 @@
 # CHANGELOG
 
-## [1.0.x (Unreleased)](https://github.com/onlime/laravel-sql-reporter/compare/v1.0.1...main)
+## [1.1.x (Unreleased)](https://github.com/onlime/laravel-sql-reporter/compare/v1.1.0...main)
 
 - ...
+
+## [1.1.0 (2023-07-14)](https://github.com/onlime/laravel-sql-reporter/compare/v1.0.1...v1.1.0)
+
+- Drop Laravel 9 support, require Laravel v10.15 or higher for the new `DB::getRawQueryLog()` support.
+- PHP code style fixes by `laravel/pint` v1.10, now using more strict style rules (`laravel` preset).
+- Refactored whole codebase from `DB::getQueryLog()` to use the new `DB::getRawQueryLog()` method, so `ReplacesBindings` is no longer needed.
 
 ## [1.0.1 (2023-02-26)](https://github.com/onlime/laravel-sql-reporter/compare/v1.0.0...v1.0.1)
 

@@ -16,7 +16,7 @@ class WriterTest extends UnitTestCase
     /**
      * @var Formatter|\Mockery\Mock
      */
-    private $formatter;
+    private  $formatter;
 
     /**
      * @var Config|\Mockery\Mock
@@ -69,7 +69,7 @@ class WriterTest extends UnitTestCase
     /** @test */
     public function it_creates_directory_if_it_does_not_exist_for_1st_query()
     {
-        $query = new SqlQuery(1, 'test', [], 5.41);
+        $query = new SqlQuery(1, 'test', 5.41);
         $this->config->shouldReceive('queriesEnabled')->once()->withNoArgs()->andReturn(false);
         $this->config->shouldReceive('logDirectory')->once()->withNoArgs()->andReturn($this->directory);
         $this->assertFileDoesNotExist($this->directory);
@@ -81,7 +81,7 @@ class WriterTest extends UnitTestCase
     /** @test */
     public function it_does_not_create_directory_if_it_does_not_exist_for_2nd_query()
     {
-        $query = new SqlQuery(2, 'test', [], 5.41);
+        $query = new SqlQuery(2, 'test', 5.41);
         $this->config->shouldReceive('queriesEnabled')->once()->withNoArgs()->andReturn(false);
         $this->config->shouldNotReceive('logDirectory');
         $this->assertFileDoesNotExist($this->directory);
@@ -96,7 +96,7 @@ class WriterTest extends UnitTestCase
         $expectedContent = "-- header\nSample log line\n";
         $expectedFileName = $this->now->format('Y-m').'-log.sql';
 
-        $query = new SqlQuery(1, 'test', [], 5.41);
+        $query = new SqlQuery(1, 'test', 5.41);
         $this->formatter->shouldReceive('getLine')->once()->with($query)->andReturn($lineContent);
         $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('-- header');
         $this->config->shouldReceive('queriesEnabled')->once()->withNoArgs()->andReturn(true);
@@ -124,7 +124,7 @@ class WriterTest extends UnitTestCase
         $lineContent = 'Sample log line';
         $expectedContent = $initialContent."-- header\nSample log line\n";
 
-        $query = new SqlQuery(1, 'test', [], 5.41);
+        $query = new SqlQuery(1, 'test', 5.41);
         $this->formatter->shouldReceive('getLine')->once()->with($query)->andReturn($lineContent);
         $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('-- header');
         $this->config->shouldReceive('queriesEnabled')->once()->withNoArgs()->andReturn(true);
@@ -152,7 +152,7 @@ class WriterTest extends UnitTestCase
         $lineContent = 'Sample log line';
         $expectedContent = "-- header\nSample log line\n";
 
-        $query = new SqlQuery(1, 'test', [], 5.41);
+        $query = new SqlQuery(1, 'test', 5.41);
         $this->formatter->shouldReceive('getLine')->once()->with($query)->andReturn($lineContent);
         $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('-- header');
         $this->config->shouldReceive('queriesEnabled')->once()->withNoArgs()->andReturn(true);
@@ -180,8 +180,8 @@ class WriterTest extends UnitTestCase
         $lineContent = 'Sample log line';
         $expectedContent = "-- header\n$lineContent\n$lineContent\n";
 
-        $query1 = new SqlQuery(1, 'test', [], 5.41);
-        $query2 = new SqlQuery(2, 'test', [], 5.41);
+        $query1 = new SqlQuery(1, 'test', 5.41);
+        $query2 = new SqlQuery(2, 'test', 5.41);
         $this->formatter->shouldReceive('getLine')->twice()->andReturn($lineContent);
         $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('-- header');
         $this->config->shouldReceive('queriesEnabled')->twice()->withNoArgs()->andReturn(true);
@@ -206,7 +206,7 @@ class WriterTest extends UnitTestCase
         $lineContent = 'Sample log line';
         $expectedContent = "\n$lineContent\n";
 
-        $query = new SqlQuery(1, 'select * FROM test', [], 5.41);
+        $query = new SqlQuery(1, 'select * FROM test', 5.41);
         $this->formatter->shouldReceive('getLine')->once()->with($query)->andReturn($lineContent);
         $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('');
         $this->config->shouldReceive('queriesEnabled')->once()->withNoArgs()->andReturn(true);
@@ -227,7 +227,7 @@ class WriterTest extends UnitTestCase
     /** @test */
     public function it_doesnt_save_select_query_to_file_when_pattern_set_to_insert_or_update_queries()
     {
-        $query = new SqlQuery(1, 'select * FROM test', [], 5.41);
+        $query = new SqlQuery(1, 'select * FROM test', 5.41);
         $this->config->shouldReceive('queriesEnabled')->once()->withNoArgs()->andReturn(true);
         $this->config->shouldReceive('queriesIncludePattern')->once()->withNoArgs()->andReturn('#^(?:UPDATE|INSERT) .*$#i');
         $this->config->shouldReceive('queriesMinExecTime')->once()->withNoArgs()->andReturn(0);
@@ -244,7 +244,7 @@ class WriterTest extends UnitTestCase
         $lineContent = 'Sample log line';
         $expectedContent = "\n$lineContent\n";
 
-        $query = new SqlQuery(1, 'INSERT INTO test(one, two, three) values(?, ?, ?)', [], 5.41);
+        $query = new SqlQuery(1, 'INSERT INTO test(one, two, three) values(?, ?, ?)', 5.41);
         $this->formatter->shouldReceive('getLine')->once()->with($query)->andReturn($lineContent);
         $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('');
         $this->config->shouldReceive('queriesEnabled')->once()->withNoArgs()->andReturn(true);
@@ -269,11 +269,11 @@ class WriterTest extends UnitTestCase
         $lineContent = 'Sample log line';
         $expectedContent = "\n$lineContent\n";
 
-        $query = new SqlQuery(1, 'UPDATE test SET x = ? WHERE id = ?', [2, 3], 5.41);
+        $query = new SqlQuery(1, 'UPDATE test SET x = 2 WHERE id = 3', 5.41);
         $this->formatter->shouldReceive('getLine')->once()->with($query)->andReturn($lineContent);
         $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('');
         $this->config->shouldReceive('queriesEnabled')->once()->withNoArgs()->andReturn(true);
-        $this->config->shouldReceive('queriesIncludePattern')->once()->withNoArgs()->andReturn('#^(?:UPDATE test SET x = \? |INSERT ).*$#i');
+        $this->config->shouldReceive('queriesIncludePattern')->once()->withNoArgs()->andReturn('#^(?:UPDATE test SET x = \d |INSERT ).*$#i');
         $this->config->shouldReceive('queriesExcludePattern')->once()->withNoArgs()->andReturn('/^$/');
         $this->config->shouldReceive('logDirectory')->times(3)->withNoArgs()->andReturn($this->directory);
         $this->filename->shouldReceive('getLogfile')->twice()->withNoArgs()->andReturn($expectedFileName);
@@ -290,8 +290,8 @@ class WriterTest extends UnitTestCase
     /** @test */
     public function it_only_logs_slow_queries()
     {
-        $query1 = new SqlQuery(1, 'test1', [], 5.41);
-        $query2 = new SqlQuery(2, 'test2', [], 500.5);
+        $query1 = new SqlQuery(1, 'test1', 5.41);
+        $query2 = new SqlQuery(2, 'test2', 500.5);
 
         $this->config->shouldReceive('queriesEnabled')->twice()->withNoArgs()->andReturn(true);
         $this->config->shouldReceive('logDirectory')->once()->withNoArgs()->andReturn($this->directory);
@@ -314,9 +314,9 @@ class WriterTest extends UnitTestCase
     /** @test */
     public function it_respects_query_patterns()
     {
-        $query1 = new SqlQuery(1, 'select foo from bar', [], 5.41);
-        $query2 = new SqlQuery(2, 'update bar set foo = ?', [1], 3.55);
-        $query3 = new SqlQuery(3, 'update bar set last_visit = ?', ['2021-06-03 10:26:00'], 3.22);
+        $query1 = new SqlQuery(1, 'select foo from bar', 5.41);
+        $query2 = new SqlQuery(2, 'update bar set foo = 1', 3.55);
+        $query3 = new SqlQuery(3, "update bar set last_visit = '2021-06-03 10:26:00'", 3.22);
 
         $this->config->shouldReceive('queriesEnabled')->times(3)->withNoArgs()->andReturn(true);
         $this->config->shouldReceive('logDirectory')->once()->withNoArgs()->andReturn($this->directory);

@@ -71,8 +71,8 @@ class Writer
     {
         return $this->config->queriesEnabled() &&
             $query->time() >= $this->config->queriesMinExecTime() &&
-            preg_match($this->config->queriesIncludePattern(), $query->raw()) &&
-            ! preg_match($this->config->queriesExcludePattern(), $query->raw());
+            preg_match($this->config->queriesIncludePattern(), $query->rawQuery()) &&
+            ! preg_match($this->config->queriesExcludePattern(), $query->rawQuery());
     }
 
     /**

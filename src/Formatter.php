@@ -9,15 +9,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Request;
 use Illuminate\Support\Str;
-use Onlime\LaravelSqlReporter\Concerns\ReplacesBindings;
 
 class Formatter
 {
-    use ReplacesBindings;
-
-    /**
-     * Formatter constructor.
-     */
     public function __construct(
         private Container $app,
         private Config $config
@@ -50,7 +44,7 @@ class Formatter
             return '';
         }
 
-        $queryLog  = DB::getQueryLog();
+        $queryLog  = DB::getRawQueryLog();
         $times     = Arr::pluck($queryLog, 'time');
         $totalTime = $this->time(array_sum($times));
         $ip        = Request::ip();
@@ -110,7 +104,7 @@ class Formatter
      */
     protected function getQueryLine(SqlQuery $query): string
     {
-        return $query->get().';';
+        return $query->rawQuery().';';
     }
 
     /**

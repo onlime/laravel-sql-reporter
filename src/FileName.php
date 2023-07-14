@@ -7,9 +7,6 @@ use Illuminate\Container\Container;
 
 class FileName
 {
-    /**
-     * FileName constructor.
-     */
     public function __construct(
         private Container $app,
         private Config $config
