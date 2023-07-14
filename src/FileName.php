@@ -22,8 +22,8 @@ class FileName
     public function getLogfile(): string
     {
         return
-            $this->parseFileName($this->config->queriesFileName()) .
-            $this->suffix() .
+            $this->parseFileName($this->config->queriesFileName()).
+            $this->suffix().
             $this->config->fileExtension();
     }
 

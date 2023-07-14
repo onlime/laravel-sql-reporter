@@ -34,7 +34,7 @@ class SqlLoggerTest extends UnitTestCase
         ]);
 
         $sqlQuery = new SqlQuery(1, 'anything', [], 1.23);
-//        $this->writer->shouldReceive('writeQuery')->once()->with($sqlQuery)
+        //        $this->writer->shouldReceive('writeQuery')->once()->with($sqlQuery)
         $this->writer->shouldReceive('writeQuery')->once()->with(Mockery::on(function ($arg) use ($sqlQuery) {
             return $sqlQuery == $arg;
         }));
@@ -52,13 +52,13 @@ class SqlLoggerTest extends UnitTestCase
         ]);
 
         $sqlQuery = new SqlQuery(1, 'anything', ['one', 1], 1.23);
-//        $this->writer->shouldReceive('writeQuery')->once()->with($sqlQuery);
+        //        $this->writer->shouldReceive('writeQuery')->once()->with($sqlQuery);
         $this->writer->shouldReceive('writeQuery')->once()->with(Mockery::on(function ($arg) use ($sqlQuery) {
             return $sqlQuery == $arg;
         }));
 
         $sqlQuery2 = new SqlQuery(2, 'anything2', ['two', 2], 4.56);
-//        $this->writer->shouldReceive('writeQuery')->once()->with($sqlQuery2);
+        //        $this->writer->shouldReceive('writeQuery')->once()->with($sqlQuery2);
         $this->writer->shouldReceive('writeQuery')->once()->with(Mockery::on(function ($arg) use ($sqlQuery2) {
             return $sqlQuery2 == $arg;
         }));

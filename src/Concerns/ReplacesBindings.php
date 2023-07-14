@@ -24,7 +24,7 @@ trait ReplacesBindings
     /**
      * Get final value that will be displayed in query.
      *
-     * @param mixed $value
+     * @param  mixed  $value
      *
      * @return int|string
      */
@@ -38,13 +38,13 @@ trait ReplacesBindings
             return (int) $value;
         }
 
-        return is_numeric($value) ? $value : "'" . $value . "'";
+        return is_numeric($value) ? $value : "'".$value."'";
     }
 
     /**
      * Get regex to be used for named parameter with given name.
      *
-     * @param string $name
+     * @param  string  $name
      */
     protected function getNamedParameterRegex($name): string
     {
@@ -52,13 +52,13 @@ trait ReplacesBindings
             $name = mb_substr($name, 1);
         }
 
-        return $this->wrapRegex($this->notInsideQuotes('\:' . preg_quote($name), false));
+        return $this->wrapRegex($this->notInsideQuotes('\:'.preg_quote($name), false));
     }
 
     /**
      * Format bindings values.
      *
-     * @param array $bindings
+     * @param  array  $bindings
      *
      * @return array
      */
@@ -84,7 +84,7 @@ trait ReplacesBindings
     {
         return $this->wrapRegex(
             $this->notInsideQuotes('?')
-            . '|' .
+            .'|'.
             $this->notInsideQuotes('\:\w+', false)
         );
     }
@@ -92,20 +92,20 @@ trait ReplacesBindings
     /**
      * Wrap regex.
      *
-     * @param string $regex
+     * @param  string  $regex
      *
      * @return string
      */
     protected function wrapRegex($regex)
     {
-        return '#' . $regex . '#ms';
+        return '#'.$regex.'#ms';
     }
 
     /**
      * Create partial regex to find given text not inside quotes.
      *
-     * @param string $string
-     * @param bool $quote
+     * @param  string  $string
+     * @param  bool  $quote
      *
      * @return string
      */
@@ -117,9 +117,9 @@ trait ReplacesBindings
 
         return
             // double quotes - ignore "" and everything inside quotes for example " abc \"err "
-            '(?:""|"(?:[^"]|\\")*?[^\\\]")(*SKIP)(*F)|' . $string .
-            '|' .
+            '(?:""|"(?:[^"]|\\")*?[^\\\]")(*SKIP)(*F)|'.$string.
+            '|'.
             // single quotes - ignore '' and everything inside quotes for example ' abc \'err '
-            '(?:\\\'\\\'|\'(?:[^\']|\\\')*?[^\\\]\')(*SKIP)(*F)|' . $string;
+            '(?:\\\'\\\'|\'(?:[^\']|\\\')*?[^\\\]\')(*SKIP)(*F)|'.$string;
     }
 }

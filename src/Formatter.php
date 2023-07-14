@@ -80,7 +80,7 @@ class Formatter
         $formatted[]  = $this->separatorLine();
         $maxKeyLength = max(array_map('strlen', array_keys($headers)));
         foreach ($headers as $key => $value) {
-            $formatted[] = '-- ' . Str::padRight(Str::ucfirst($key) . ':', $maxKeyLength + 2) . $value;
+            $formatted[] = '-- '.Str::padRight(Str::ucfirst($key).':', $maxKeyLength + 2).$value;
         }
         $formatted[] = $this->separatorLine();
 
@@ -92,7 +92,7 @@ class Formatter
      */
     protected function time(float $time): string
     {
-        return $this->config->useSeconds() ? ($time / 1000.0) . 's' : $time . 'ms';
+        return $this->config->useSeconds() ? ($time / 1000.0).'s' : $time.'ms';
     }
 
     /**
@@ -101,8 +101,8 @@ class Formatter
     protected function originLine(): string
     {
         return $this->app->runningInConsole()
-                ? '(console) ' . $this->getArtisanLine()
-                : '(request) ' . $this->getRequestLine();
+                ? '(console) '.$this->getArtisanLine()
+                : '(request) '.$this->getRequestLine();
     }
 
     /**
@@ -110,7 +110,7 @@ class Formatter
      */
     protected function getQueryLine(SqlQuery $query): string
     {
-        return $query->get() . ';';
+        return $query->get().';';
     }
 
     /**
@@ -132,7 +132,7 @@ class Formatter
      */
     protected function getRequestLine(): string
     {
-        return $this->app['request']->method() . ' ' . $this->app['request']->fullUrl();
+        return $this->app['request']->method().' '.$this->app['request']->fullUrl();
     }
 
     /**
@@ -140,6 +140,6 @@ class Formatter
      */
     protected function separatorLine(): string
     {
-        return '-- ' . str_repeat('-', 50);
+        return '-- '.str_repeat('-', 50);
     }
 }

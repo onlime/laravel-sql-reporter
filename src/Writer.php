@@ -83,8 +83,8 @@ class Writer
     protected function writeLine(string $line, bool $override = false): int|false
     {
         return file_put_contents(
-            $this->directory() . DIRECTORY_SEPARATOR . $this->fileName->getLogfile(),
-            $line . PHP_EOL,
+            $this->directory().DIRECTORY_SEPARATOR.$this->fileName->getLogfile(),
+            $line.PHP_EOL,
             $override ? 0 : FILE_APPEND
         );
     }
