@@ -71,8 +71,8 @@ class Writer
     {
         return $this->config->queriesEnabled() &&
             $query->time() >= $this->config->queriesMinExecTime() &&
-            preg_match($this->config->queriesIncludePattern(), $query->raw()) &&
-            ! preg_match($this->config->queriesExcludePattern(), $query->raw());
+            preg_match($this->config->queriesIncludePattern(), $query->rawQuery()) &&
+            ! preg_match($this->config->queriesExcludePattern(), $query->rawQuery());
     }
 
     /**
@@ -83,8 +83,8 @@ class Writer
     protected function writeLine(string $line, bool $override = false): int|false
     {
         return file_put_contents(
-            $this->directory() . DIRECTORY_SEPARATOR . $this->fileName->getLogfile(),
-            $line . PHP_EOL,
+            $this->directory().DIRECTORY_SEPARATOR.$this->fileName->getLogfile(),
+            $line.PHP_EOL,
             $override ? 0 : FILE_APPEND
         );
     }

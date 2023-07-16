@@ -56,7 +56,7 @@ class WriterTest extends UnitTestCase
         $this->config = Mockery::mock(Config::class);
         $this->filename = Mockery::mock(FileName::class);
         $this->writer = new Writer($this->formatter, $this->config, $this->filename);
-        $this->directory = __DIR__ . '/test-dir/directory';
+        $this->directory = __DIR__.'/test-dir/directory';
         $this->filesystem = new Filesystem();
     }
 
@@ -69,7 +69,7 @@ class WriterTest extends UnitTestCase
     /** @test */
     public function it_creates_directory_if_it_does_not_exist_for_1st_query()
     {
-        $query = new SqlQuery(1, 'test', [], 5.41);
+        $query = new SqlQuery(1, 'test', 5.41);
         $this->config->shouldReceive('queriesEnabled')->once()->withNoArgs()->andReturn(false);
         $this->config->shouldReceive('logDirectory')->once()->withNoArgs()->andReturn($this->directory);
         $this->assertFileDoesNotExist($this->directory);
@@ -81,7 +81,7 @@ class WriterTest extends UnitTestCase
     /** @test */
     public function it_does_not_create_directory_if_it_does_not_exist_for_2nd_query()
     {
-        $query = new SqlQuery(2, 'test', [], 5.41);
+        $query = new SqlQuery(2, 'test', 5.41);
         $this->config->shouldReceive('queriesEnabled')->once()->withNoArgs()->andReturn(false);
         $this->config->shouldNotReceive('logDirectory');
         $this->assertFileDoesNotExist($this->directory);
@@ -94,9 +94,9 @@ class WriterTest extends UnitTestCase
     {
         $lineContent = 'Sample log line';
         $expectedContent = "-- header\nSample log line\n";
-        $expectedFileName = $this->now->format('Y-m') . '-log.sql';
+        $expectedFileName = $this->now->format('Y-m').'-log.sql';
 
-        $query = new SqlQuery(1, 'test', [], 5.41);
+        $query = new SqlQuery(1, 'test', 5.41);
         $this->formatter->shouldReceive('getLine')->once()->with($query)->andReturn($lineContent);
         $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('-- header');
         $this->config->shouldReceive('queriesEnabled')->once()->withNoArgs()->andReturn(true);
@@ -109,22 +109,22 @@ class WriterTest extends UnitTestCase
         $this->writer->writeQuery($query);
         $this->assertFileExists($this->directory);
         $this->assertCount(1, $this->filesystem->allFiles($this->directory));
-        $this->assertFileExists($this->directory . '/' . $expectedFileName);
-        $this->assertSame($expectedContent, file_get_contents($this->directory . '/' . $expectedFileName));
+        $this->assertFileExists($this->directory.'/'.$expectedFileName);
+        $this->assertSame($expectedContent, file_get_contents($this->directory.'/'.$expectedFileName));
     }
 
     /** @test */
     public function it_appends_to_existing_log_file()
     {
-        $expectedFileName = $this->now->format('Y-m') . '-log.sql';
+        $expectedFileName = $this->now->format('Y-m').'-log.sql';
         mkdir($this->directory, 0777, true);
         $initialContent = "Initial file content\n";
-        file_put_contents($this->directory . '/' . $expectedFileName, $initialContent);
+        file_put_contents($this->directory.'/'.$expectedFileName, $initialContent);
 
         $lineContent = 'Sample log line';
-        $expectedContent = $initialContent . "-- header\nSample log line\n";
+        $expectedContent = $initialContent."-- header\nSample log line\n";
 
-        $query = new SqlQuery(1, 'test', [], 5.41);
+        $query = new SqlQuery(1, 'test', 5.41);
         $this->formatter->shouldReceive('getLine')->once()->with($query)->andReturn($lineContent);
         $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('-- header');
         $this->config->shouldReceive('queriesEnabled')->once()->withNoArgs()->andReturn(true);
@@ -134,25 +134,25 @@ class WriterTest extends UnitTestCase
         $this->config->shouldReceive('queriesOverrideLog')->once()->withNoArgs()->andReturn(false);
         $this->config->shouldReceive('queriesMinExecTime')->once()->withNoArgs()->andReturn(0);
         $this->filename->shouldReceive('getLogfile')->times(2)->withNoArgs()->andReturn($expectedFileName);
-        $this->assertFileExists($this->directory . '/' . $expectedFileName);
+        $this->assertFileExists($this->directory.'/'.$expectedFileName);
         $this->writer->writeQuery($query);
         $this->assertCount(1, $this->filesystem->allFiles($this->directory));
-        $this->assertFileExists($this->directory . '/' . $expectedFileName);
-        $this->assertSame($expectedContent, file_get_contents($this->directory . '/' . $expectedFileName));
+        $this->assertFileExists($this->directory.'/'.$expectedFileName);
+        $this->assertSame($expectedContent, file_get_contents($this->directory.'/'.$expectedFileName));
     }
 
     /** @test */
     public function it_replaces_current_file_content_for_1st_query_when_overriding_is_turned_on()
     {
-        $expectedFileName = $this->now->format('Y-m') . '-log.sql';
+        $expectedFileName = $this->now->format('Y-m').'-log.sql';
         mkdir($this->directory, 0777, true);
         $initialContent = "Initial file content\n";
-        file_put_contents($this->directory . '/' . $expectedFileName, $initialContent);
+        file_put_contents($this->directory.'/'.$expectedFileName, $initialContent);
 
         $lineContent = 'Sample log line';
         $expectedContent = "-- header\nSample log line\n";
 
-        $query = new SqlQuery(1, 'test', [], 5.41);
+        $query = new SqlQuery(1, 'test', 5.41);
         $this->formatter->shouldReceive('getLine')->once()->with($query)->andReturn($lineContent);
         $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('-- header');
         $this->config->shouldReceive('queriesEnabled')->once()->withNoArgs()->andReturn(true);
@@ -162,26 +162,26 @@ class WriterTest extends UnitTestCase
         $this->config->shouldReceive('queriesOverrideLog')->once()->withNoArgs()->andReturn(true);
         $this->config->shouldReceive('queriesMinExecTime')->once()->withNoArgs()->andReturn(0);
         $this->filename->shouldReceive('getLogfile')->times(2)->withNoArgs()->andReturn($expectedFileName);
-        $this->assertFileExists($this->directory . '/' . $expectedFileName);
+        $this->assertFileExists($this->directory.'/'.$expectedFileName);
         $this->writer->writeQuery($query);
         $this->assertCount(1, $this->filesystem->allFiles($this->directory));
-        $this->assertFileExists($this->directory . '/' . $expectedFileName);
-        $this->assertSame($expectedContent, file_get_contents($this->directory . '/' . $expectedFileName));
+        $this->assertFileExists($this->directory.'/'.$expectedFileName);
+        $this->assertSame($expectedContent, file_get_contents($this->directory.'/'.$expectedFileName));
     }
 
     /** @test */
     public function it_appends_to_current_file_content_for_2nd_query_when_overriding_is_turned_on()
     {
-        $expectedFileName = $this->now->format('Y-m') . '-log.sql';
+        $expectedFileName = $this->now->format('Y-m').'-log.sql';
         mkdir($this->directory, 0777, true);
         $initialContent = "Initial file content\n";
-        file_put_contents($this->directory . '/' . $expectedFileName, $initialContent);
+        file_put_contents($this->directory.'/'.$expectedFileName, $initialContent);
 
         $lineContent = 'Sample log line';
         $expectedContent = "-- header\n$lineContent\n$lineContent\n";
 
-        $query1 = new SqlQuery(1, 'test', [], 5.41);
-        $query2 = new SqlQuery(2, 'test', [], 5.41);
+        $query1 = new SqlQuery(1, 'test', 5.41);
+        $query2 = new SqlQuery(2, 'test', 5.41);
         $this->formatter->shouldReceive('getLine')->twice()->andReturn($lineContent);
         $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('-- header');
         $this->config->shouldReceive('queriesEnabled')->twice()->withNoArgs()->andReturn(true);
@@ -191,22 +191,22 @@ class WriterTest extends UnitTestCase
         $this->config->shouldReceive('queriesOverrideLog')->once()->withNoArgs()->andReturn(true);
         $this->config->shouldReceive('queriesMinExecTime')->twice()->withNoArgs()->andReturn(0);
         $this->filename->shouldReceive('getLogfile')->times(3)->withNoArgs()->andReturn($expectedFileName);
-        $this->assertFileExists($this->directory . '/' . $expectedFileName);
+        $this->assertFileExists($this->directory.'/'.$expectedFileName);
         $this->writer->writeQuery($query1);
         $this->writer->writeQuery($query2);
         $this->assertCount(1, $this->filesystem->allFiles($this->directory));
-        $this->assertFileExists($this->directory . '/' . $expectedFileName);
-        $this->assertSame($expectedContent, file_get_contents($this->directory . '/' . $expectedFileName));
+        $this->assertFileExists($this->directory.'/'.$expectedFileName);
+        $this->assertSame($expectedContent, file_get_contents($this->directory.'/'.$expectedFileName));
     }
 
     /** @test */
     public function it_saves_select_query_to_file_when_pattern_set_to_select_queries()
     {
-        $expectedFileName = $this->now->format('Y-m') . '-log.sql';
+        $expectedFileName = $this->now->format('Y-m').'-log.sql';
         $lineContent = 'Sample log line';
         $expectedContent = "\n$lineContent\n";
 
-        $query = new SqlQuery(1, 'select * FROM test', [], 5.41);
+        $query = new SqlQuery(1, 'select * FROM test', 5.41);
         $this->formatter->shouldReceive('getLine')->once()->with($query)->andReturn($lineContent);
         $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('');
         $this->config->shouldReceive('queriesEnabled')->once()->withNoArgs()->andReturn(true);
@@ -220,14 +220,14 @@ class WriterTest extends UnitTestCase
         $this->assertFileExists($this->directory);
         $this->assertCount(1, $this->filesystem->allFiles($this->directory));
 
-        $this->assertFileExists($this->directory . '/' . $expectedFileName);
-        $this->assertSame($expectedContent, file_get_contents($this->directory . '/' . $expectedFileName));
+        $this->assertFileExists($this->directory.'/'.$expectedFileName);
+        $this->assertSame($expectedContent, file_get_contents($this->directory.'/'.$expectedFileName));
     }
 
     /** @test */
     public function it_doesnt_save_select_query_to_file_when_pattern_set_to_insert_or_update_queries()
     {
-        $query = new SqlQuery(1, 'select * FROM test', [], 5.41);
+        $query = new SqlQuery(1, 'select * FROM test', 5.41);
         $this->config->shouldReceive('queriesEnabled')->once()->withNoArgs()->andReturn(true);
         $this->config->shouldReceive('queriesIncludePattern')->once()->withNoArgs()->andReturn('#^(?:UPDATE|INSERT) .*$#i');
         $this->config->shouldReceive('queriesMinExecTime')->once()->withNoArgs()->andReturn(0);
@@ -240,11 +240,11 @@ class WriterTest extends UnitTestCase
     /** @test */
     public function it_saves_insert_query_to_file_when_pattern_set_to_insert_or_update_queries()
     {
-        $expectedFileName = $this->now->format('Y-m') . '-log.sql';
+        $expectedFileName = $this->now->format('Y-m').'-log.sql';
         $lineContent = 'Sample log line';
         $expectedContent = "\n$lineContent\n";
 
-        $query = new SqlQuery(1, 'INSERT INTO test(one, two, three) values(?, ?, ?)', [], 5.41);
+        $query = new SqlQuery(1, 'INSERT INTO test(one, two, three) values(?, ?, ?)', 5.41);
         $this->formatter->shouldReceive('getLine')->once()->with($query)->andReturn($lineContent);
         $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('');
         $this->config->shouldReceive('queriesEnabled')->once()->withNoArgs()->andReturn(true);
@@ -258,22 +258,22 @@ class WriterTest extends UnitTestCase
         $this->assertFileExists($this->directory);
         $this->assertCount(1, $this->filesystem->allFiles($this->directory));
 
-        $this->assertFileExists($this->directory . '/' . $expectedFileName);
-        $this->assertSame($expectedContent, file_get_contents($this->directory . '/' . $expectedFileName));
+        $this->assertFileExists($this->directory.'/'.$expectedFileName);
+        $this->assertSame($expectedContent, file_get_contents($this->directory.'/'.$expectedFileName));
     }
 
     /** @test */
     public function it_uses_raw_query_without_bindings_when_using_query_pattern()
     {
-        $expectedFileName = $this->now->format('Y-m') . '-log.sql';
+        $expectedFileName = $this->now->format('Y-m').'-log.sql';
         $lineContent = 'Sample log line';
         $expectedContent = "\n$lineContent\n";
 
-        $query = new SqlQuery(1, 'UPDATE test SET x = ? WHERE id = ?', [2, 3], 5.41);
+        $query = new SqlQuery(1, 'UPDATE test SET x = 2 WHERE id = 3', 5.41);
         $this->formatter->shouldReceive('getLine')->once()->with($query)->andReturn($lineContent);
         $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('');
         $this->config->shouldReceive('queriesEnabled')->once()->withNoArgs()->andReturn(true);
-        $this->config->shouldReceive('queriesIncludePattern')->once()->withNoArgs()->andReturn('#^(?:UPDATE test SET x = \? |INSERT ).*$#i');
+        $this->config->shouldReceive('queriesIncludePattern')->once()->withNoArgs()->andReturn('#^(?:UPDATE test SET x = \d |INSERT ).*$#i');
         $this->config->shouldReceive('queriesExcludePattern')->once()->withNoArgs()->andReturn('/^$/');
         $this->config->shouldReceive('logDirectory')->times(3)->withNoArgs()->andReturn($this->directory);
         $this->filename->shouldReceive('getLogfile')->twice()->withNoArgs()->andReturn($expectedFileName);
@@ -283,15 +283,15 @@ class WriterTest extends UnitTestCase
         $this->assertFileExists($this->directory);
         $this->assertCount(1, $this->filesystem->allFiles($this->directory));
 
-        $this->assertFileExists($this->directory . '/' . $expectedFileName);
-        $this->assertSame($expectedContent, file_get_contents($this->directory . '/' . $expectedFileName));
+        $this->assertFileExists($this->directory.'/'.$expectedFileName);
+        $this->assertSame($expectedContent, file_get_contents($this->directory.'/'.$expectedFileName));
     }
 
     /** @test */
     public function it_only_logs_slow_queries()
     {
-        $query1 = new SqlQuery(1, 'test1', [], 5.41);
-        $query2 = new SqlQuery(2, 'test2', [], 500.5);
+        $query1 = new SqlQuery(1, 'test1', 5.41);
+        $query2 = new SqlQuery(2, 'test2', 500.5);
 
         $this->config->shouldReceive('queriesEnabled')->twice()->withNoArgs()->andReturn(true);
         $this->config->shouldReceive('logDirectory')->once()->withNoArgs()->andReturn($this->directory);
@@ -314,9 +314,9 @@ class WriterTest extends UnitTestCase
     /** @test */
     public function it_respects_query_patterns()
     {
-        $query1 = new SqlQuery(1, 'select foo from bar', [], 5.41);
-        $query2 = new SqlQuery(2, 'update bar set foo = ?', [1], 3.55);
-        $query3 = new SqlQuery(3, 'update bar set last_visit = ?', ['2021-06-03 10:26:00'], 3.22);
+        $query1 = new SqlQuery(1, 'select foo from bar', 5.41);
+        $query2 = new SqlQuery(2, 'update bar set foo = 1', 3.55);
+        $query3 = new SqlQuery(3, "update bar set last_visit = '2021-06-03 10:26:00'", 3.22);
 
         $this->config->shouldReceive('queriesEnabled')->times(3)->withNoArgs()->andReturn(true);
         $this->config->shouldReceive('logDirectory')->once()->withNoArgs()->andReturn($this->directory);

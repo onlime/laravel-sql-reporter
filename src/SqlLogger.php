@@ -22,11 +22,12 @@ class SqlLogger
     /**
      * Log queries
      */
-    public function log()
+    public function log(): void
     {
-        foreach (DB::getQueryLog() as $query) {
-            $sqlQuery = new SqlQuery(++$this->queryNumber, $query['query'], $query['bindings'], $query['time']);
-            $this->writer->writeQuery($sqlQuery);
+        foreach (DB::getRawQueryLog() as $query) {
+            $this->writer->writeQuery(
+                new SqlQuery(++$this->queryNumber, $query['raw_query'], $query['time'])
+            );
         }
     }
 }

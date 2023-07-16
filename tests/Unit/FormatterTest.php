@@ -33,9 +33,9 @@ class FormatterTest extends UnitTestCase
         $now = '2015-03-04 08:12:07';
         Carbon::setTestNow($now);
 
-        DB::shouldReceive('getQueryLog')->once()->withNoArgs()->andReturn([
-            ['query' => 'foo', 'bindings' => [], 'time' => 1.23],
-            ['query' => 'bar', 'bindings' => [], 'time' => 4.56],
+        DB::shouldReceive('getRawQueryLog')->once()->withNoArgs()->andReturn([
+            ['raw_query' => 'foo', 'time' => 1.23],
+            ['raw_query' => 'bar', 'time' => 4.56],
         ]);
         Auth::shouldReceive('user')->once()->withNoArgs()->andReturn(null);
         \Illuminate\Support\Facades\Request::shouldReceive('ip')->once()->withNoArgs()->andReturn('127.0.0.1');
@@ -79,7 +79,7 @@ EOT;
         $now = '2015-03-04 08:12:07';
         Carbon::setTestNow($now);
 
-        DB::shouldReceive('getQueryLog')->once()->withNoArgs()->andReturn([]);
+        DB::shouldReceive('getRawQueryLog')->once()->withNoArgs()->andReturn([]);
         Auth::shouldReceive('user')->once()->withNoArgs()->andReturn(null);
         \Illuminate\Support\Facades\Request::shouldReceive('ip')->once()->withNoArgs()->andReturn('127.0.0.1');
         \Illuminate\Support\Facades\Request::shouldReceive('userAgent')->once()->withNoArgs()->andReturn('Mozilla/5.0');
@@ -122,7 +122,7 @@ EOT;
         $time = 617.24;
         $sql = 'SELECT * FROM somewhere';
         $query->shouldReceive('number')->once()->withNoArgs()->andReturn($number);
-        $query->shouldReceive('get')->once()->withNoArgs()->andReturn($sql);
+        $query->shouldReceive('rawQuery')->once()->withNoArgs()->andReturn($sql);
         $query->shouldReceive('time')->once()->withNoArgs()->andReturn($time);
 
         $formatter = new Formatter($app, $config);
@@ -155,7 +155,7 @@ EOT;
         $time = 617.24;
         $sql = 'SELECT * FROM somewhere';
         $query->shouldReceive('number')->once()->withNoArgs()->andReturn($number);
-        $query->shouldReceive('get')->once()->withNoArgs()->andReturn($sql);
+        $query->shouldReceive('rawQuery')->once()->withNoArgs()->andReturn($sql);
         $query->shouldReceive('time')->once()->withNoArgs()->andReturn($time);
 
         $formatter = new Formatter($app, $config);
@@ -189,7 +189,7 @@ EOT;
         $time = 617.24;
         $sql = 'SELECT * FROM somewhere';
         $query->shouldReceive('number')->once()->withNoArgs()->andReturn($number);
-        $query->shouldReceive('get')->once()->withNoArgs()->andReturn($sql);
+        $query->shouldReceive('rawQuery')->once()->withNoArgs()->andReturn($sql);
         $query->shouldReceive('time')->once()->withNoArgs()->andReturn($time);
 
         $formatter = new Formatter($app, $config);

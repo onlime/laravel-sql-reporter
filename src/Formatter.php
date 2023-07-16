@@ -9,15 +9,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Request;
 use Illuminate\Support\Str;
-use Onlime\LaravelSqlReporter\Concerns\ReplacesBindings;
 
 class Formatter
 {
-    use ReplacesBindings;
-
-    /**
-     * Formatter constructor.
-     */
     public function __construct(
         private Container $app,
         private Config $config
@@ -50,7 +44,13 @@ class Formatter
             return '';
         }
 
-        $queryLog  = DB::getQueryLog();
+        // Try to resolve username, which is stored in 'email' field by default, but could be mapped by username() method
+        // by some custom trait.
+        $username = ($user = Auth::user())
+            ? (method_exists($user, 'username') ? $user->username() : $user->email)
+            : '';
+
+        $queryLog  = DB::getRawQueryLog();
         $times     = Arr::pluck($queryLog, 'time');
         $totalTime = $this->time(array_sum($times));
         $ip        = Request::ip();
@@ -60,7 +60,7 @@ class Formatter
             'datetime' => Carbon::now()->toDateTimeString(),
             'origin'   => $this->originLine(),
             'status'   => sprintf('Executed %s queries in %s', count($queryLog), $totalTime),
-            'user'     => Auth::user()?->username(),
+            'user'     => $username,
             'env'      => $this->app->environment(),
             'agent'    => Request::userAgent() ?? PHP_SAPI,
             'ip'       => $ip,
@@ -69,10 +69,14 @@ class Formatter
         ];
         $headers = Arr::only($data, $headerFields);
 
-        // (optional) GeoIP lookup if torann/geoip is installed, appending country information to IP
-        if (in_array('ip', $headerFields) && $ip !== '127.0.0.1' && function_exists('geoip')) {
-            $geoip = geoip($ip);
-            $headers['ip'] .= sprintf(' (%s / %s)', $geoip->iso_code, $geoip->country);
+        // (optional) GeoIP lookup if stevebaumann/location is installed, appending country information to IP
+        if (in_array('ip', $headerFields) && $ip !== '127.0.0.1' && class_exists('Stevebauman\Location\Facades\Location')) {
+            $position = \Stevebauman\Location\Facades\Location::get();
+            $headers['ip'] .= sprintf(
+                ' (%s / %s)',
+                $position->isoCode ?? 'XX',
+                $position->countryName ?? 'Unknown Country'
+            );
         }
 
         // get formatted header lines with padded keys
@@ -80,7 +84,7 @@ class Formatter
         $formatted[]  = $this->separatorLine();
         $maxKeyLength = max(array_map('strlen', array_keys($headers)));
         foreach ($headers as $key => $value) {
-            $formatted[] = '-- ' . Str::padRight(Str::ucfirst($key) . ':', $maxKeyLength + 2) . $value;
+            $formatted[] = '-- '.Str::padRight(Str::ucfirst($key).':', $maxKeyLength + 2).$value;
         }
         $formatted[] = $this->separatorLine();
 
@@ -92,7 +96,7 @@ class Formatter
      */
     protected function time(float $time): string
     {
-        return $this->config->useSeconds() ? ($time / 1000.0) . 's' : $time . 'ms';
+        return $this->config->useSeconds() ? ($time / 1000.0).'s' : $time.'ms';
     }
 
     /**
@@ -101,8 +105,8 @@ class Formatter
     protected function originLine(): string
     {
         return $this->app->runningInConsole()
-                ? '(console) ' . $this->getArtisanLine()
-                : '(request) ' . $this->getRequestLine();
+                ? '(console) '.$this->getArtisanLine()
+                : '(request) '.$this->getRequestLine();
     }
 
     /**
@@ -110,7 +114,7 @@ class Formatter
      */
     protected function getQueryLine(SqlQuery $query): string
     {
-        return $query->get() . ';';
+        return $query->rawQuery().';';
     }
 
     /**
@@ -132,7 +136,7 @@ class Formatter
      */
     protected function getRequestLine(): string
     {
-        return $this->app['request']->method() . ' ' . $this->app['request']->fullUrl();
+        return $this->app['request']->method().' '.$this->app['request']->fullUrl();
     }
 
     /**
@@ -140,6 +144,6 @@ class Formatter
      */
     protected function separatorLine(): string
     {
-        return '-- ' . str_repeat('-', 50);
+        return '-- '.str_repeat('-', 50);
     }
 }

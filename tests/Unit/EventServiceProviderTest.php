@@ -25,10 +25,10 @@ class EventServiceProviderTest extends UnitTestCase
 
         $baseDir = '/some/sample/directory';
 
-//        $app->shouldReceive('configFileLocation')->atLeast()->once()
-//            ->withNoArgs()->andReturn($baseDir . '/sql-reporter.php');
+        // $app->shouldReceive('configFileLocation')->atLeast()->once()
+        //    ->withNoArgs()->andReturn($baseDir . '/sql-reporter.php');
 
-        $configFile = realpath(__DIR__ . '/../../config/sql-reporter.php');
+        $configFile = realpath(__DIR__.'/../../config/sql-reporter.php');
         $provider->shouldReceive('mergeConfigFrom')->once()->with(
             $configFile,
             'sql-reporter'
@@ -41,9 +41,9 @@ class EventServiceProviderTest extends UnitTestCase
         $provider->register();
         $this->assertTrue(true);
 
-//        $provider->boot();
-//        $provider->shouldReceive('publishes')->once()->with(
-//            [$configFile => config_path('sql-reporter.php')], 'config'
-//        );
+        // $provider->boot();
+        // $provider->shouldReceive('publishes')->once()->with(
+        //    [$configFile => config_path('sql-reporter.php')], 'config'
+        // );
     }
 }

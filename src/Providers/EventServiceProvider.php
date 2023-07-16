@@ -54,6 +54,6 @@ class EventServiceProvider extends ServiceProvider
      */
     protected function configFileLocation(): string
     {
-        return realpath(__DIR__ . '/../../config/sql-reporter.php');
+        return realpath(__DIR__.'/../../config/sql-reporter.php');
     }
 }

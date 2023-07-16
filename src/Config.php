@@ -6,9 +6,6 @@ use Illuminate\Contracts\Config\Repository as ConfigRepository;
 
 class Config
 {
-    /**
-     * Config constructor.
-     */
     public function __construct(
         protected ConfigRepository $repository
     ) {

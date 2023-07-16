@@ -7,9 +7,6 @@ use Illuminate\Container\Container;
 
 class FileName
 {
-    /**
-     * FileName constructor.
-     */
     public function __construct(
         private Container $app,
         private Config $config
@@ -22,8 +19,8 @@ class FileName
     public function getLogfile(): string
     {
         return
-            $this->parseFileName($this->config->queriesFileName()) .
-            $this->suffix() .
+            $this->parseFileName($this->config->queriesFileName()).
+            $this->suffix().
             $this->config->fileExtension();
     }
 
