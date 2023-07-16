@@ -72,7 +72,11 @@ class Formatter
         // (optional) GeoIP lookup if stevebaumann/location is installed, appending country information to IP
         if (in_array('ip', $headerFields) && $ip !== '127.0.0.1' && class_exists('Stevebauman\Location\Facades\Location')) {
             $position = \Stevebauman\Location\Facades\Location::get();
-            $headers['ip'] .= sprintf(' (%s / %s)', $position->isoCode, $position->countryName);
+            $headers['ip'] .= sprintf(
+                ' (%s / %s)',
+                $position->isoCode ?? 'XX',
+                $position->countryName ?? 'Unknown Country'
+            );
         }
 
         // get formatted header lines with padded keys

@@ -16,7 +16,7 @@ class WriterTest extends UnitTestCase
     /**
      * @var Formatter|\Mockery\Mock
      */
-    private  $formatter;
+    private $formatter;
 
     /**
      * @var Config|\Mockery\Mock

@@ -4,9 +4,9 @@
 
 - ...
 
-## [1.1.0 (2023-07-14)](https://github.com/onlime/laravel-sql-reporter/compare/v1.0.1...v1.1.0)
+## [1.1.0 (2023-07-16)](https://github.com/onlime/laravel-sql-reporter/compare/v1.0.1...v1.1.0)
 
-- Drop Laravel 9 support, require Laravel v10.15 or higher for the new `DB::getRawQueryLog()` support.
+- Drop Laravel 9 support, require Laravel v10.15 or higher for the new [`DB::getRawQueryLog()`](https://github.com/laravel/framework/pull/47507) support.
 - PHP code style fixes by `laravel/pint` v1.10, now using more strict style rules (`laravel` preset).
 - Refactored whole codebase from `DB::getQueryLog()` to use the new `DB::getRawQueryLog()` method, so `ReplacesBindings` is no longer needed.
 - Replaced [torann/geoip](https://github.com/Torann/laravel-geoip) by [stevebauman/location](https://github.com/stevebauman/location) for optional GeoIP support.
