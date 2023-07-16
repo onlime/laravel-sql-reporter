@@ -68,14 +68,14 @@ It reports a lot of metadata like total query count, total execution time, origi
 
 ## Optional
 
-For optional GeoIP support (adding country information to client IP in log headers), you may install [torann/geoip](https://github.com/Torann/laravel-geoip) in your project:
+For optional GeoIP support (adding country information to client IP in log headers), you may install [stevebauman/location](https://github.com/stevebauman/location) in your project:
 
 ```bash
-$ composer require torann/geoip
-$ php artisan vendor:publish --provider="Torann\GeoIP\GeoIPServiceProvider"
+$ composer require stevebauman/location
+$ php artisan vendor:publish --provider="Stevebauman\Location\LocationServiceProvider"
 ```
 
-It will be auto-detected, no configuration needed for this.
+It will be auto-detected, no configuration needed for this. If you wish to use a different driver than the default [IpApi](https://ip-api.com/), e.g. `MaxMind` make sure you correctly configure it according to the docs: [Available Drivers](https://github.com/stevebauman/location#available-drivers)
 
 ## Development
 

@@ -9,6 +9,8 @@
 - Drop Laravel 9 support, require Laravel v10.15 or higher for the new `DB::getRawQueryLog()` support.
 - PHP code style fixes by `laravel/pint` v1.10, now using more strict style rules (`laravel` preset).
 - Refactored whole codebase from `DB::getQueryLog()` to use the new `DB::getRawQueryLog()` method, so `ReplacesBindings` is no longer needed.
+- Replaced [torann/geoip](https://github.com/Torann/laravel-geoip) by [stevebauman/location](https://github.com/stevebauman/location) for optional GeoIP support.
+- Improved username detection in `Formatter` headers, so that it works both with default `email` field or custom `username()` method on `User` model.
 
 ## [1.0.1 (2023-02-26)](https://github.com/onlime/laravel-sql-reporter/compare/v1.0.0...v1.0.1)
 

@@ -47,7 +47,7 @@
             "url": "https://github.com/mnabialek/laravel-version"
         },
         "suggest": {
-            "torann/geoip": "GeoIP country detection for log headers information",
+            "stevebaumann/location": "GeoIP country detection for log headers information",
             "symfony/thanks": "Star packages you use running 'composer thanks' command"
         }
     }

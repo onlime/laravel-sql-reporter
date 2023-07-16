@@ -44,6 +44,12 @@ class Formatter
             return '';
         }
 
+        // Try to resolve username, which is stored in 'email' field by default, but could be mapped by username() method
+        // by some custom trait.
+        $username = ($user = Auth::user())
+            ? (method_exists($user, 'username') ? $user->username() : $user->email)
+            : '';
+
         $queryLog  = DB::getRawQueryLog();
         $times     = Arr::pluck($queryLog, 'time');
         $totalTime = $this->time(array_sum($times));
@@ -54,7 +60,7 @@ class Formatter
             'datetime' => Carbon::now()->toDateTimeString(),
             'origin'   => $this->originLine(),
             'status'   => sprintf('Executed %s queries in %s', count($queryLog), $totalTime),
-            'user'     => Auth::user()?->username(),
+            'user'     => $username,
             'env'      => $this->app->environment(),
             'agent'    => Request::userAgent() ?? PHP_SAPI,
             'ip'       => $ip,
@@ -63,10 +69,10 @@ class Formatter
         ];
         $headers = Arr::only($data, $headerFields);
 
-        // (optional) GeoIP lookup if torann/geoip is installed, appending country information to IP
-        if (in_array('ip', $headerFields) && $ip !== '127.0.0.1' && function_exists('geoip')) {
-            $geoip = geoip($ip);
-            $headers['ip'] .= sprintf(' (%s / %s)', $geoip->iso_code, $geoip->country);
+        // (optional) GeoIP lookup if stevebaumann/location is installed, appending country information to IP
+        if (in_array('ip', $headerFields) && $ip !== '127.0.0.1' && class_exists('Stevebauman\Location\Facades\Location')) {
+            $position = \Stevebauman\Location\Facades\Location::get();
+            $headers['ip'] .= sprintf(' (%s / %s)', $position->isoCode, $position->countryName);
         }
 
         // get formatted header lines with padded keys
