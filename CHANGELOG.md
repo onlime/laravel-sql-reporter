@@ -4,9 +4,10 @@
 
 - ...
 
-## [v1.2.0 (2024-03-09)](https://github.com/onlime/laravel-sql-reporter/compare/v1.1.0...v1.2.0)
+## [v1.2.0 (2024-03-11)](https://github.com/onlime/laravel-sql-reporter/compare/v1.1.0...v1.2.0)
 
 - Feature | Dispatch `QueryLogWritten` event after writing queries to the log, so that the whole query log can be accessed for further processing, e.g. generating reports/notifications.
+- Feature | Added auth guard to log headers.
 - Laravel 11 support
 
 ## [v1.1.0 (2023-07-16)](https://github.com/onlime/laravel-sql-reporter/compare/v1.0.1...v1.1.0)

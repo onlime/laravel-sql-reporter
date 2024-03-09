@@ -33,6 +33,7 @@ return [
          * - datetime: date and time when the first query was executed
          * - status: total query count and execution time for all queries
          * - user: username of authenticated user
+         * - guard: name of the auth guard (defaults to 'web' if not logged in)
          * - env: application environment
          * - agent: user agent
          * - ip: (request-only) remote user IP
@@ -43,7 +44,7 @@ return [
          * data if origin is an Artisan command.
          */
         'header_fields' => array_filter(explode(',', env('SQL_REPORTER_FORMAT_HEADER_FIELDS',
-            'origin,datetime,status,user,env,agent,ip,host,referer'
+            'origin,datetime,status,user,guard,env,agent,ip,host,referer'
         ))),
 
         /*
