@@ -27,7 +27,7 @@ class Writer
         $this->createDirectoryIfNotExists($query->number());
 
         if ($this->shouldLogQuery($query)) {
-            if (0 === $this->logCount) {
+            if ($this->logCount === 0) {
                 // only write header information on first query to be logged
                 $this->writeLine(
                     $this->formatter->getHeader(),

@@ -4,6 +4,10 @@
 
 - ...
 
+## [v1.1.1 (2024-03-09)](https://github.com/onlime/laravel-sql-reporter/compare/v1.1.0...v1.1.1)
+
+- Laravel 11 support
+
 ## [v1.1.0 (2023-07-16)](https://github.com/onlime/laravel-sql-reporter/compare/v1.0.1...v1.1.0)
 
 - Drop Laravel 9 support, require Laravel v10.15 or higher for the new [`DB::getRawQueryLog()`](https://github.com/laravel/framework/pull/47507) support.
