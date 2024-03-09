@@ -13,15 +13,14 @@ class Writer
     private int $loggedQueryCount = 0;
 
     /**
-     * Whether any DML query was logged.
+     * Stores query log header for later processing.
      */
-    public bool $loggedDmlQuery = false;
+    private string $reportHeader = '';
 
     /**
-     * Aggregated log records.
-     * First record is header, followed by queries.
+     * Stores query log lines that should be reported.
      */
-    private array $logRecords = [];
+    private array $reportQueries = [];
 
     public function __construct(
         private Formatter $formatter,
@@ -43,15 +42,16 @@ class Writer
             if ($this->loggedQueryCount === 0) {
                 // only write header information on first query to be logged
                 $this->writeLine(
-                    $this->formatter->getHeader(),
-                    $this->config->queriesOverrideLog()
+                    $this->reportHeader = $this->formatter->getHeader(),
+                    $this->config->queriesOverrideLog(),
                 );
             }
-            $this->writeLine(
-                $this->formatter->getLine($query)
-            );
+            $logLine = $this->formatter->getLine($query);
+            $this->writeLine($logLine);
+            if ($query->shouldReport()) {
+                $this->reportQueries[] = $logLine;
+            }
             $this->loggedQueryCount++;
-            $this->loggedDmlQuery = $this->loggedDmlQuery || $query->isDML();
             return true;
         }
         return false;
@@ -96,8 +96,6 @@ class Writer
      */
     protected function writeLine(string $line, bool $override = false): int|false
     {
-        $this->logRecords[] = $line; // store for later processing
-
         return file_put_contents(
             $this->directory().DIRECTORY_SEPARATOR.$this->fileName->getLogfile(),
             $line.PHP_EOL,
@@ -107,11 +105,11 @@ class Writer
 
     public function __destruct()
     {
-        if ($this->loggedQueryCount > 0) {
+        if (count($this->reportQueries) > 0) {
             QueryLogWritten::dispatch(
                 $this->loggedQueryCount,
-                $this->loggedDmlQuery,
-                $this->logRecords,
+                $this->reportHeader,
+                $this->reportQueries,
             );
         }
     }

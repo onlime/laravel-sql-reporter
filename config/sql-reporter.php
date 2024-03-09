@@ -100,8 +100,8 @@ return [
          * (Data Manipulation Language - INSERT, UPDATE, DELETE, etc.)
          * see https://regex101.com/r/vB1QAM/1
          */
-        'dml_pattern' => env(
-            'SQL_REPORTER_QUERIES_DML_PATTERN',
+        'report_pattern' => env(
+            'SQL_REPORTER_QUERIES_REPORT_PATTERN',
             '/^(?!select\s|start transaction|commit|update `sessions`).*/i'
         ),
 

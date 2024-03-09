@@ -10,8 +10,8 @@ class QueryLogWritten
 
     public function __construct(
         public int $loggedQueryCount,
-        public bool $loggedDmlQuery,
-        public array $logRecords,
+        public string $reportHeader,
+        public array $reportQueries,
     ) {
     }
 }

@@ -88,7 +88,7 @@ class Config
      */
     public function queriesDmlPattern(): string
     {
-        return $this->repository->get('sql-reporter.queries.dml_pattern');
+        return $this->repository->get('sql-reporter.queries.report_pattern');
     }
 
     /**

@@ -36,10 +36,10 @@ class SqlQuery
     }
 
     /**
-     * Check if this (potentially) is a DML query.
+     * Check if this query should be reported.
      */
-    public function isDML(): bool
+    public function shouldReport(): bool
     {
-        return preg_match(config('sql-reporter.queries.dml_pattern'), $this->rawQuery) === 1;
+        return preg_match(config('sql-reporter.queries.report_pattern'), $this->rawQuery) === 1;
     }
 }
