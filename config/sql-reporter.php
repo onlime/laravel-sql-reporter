@@ -69,14 +69,14 @@ return [
 
         /*
          * Whether log (for all queries, not for slow queries) should be overridden.
-         * It might be useful when you test some functionality and you want to
+         * It might be useful when you test some functionality, and you want to
          * compare your queries (or number of queries) - be aware that when using
          * AJAX it will override your log file in each request
          */
         'override_log' => env('SQL_REPORTER_QUERIES_OVERRIDE_LOG', false),
 
         /*
-         * Pattern that should be matched to log query. By default all queries are logged.
+         * Pattern that should be matched to log query. By default, all queries are logged.
          *
          * examples:
          * '#.*#i' will log all queries
@@ -87,13 +87,23 @@ return [
 
         /*
          * Pattern that should not be matched to log query. This limits the queries that were
-         * matched by 'include_pattern'. By default no queries are excluded.
+         * matched by 'include_pattern'. By default, no queries are excluded.
          *
          * examples:
          * '/^$/' don't exclude any queries
          * '/^UPDATE.*last_visit/i' excludes UPDATE queries that modify `last_visit`
          */
         'exclude_pattern' => env('SQL_REPORTER_QUERIES_EXCLUDE_PATTERN', '/^$/'),
+
+        /*
+         * Pattern which is used to detect DML queries.
+         * (Data Manipulation Language - INSERT, UPDATE, DELETE, etc.)
+         * see https://regex101.com/r/vB1QAM/1
+         */
+        'dml_pattern' => env(
+            'SQL_REPORTER_QUERIES_DML_PATTERN',
+            '/^(?!select\s|start transaction|commit|update `sessions`).*/i'
+        ),
 
         /*
          * Only log queries with slow execution time (in milliseconds)

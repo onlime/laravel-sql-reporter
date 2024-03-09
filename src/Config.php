@@ -84,6 +84,14 @@ class Config
     }
 
     /**
+     * Get DML pattern for queries.
+     */
+    public function queriesDmlPattern(): string
+    {
+        return $this->repository->get('sql-reporter.queries.dml_pattern');
+    }
+
+    /**
      * Get file name (without extension) for all queries.
      */
     public function queriesFileName(): string

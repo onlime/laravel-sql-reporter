@@ -1,0 +1,17 @@
+<?php
+
+namespace Onlime\LaravelSqlReporter\Events;
+
+use Illuminate\Foundation\Events\Dispatchable;
+
+class QueryLogWritten
+{
+    use Dispatchable;
+
+    public function __construct(
+        public int $loggedQueryCount,
+        public bool $loggedDmlQuery,
+        public array $logRecords,
+    ) {
+    }
+}

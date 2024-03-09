@@ -1,11 +1,12 @@
 # CHANGELOG
 
-## [v1.1.x (Unreleased)](https://github.com/onlime/laravel-sql-reporter/compare/v1.1.0...main)
+## [v1.1.x (Unreleased)](https://github.com/onlime/laravel-sql-reporter/compare/v1.2.0...main)
 
 - ...
 
-## [v1.1.1 (2024-03-09)](https://github.com/onlime/laravel-sql-reporter/compare/v1.1.0...v1.1.1)
+## [v1.2.0 (2024-03-09)](https://github.com/onlime/laravel-sql-reporter/compare/v1.1.0...v1.2.0)
 
+- Feature | Dispatch `QueryLogWritten` event after writing queries to the log, so that the whole query log can be accessed for further processing, e.g. generating reports/notifications.
 - Laravel 11 support
 
 ## [v1.1.0 (2023-07-16)](https://github.com/onlime/laravel-sql-reporter/compare/v1.0.1...v1.1.0)

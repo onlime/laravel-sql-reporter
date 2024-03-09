@@ -2,13 +2,26 @@
 
 namespace Onlime\LaravelSqlReporter;
 
+use Onlime\LaravelSqlReporter\Events\QueryLogWritten;
+
 class Writer
 {
     /**
      * Log record counter.
      * This is only used to count queries that are actually logged.
      */
-    private int $logCount = 0;
+    private int $loggedQueryCount = 0;
+
+    /**
+     * Whether any DML query was logged.
+     */
+    public bool $loggedDmlQuery = false;
+
+    /**
+     * Aggregated log records.
+     * First record is header, followed by queries.
+     */
+    private array $logRecords = [];
 
     public function __construct(
         private Formatter $formatter,
@@ -27,7 +40,7 @@ class Writer
         $this->createDirectoryIfNotExists($query->number());
 
         if ($this->shouldLogQuery($query)) {
-            if ($this->logCount === 0) {
+            if ($this->loggedQueryCount === 0) {
                 // only write header information on first query to be logged
                 $this->writeLine(
                     $this->formatter->getHeader(),
@@ -37,7 +50,8 @@ class Writer
             $this->writeLine(
                 $this->formatter->getLine($query)
             );
-            $this->logCount++;
+            $this->loggedQueryCount++;
+            $this->loggedDmlQuery = $this->loggedDmlQuery || $query->isDML();
             return true;
         }
         return false;
@@ -82,10 +96,23 @@ class Writer
      */
     protected function writeLine(string $line, bool $override = false): int|false
     {
+        $this->logRecords[] = $line; // store for later processing
+
         return file_put_contents(
             $this->directory().DIRECTORY_SEPARATOR.$this->fileName->getLogfile(),
             $line.PHP_EOL,
             $override ? 0 : FILE_APPEND
         );
+    }
+
+    public function __destruct()
+    {
+        if ($this->loggedQueryCount > 0) {
+            event(new QueryLogWritten(
+                $this->loggedQueryCount,
+                $this->loggedDmlQuery,
+                $this->logRecords,
+            ));
+        }
     }
 }

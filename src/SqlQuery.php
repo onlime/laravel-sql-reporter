@@ -34,4 +34,12 @@ class SqlQuery
     {
         return $this->time;
     }
+
+    /**
+     * Check if this (potentially) is a DML query.
+     */
+    public function isDML(): bool
+    {
+        return preg_match(config('sql-reporter.queries.dml_pattern'), $this->rawQuery) === 1;
+    }
 }
