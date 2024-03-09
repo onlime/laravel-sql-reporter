@@ -108,11 +108,11 @@ class Writer
     public function __destruct()
     {
         if ($this->loggedQueryCount > 0) {
-            event(new QueryLogWritten(
+            QueryLogWritten::dispatch(
                 $this->loggedQueryCount,
                 $this->loggedDmlQuery,
                 $this->logRecords,
-            ));
+            );
         }
     }
 }
