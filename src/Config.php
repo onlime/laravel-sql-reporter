@@ -84,9 +84,9 @@ class Config
     }
 
     /**
-     * Get DML pattern for queries.
+     * Get report pattern for queries.
      */
-    public function queriesDmlPattern(): string
+    public function queriesReportPattern(): string
     {
         return $this->repository->get('sql-reporter.queries.report_pattern');
     }

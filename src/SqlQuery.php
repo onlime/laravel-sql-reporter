@@ -38,8 +38,8 @@ class SqlQuery
     /**
      * Check if this query should be reported.
      */
-    public function shouldReport(): bool
+    public function shouldReport(Config $config): bool
     {
-        return preg_match(config('sql-reporter.queries.report_pattern'), $this->rawQuery) === 1;
+        return preg_match($config->queriesReportPattern(), $this->rawQuery) === 1;
     }
 }

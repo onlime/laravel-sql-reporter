@@ -48,7 +48,7 @@ class Writer
             }
             $logLine = $this->formatter->getLine($query);
             $this->writeLine($logLine);
-            if ($query->shouldReport()) {
+            if ($query->shouldReport($this->config)) {
                 $this->reportQueries[] = $logLine;
             }
             $this->loggedQueryCount++;
