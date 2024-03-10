@@ -61,7 +61,7 @@ class Formatter
             'origin'   => $this->originLine(),
             'status'   => sprintf('Executed %s queries in %s', count($queryLog), $totalTime),
             'user'     => $username,
-            'guard'    => Auth::guard()->name,
+            'guard'    => Auth::check() ? Auth::getDefaultDriver() : '',
             'env'      => $this->app->environment(),
             'agent'    => Request::userAgent() ?? PHP_SAPI,
             'ip'       => $ip,

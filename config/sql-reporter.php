@@ -103,7 +103,7 @@ return [
          */
         'report_pattern' => env(
             'SQL_REPORTER_QUERIES_REPORT_PATTERN',
-            '/^(?!select\s|start transaction|commit|update `sessions`).*/i'
+            '/^(?!select\s|start transaction|commit|insert into `logins`|(insert into|update|delete from) `sessions`).*/i'
         ),
 
         /*
