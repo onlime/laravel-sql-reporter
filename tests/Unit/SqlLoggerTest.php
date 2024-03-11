@@ -17,6 +17,7 @@ it('runs writer with valid query', function () {
 
     $sqlQuery = new SqlQuery(1, 'anything', 1.23);
     $this->writer->shouldReceive('writeQuery')->once()->with(Mockery::on(fn ($arg) => $sqlQuery == $arg));
+    $this->writer->shouldReceive('report')->once()->withNoArgs();
 
     $this->logger->log();
     expect(true)->toBeTrue();
@@ -33,6 +34,8 @@ it('uses valid query number for multiple queries', function () {
 
     $sqlQuery2 = new SqlQuery(2, 'anything2', 4.56);
     $this->writer->shouldReceive('writeQuery')->once()->with(Mockery::on(fn ($arg) => $sqlQuery2 == $arg));
+
+    $this->writer->shouldReceive('report')->once()->withNoArgs();
 
     $this->logger->log();
     expect(true)->toBeTrue();

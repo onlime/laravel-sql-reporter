@@ -29,5 +29,6 @@ class SqlLogger
                 new SqlQuery(++$this->queryNumber, $query['raw_query'], $query['time'])
             );
         }
+        $this->writer->report();
     }
 }

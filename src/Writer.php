@@ -111,7 +111,10 @@ class Writer
         );
     }
 
-    public function __destruct()
+    /**
+     * Report the log by triggering the QueryLogWritten event for further processing.
+     */
+    public function report(): void
     {
         if (count($this->reportQueries) > 0) {
             QueryLogWritten::dispatch(

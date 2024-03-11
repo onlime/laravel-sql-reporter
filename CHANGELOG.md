@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## [v1.1.x (Unreleased)](https://github.com/onlime/laravel-sql-reporter/compare/v1.2.0...main)
+## [v1.2.x (Unreleased)](https://github.com/onlime/laravel-sql-reporter/compare/v1.2.0...main)
 
 - ...
 

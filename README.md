@@ -42,6 +42,7 @@ It reports a lot of metadata like total query count, total execution time, origi
     SQL_REPORTER_QUERIES_OVERRIDE_LOG=false
     SQL_REPORTER_QUERIES_INCLUDE_PATTERN="#.*#i"
     SQL_REPORTER_QUERIES_EXCLUDE_PATTERN="/^\$/"
+    SQL_REPORTER_QUERIES_REPORT_PATTERN='/^(?!select\s|start transaction|commit|(insert into|update|delete from) `(sessions|jobs|bans|logins)`).*/i'
     SQL_REPORTER_QUERIES_MIN_EXEC_TIME=0
     SQL_REPORTER_QUERIES_FILE_NAME="[Y-m]-log"
     SQL_REPORTER_FORMAT_HEADER_FIELDS="origin,datetime,status,user,env,agent,ip,host,referer"
@@ -100,7 +101,7 @@ This package was inspired by [mnabialek/laravel-sql-logger](https://github.com/m
 
 - Query logging is not triggered upon each query execution but instead at a final step, using `RequestHandled` and `CommandFinished` events.
 - This allows us to include much more information about the whole query executions like total query count, total execution time, and very detailed header information like origin (request URL/console command), authenticated user, app environment, client browser agent / IP / hostname.
-- This package is greatly simplified and only provides support for Laravel 10 / PHP 8.1+
+- This package is greatly simplified and only provides support for Laravel 10+ / PHP 8.1+
 - It uses the Laravel built-in query logging (`DB::enableQueryLog()`) which logs all queries in memory, which should perform much better than writing every single query to the log file.
 - By default, `onlime/laravel-sql-reporter` produces much nicer log output, especially since we only write header information before the first query.
 
@@ -108,15 +109,16 @@ Sample log output:
 
 ```
 -- --------------------------------------------------
--- Datetime: 2021-05-28 15:24:46
+-- Datetime: 2024-03-11 09:33:22
 -- Origin:   (request) GET http://localhost:8000/demo
 -- Status:   Executed 3 queries in 1.85ms
--- User:     
+-- User:     testuser@example.com
+-- Guard:    web
 -- Env:      local
--- Agent:    Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:88.0) Gecko/20100101 Firefox/88.0
+-- Agent:    Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:123.0) Gecko/20100101 Firefox/123.0
 -- Ip:       127.0.0.1
 -- Host:     localhost
--- Referer:  
+-- Referer:
 -- --------------------------------------------------
 -- Query 1 [1.45ms]
 select * from `users` where `id` = 1 limit 1;
