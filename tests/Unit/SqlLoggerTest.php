@@ -1,60 +1,39 @@
 <?php
 
-namespace Tests\Unit;
-
 use Illuminate\Support\Facades\DB;
-use Mockery;
 use Onlime\LaravelSqlReporter\SqlLogger;
 use Onlime\LaravelSqlReporter\SqlQuery;
 use Onlime\LaravelSqlReporter\Writer;
 
-class SqlLoggerTest extends UnitTestCase
-{
-    /**
-     * @var Writer|\Mockery\Mock
-     */
-    private $writer;
+beforeEach(function () {
+    $this->writer = Mockery::mock(Writer::class);
+    $this->logger = new SqlLogger($this->writer);
+});
 
-    /**
-     * @var SqlLogger
-     */
-    private $logger;
+it('runs writer with valid query', function () {
+    DB::shouldReceive('getRawQueryLog')->once()->withNoArgs()->andReturn([
+        ['raw_query' => 'anything', 'time' => 1.23],
+    ]);
 
-    protected function setUp(): void
-    {
-        $this->writer = Mockery::mock(Writer::class);
-        $this->logger = new SqlLogger($this->writer);
-    }
+    $sqlQuery = new SqlQuery(1, 'anything', 1.23);
+    $this->writer->shouldReceive('writeQuery')->once()->with(Mockery::on(fn ($arg) => $sqlQuery == $arg));
 
-    /** @test */
-    public function it_runs_writer_with_valid_query()
-    {
-        DB::shouldReceive('getRawQueryLog')->once()->withNoArgs()->andReturn([
-            ['raw_query' => 'anything', 'time' => 1.23],
-        ]);
+    $this->logger->log();
+    expect(true)->toBeTrue();
+});
 
-        $sqlQuery = new SqlQuery(1, 'anything', 1.23);
-        $this->writer->shouldReceive('writeQuery')->once()->with(Mockery::on(fn ($arg) => $sqlQuery == $arg));
+it('uses valid query number for multiple queries', function () {
+    DB::shouldReceive('getRawQueryLog')->once()->withNoArgs()->andReturn([
+        ['raw_query' => 'anything', 'time' => 1.23],
+        ['raw_query' => 'anything2', 'time' => 4.56],
+    ]);
 
-        $this->logger->log();
-        $this->assertTrue(true);
-    }
+    $sqlQuery = new SqlQuery(1, 'anything', 1.23);
+    $this->writer->shouldReceive('writeQuery')->once()->with(Mockery::on(fn ($arg) => $sqlQuery == $arg));
 
-    /** @test */
-    public function it_uses_valid_query_number_for_multiple_queries()
-    {
-        DB::shouldReceive('getRawQueryLog')->once()->withNoArgs()->andReturn([
-            ['raw_query' => 'anything', 'time' => 1.23],
-            ['raw_query' => 'anything2', 'time' => 4.56],
-        ]);
+    $sqlQuery2 = new SqlQuery(2, 'anything2', 4.56);
+    $this->writer->shouldReceive('writeQuery')->once()->with(Mockery::on(fn ($arg) => $sqlQuery2 == $arg));
 
-        $sqlQuery = new SqlQuery(1, 'anything', 1.23);
-        $this->writer->shouldReceive('writeQuery')->once()->with(Mockery::on(fn ($arg) => $sqlQuery == $arg));
-
-        $sqlQuery2 = new SqlQuery(2, 'anything2', 4.56);
-        $this->writer->shouldReceive('writeQuery')->once()->with(Mockery::on(fn ($arg) => $sqlQuery2 == $arg));
-
-        $this->logger->log();
-        $this->assertTrue(true);
-    }
-}
+    $this->logger->log();
+    expect(true)->toBeTrue();
+});

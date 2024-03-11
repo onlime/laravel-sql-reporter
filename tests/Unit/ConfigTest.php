@@ -1,136 +1,97 @@
 <?php
 
-namespace Tests\Unit;
-
 use Illuminate\Contracts\Config\Repository;
-use Mockery;
 use Onlime\LaravelSqlReporter\Config;
 
-class ConfigTest extends UnitTestCase
-{
-    /**
-     * @var Repository|\Mockery\Mock
-     */
-    protected $repository;
+beforeEach(function () {
+    $this->repository = Mockery::mock(Repository::class);
+    $this->config = new Config($this->repository);
+});
 
-    /**
-     * @var Config|\Mockery\Mock
-     */
-    protected $config;
+it('returns valid values for queries enabled', function () {
+    $this->repository->shouldReceive('get')->once()->with('sql-reporter.queries.enabled')
+        ->andReturn(1);
+    expect($this->config->queriesEnabled())->toBeTrue();
 
-    protected function setUp(): void
-    {
-        $this->repository = Mockery::mock(Repository::class);
-        $this->config = new Config($this->repository);
-    }
+    $this->repository->shouldReceive('get')->once()->with('sql-reporter.queries.enabled')
+        ->andReturn(0);
+    expect($this->config->queriesEnabled())->toBeFalse();
+});
 
-    /** @test */
-    public function it_returns_valid_values_for_queriesEnabled()
-    {
-        $this->repository->shouldReceive('get')->once()->with('sql-reporter.queries.enabled')
-            ->andReturn(1);
-        $this->assertTrue($this->config->queriesEnabled());
+it('returns valid value for slow log time', function () {
+    $value = 700.0;
+    $this->repository->shouldReceive('get')->once()->with('sql-reporter.queries.min_exec_time')
+        ->andReturn($value);
+    expect($this->config->queriesMinExecTime())->toBe($value);
+});
 
-        $this->repository->shouldReceive('get')->once()->with('sql-reporter.queries.enabled')
-            ->andReturn(0);
-        $this->assertFalse($this->config->queriesEnabled());
-    }
+it('returns valid values for queries override log', function () {
+    $this->repository->shouldReceive('get')->once()->with('sql-reporter.queries.override_log')
+        ->andReturn(1);
+    expect($this->config->queriesOverrideLog())->toBeTrue();
 
-    /** @test */
-    public function it_returns_valid_value_for_slowLogTime()
-    {
-        $value = 700.0;
-        $this->repository->shouldReceive('get')->once()->with('sql-reporter.queries.min_exec_time')
-            ->andReturn($value);
-        $this->assertSame($value, $this->config->queriesMinExecTime());
-    }
+    $this->repository->shouldReceive('get')->once()->with('sql-reporter.queries.override_log')
+        ->andReturn(0);
+    expect($this->config->queriesOverrideLog())->toBeFalse();
+});
 
-    /** @test */
-    public function it_returns_valid_values_for_queriesOverrideLog()
-    {
-        $this->repository->shouldReceive('get')->once()->with('sql-reporter.queries.override_log')
-            ->andReturn(1);
-        $this->assertTrue($this->config->queriesOverrideLog());
+it('returns valid value for log directory', function () {
+    $value = 'sample directory';
+    $this->repository->shouldReceive('get')->once()->with('sql-reporter.general.directory')
+        ->andReturn($value);
+    expect($this->config->logDirectory())->toBe($value);
+});
 
-        $this->repository->shouldReceive('get')->once()->with('sql-reporter.queries.override_log')
-            ->andReturn(0);
-        $this->assertFalse($this->config->queriesOverrideLog());
-    }
+it('returns valid values for use seconds', function () {
+    $this->repository->shouldReceive('get')->once()->with('sql-reporter.general.use_seconds')
+        ->andReturn(1);
+    expect($this->config->useSeconds())->toBeTrue();
 
-    /** @test */
-    public function it_returns_valid_value_for_logDirectory()
-    {
-        $value = 'sample directory';
-        $this->repository->shouldReceive('get')->once()->with('sql-reporter.general.directory')
-            ->andReturn($value);
-        $this->assertSame($value, $this->config->logDirectory());
-    }
+    $this->repository->shouldReceive('get')->once()->with('sql-reporter.general.use_seconds')
+        ->andReturn(0);
+    expect($this->config->useSeconds())->toBeFalse();
+});
 
-    /** @test */
-    public function it_returns_valid_values_for_useSeconds()
-    {
-        $this->repository->shouldReceive('get')->once()->with('sql-reporter.general.use_seconds')
-            ->andReturn(1);
-        $this->assertTrue($this->config->useSeconds());
+it('returns valid values for console suffix', function () {
+    $this->repository->shouldReceive('get')->once()->with('sql-reporter.general.console_log_suffix')
+        ->andReturn('-artisan');
+    expect($this->config->consoleSuffix())->toBe('-artisan');
 
-        $this->repository->shouldReceive('get')->once()->with('sql-reporter.general.use_seconds')
-            ->andReturn(0);
-        $this->assertFalse($this->config->useSeconds());
-    }
+    $this->repository->shouldReceive('get')->once()->with('sql-reporter.general.console_log_suffix')
+        ->andReturn('');
+    expect($this->config->consoleSuffix())->toBe('');
+});
 
-    /** @test */
-    public function it_returns_valid_values_for_consoleSuffix()
-    {
-        $this->repository->shouldReceive('get')->once()->with('sql-reporter.general.console_log_suffix')
-            ->andReturn('-artisan');
-        $this->assertSame('-artisan', $this->config->consoleSuffix());
+it('returns valid value for queries include pattern', function () {
+    $value = 'sample pattern';
+    $this->repository->shouldReceive('get')->once()->with('sql-reporter.queries.include_pattern')
+        ->andReturn($value);
+    expect($this->config->queriesIncludePattern())->toBe($value);
+});
 
-        $this->repository->shouldReceive('get')->once()->with('sql-reporter.general.console_log_suffix')
-            ->andReturn('');
-        $this->assertSame('', $this->config->consoleSuffix());
-    }
+it('returns valid value for queries exclude pattern', function () {
+    $value = 'sample pattern';
+    $this->repository->shouldReceive('get')->once()->with('sql-reporter.queries.exclude_pattern')
+        ->andReturn($value);
+    expect($this->config->queriesExcludePattern())->toBe($value);
+});
 
-    /** @test */
-    public function it_returns_valid_value_for_queriesIncludePattern()
-    {
-        $value = 'sample pattern';
-        $this->repository->shouldReceive('get')->once()->with('sql-reporter.queries.include_pattern')
-            ->andReturn($value);
-        $this->assertSame($value, $this->config->queriesIncludePattern());
-    }
+it('returns valid file extension', function () {
+    $value = '.sql';
+    $this->repository->shouldReceive('get')->once()->with('sql-reporter.general.extension')
+        ->andReturn($value);
+    expect($this->config->fileExtension())->toBe($value);
+});
 
-    /** @test */
-    public function it_returns_valid_value_for_queriesExcludePattern()
-    {
-        $value = 'sample pattern';
-        $this->repository->shouldReceive('get')->once()->with('sql-reporter.queries.exclude_pattern')
-            ->andReturn($value);
-        $this->assertSame($value, $this->config->queriesExcludePattern());
-    }
+it('returns valid queries file name', function () {
+    $value = '[Y-m-d]-sample';
+    $this->repository->shouldReceive('get')->once()->with('sql-reporter.queries.file_name')
+        ->andReturn($value);
+    expect($this->config->queriesFileName())->toBe($value);
+});
 
-    /** @test */
-    public function it_returns_valid_file_extension()
-    {
-        $value = '.sql';
-        $this->repository->shouldReceive('get')->once()->with('sql-reporter.general.extension')
-            ->andReturn($value);
-        $this->assertSame($value, $this->config->fileExtension());
-    }
-
-    /** @test */
-    public function it_returns_valid_queries_file_name()
-    {
-        $value = '[Y-m-d]-sample';
-        $this->repository->shouldReceive('get')->once()->with('sql-reporter.queries.file_name')
-            ->andReturn($value);
-        $this->assertSame($value, $this->config->queriesFileName());
-    }
-
-    /** @test */
-    public function it_returns_valid_value_for_entryFormat()
-    {
-        $this->repository->shouldReceive('get')->once()->with('sql-reporter.formatting.entry_format')
-            ->andReturn('[sample]/[example]/foo');
-        $this->assertSame('[sample]/[example]/foo', $this->config->entryFormat());
-    }
-}
+it('returns valid value for entry format', function () {
+    $this->repository->shouldReceive('get')->once()->with('sql-reporter.formatting.entry_format')
+        ->andReturn('[sample]/[example]/foo');
+    expect($this->config->entryFormat())->toBe('[sample]/[example]/foo');
+});
