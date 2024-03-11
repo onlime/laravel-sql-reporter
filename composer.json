@@ -49,5 +49,7 @@
             "stevebaumann/location": "GeoIP country detection for log headers information",
             "symfony/thanks": "Star packages you use running 'composer thanks' command"
         }
-    }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
 }
