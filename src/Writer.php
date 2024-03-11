@@ -48,13 +48,21 @@ class Writer
             }
             $logLine = $this->formatter->getLine($query);
             $this->writeLine($logLine);
-            if ($query->shouldReport($this->config)) {
+            if ($this->shouldReportSqlQuery($query)) {
                 $this->reportQueries[] = $logLine;
             }
             $this->loggedQueryCount++;
             return true;
         }
         return false;
+    }
+
+    /**
+     * Verify whether query should be reported.
+     */
+    private function shouldReportSqlQuery(SqlQuery $query): bool
+    {
+        return preg_match($this->config->queriesReportPattern(), $query->rawQuery()) === 1;
     }
 
     /**

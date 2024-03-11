@@ -8,7 +8,12 @@
 
 - Feature | Dispatch `QueryLogWritten` event after writing queries to the log, so that the whole query log can be accessed for further processing, e.g. generating reports/notifications.
 - Feature | Added auth guard to log headers.
-- Laravel 11 support
+- Laravel 11 support.
+- Migrated to Pest for testing (by @pascalbaljet in #2)
+- Added GitHub Actions for all supported Laravel and PHP versions.
+- Introduced `orchestra/testbench` dev dependency instead of the whole Laravel framework.
+- Improved Service Provider: fixed the publish tag and use the regular base `ServiceProvider`.
+- Improved `WriterTest` by not mocking the `Config` class but using the real config values.
 
 ## [v1.1.0 (2023-07-16)](https://github.com/onlime/laravel-sql-reporter/compare/v1.0.1...v1.1.0)
 
