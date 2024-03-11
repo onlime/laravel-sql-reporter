@@ -8,8 +8,8 @@ use Onlime\LaravelSqlReporter\Listeners\LogSqlQuery;
 it('registers event listeners', function (string $eventName) {
     $listeners = Event::getRawListeners()[$eventName] ?? [];
 
-    expect($listeners)->not->toBeEmpty();
-    expect($listeners)->toContain(LogSqlQuery::class);
+    expect($listeners)->not->toBeEmpty()
+        ->and($listeners)->toContain(LogSqlQuery::class);
 })->with([
     CommandFinished::class,
     RequestHandled::class,
@@ -18,9 +18,9 @@ it('registers event listeners', function (string $eventName) {
 it('merges the default config', function () {
     $config = config('sql-reporter');
 
-    expect($config)->toBeArray();
-    expect($config)->toHaveKey('queries');
-    expect($config)->toHaveKey('general');
+    expect($config)->toBeArray()
+        ->and($config)->toHaveKey('queries')
+        ->and($config)->toHaveKey('general');
 });
 
 it('can publish the config file', function () {

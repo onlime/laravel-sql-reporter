@@ -26,14 +26,12 @@ afterEach(function () {
 
 function setConfig(string|array $key, mixed $value =null)
 {
-    if (is_array($key)) {
-        // prepend all keys with 'sql-reporter.'
-        $key = collect($key)->mapWithKeys(fn (string $value, mixed $key) => ["sql-reporter.$key" => $value])->all();
-    } else {
-        $key = ['sql-reporter.'.$key => $value];
-    }
-
-    config()->set($key);
+    config()->set(
+        // prepend all keys with 'sql-reporter.' prefix
+        is_array($key)
+            ? collect($key)->mapWithKeys(fn (string $value, mixed $key) => ["sql-reporter.$key" => $value])->all()
+            : ['sql-reporter.'.$key => $value]
+    );
 }
 
 it('creates directory if it does not exist for 1st query', function () {
@@ -41,8 +39,8 @@ it('creates directory if it does not exist for 1st query', function () {
     setConfig('queries.enabled', false);
     expect($this->directory)->not()->toBeDirectory();
     $this->writer->writeQuery($query);
-    expect($this->directory)->toBeFile();
-    expect($this->filesystem->allFiles($this->directory))->toBeEmpty();
+    expect($this->directory)->toBeFile()
+        ->and($this->filesystem->allFiles($this->directory))->toBeEmpty();
 });
 
 it('does not create directory if it does not exist for 2nd query', function () {
@@ -66,10 +64,10 @@ it('creates log file', function () {
 
     $this->filename->shouldReceive('getLogfile')->times(2)->withNoArgs()->andReturn($expectedFileName);
     $this->writer->writeQuery($query);
-    expect($this->directory)->toBeFile();
-    expect($this->filesystem->allFiles($this->directory))->toHaveCount(1);
-    expect($this->directory.'/'.$expectedFileName)->toBeFile();
-    expect(file_get_contents($this->directory.'/'.$expectedFileName))->toBe($expectedContent);
+    expect($this->directory)->toBeFile()
+        ->and($this->filesystem->allFiles($this->directory))->toHaveCount(1)
+        ->and($this->directory.'/'.$expectedFileName)->toBeFile()
+        ->and(file_get_contents($this->directory.'/'.$expectedFileName))->toBe($expectedContent);
 });
 
 it('appends to existing log file', function () {
@@ -88,9 +86,9 @@ it('appends to existing log file', function () {
     $this->filename->shouldReceive('getLogfile')->times(2)->withNoArgs()->andReturn($expectedFileName);
     expect($this->directory.'/'.$expectedFileName)->toBeFile();
     $this->writer->writeQuery($query);
-    expect($this->filesystem->allFiles($this->directory))->toHaveCount(1);
-    expect($this->directory.'/'.$expectedFileName)->toBeFile();
-    expect(file_get_contents($this->directory.'/'.$expectedFileName))->toBe($expectedContent);
+    expect($this->filesystem->allFiles($this->directory))->toHaveCount(1)
+        ->and($this->directory.'/'.$expectedFileName)->toBeFile()
+        ->and(file_get_contents($this->directory.'/'.$expectedFileName))->toBe($expectedContent);
 });
 
 it('replaces current file content for 1st query when overriding is turned on', function () {
@@ -112,9 +110,9 @@ it('replaces current file content for 1st query when overriding is turned on', f
     $this->filename->shouldReceive('getLogfile')->times(2)->withNoArgs()->andReturn($expectedFileName);
     expect($this->directory.'/'.$expectedFileName)->toBeFile();
     $this->writer->writeQuery($query);
-    expect($this->filesystem->allFiles($this->directory))->toHaveCount(1);
-    expect($this->directory.'/'.$expectedFileName)->toBeFile();
-    expect(file_get_contents($this->directory.'/'.$expectedFileName))->toBe($expectedContent);
+    expect($this->filesystem->allFiles($this->directory))->toHaveCount(1)
+        ->and($this->directory.'/'.$expectedFileName)->toBeFile()
+        ->and(file_get_contents($this->directory.'/'.$expectedFileName))->toBe($expectedContent);
 });
 
 it('appends to current file content for 2nd query when overriding is turned on', function () {
@@ -138,9 +136,9 @@ it('appends to current file content for 2nd query when overriding is turned on',
     expect($this->directory.'/'.$expectedFileName)->toBeFile();
     $this->writer->writeQuery($query1);
     $this->writer->writeQuery($query2);
-    expect($this->filesystem->allFiles($this->directory))->toHaveCount(1);
-    expect($this->directory.'/'.$expectedFileName)->toBeFile();
-    expect(file_get_contents($this->directory.'/'.$expectedFileName))->toBe($expectedContent);
+    expect($this->filesystem->allFiles($this->directory))->toHaveCount(1)
+        ->and($this->directory.'/'.$expectedFileName)->toBeFile()
+        ->and(file_get_contents($this->directory.'/'.$expectedFileName))->toBe($expectedContent);
 });
 
 it('saves select query to file when pattern set to select queries', function () {
@@ -154,19 +152,18 @@ it('saves select query to file when pattern set to select queries', function () 
     setConfig('queries.include_pattern', '#^SELECT .*$#i');
     $this->filename->shouldReceive('getLogfile')->twice()->withNoArgs()->andReturn($expectedFileName);
     $this->writer->writeQuery($query);
-    expect($this->directory)->toBeFile();
-    expect($this->filesystem->allFiles($this->directory))->toHaveCount(1);
-
-    expect($this->directory.'/'.$expectedFileName)->toBeFile();
-    expect(file_get_contents($this->directory.'/'.$expectedFileName))->toBe($expectedContent);
+    expect($this->directory)->toBeFile()
+        ->and($this->filesystem->allFiles($this->directory))->toHaveCount(1)
+        ->and($this->directory.'/'.$expectedFileName)->toBeFile()
+        ->and(file_get_contents($this->directory.'/'.$expectedFileName))->toBe($expectedContent);
 });
 
 it('doesnt save select query to file when pattern set to insert or update queries', function () {
     $query = new SqlQuery(1, 'select * FROM test', 5.41);
     setConfig('queries.include_pattern', '#^(?:UPDATE|INSERT) .*$#i');
     $this->writer->writeQuery($query);
-    expect($this->directory)->toBeFile();
-    expect($this->filesystem->allFiles($this->directory))->toHaveCount(0);
+    expect($this->directory)->toBeFile()
+        ->and($this->filesystem->allFiles($this->directory))->toHaveCount(0);
 });
 
 it('saves insert query to file when pattern set to insert or update queries', function () {
@@ -180,11 +177,10 @@ it('saves insert query to file when pattern set to insert or update queries', fu
     setConfig('queries.include_pattern', '#^(?:UPDATE|INSERT) .*$#i');
     $this->filename->shouldReceive('getLogfile')->twice()->withNoArgs()->andReturn($expectedFileName);
     $this->writer->writeQuery($query);
-    expect($this->directory)->toBeFile();
-    expect($this->filesystem->allFiles($this->directory))->toHaveCount(1);
-
-    expect($this->directory.'/'.$expectedFileName)->toBeFile();
-    expect(file_get_contents($this->directory.'/'.$expectedFileName))->toBe($expectedContent);
+    expect($this->directory)->toBeFile()
+        ->and($this->filesystem->allFiles($this->directory))->toHaveCount(1)
+        ->and($this->directory.'/'.$expectedFileName)->toBeFile()
+        ->and(file_get_contents($this->directory.'/'.$expectedFileName))->toBe($expectedContent);
 });
 
 it('uses raw query without bindings when using query pattern', function () {
@@ -198,11 +194,10 @@ it('uses raw query without bindings when using query pattern', function () {
     setConfig('queries.include_pattern', '#^(?:UPDATE test SET x = \d |INSERT ).*$#i');
     $this->filename->shouldReceive('getLogfile')->twice()->withNoArgs()->andReturn($expectedFileName);
     $this->writer->writeQuery($query);
-    expect($this->directory)->toBeFile();
-    expect($this->filesystem->allFiles($this->directory))->toHaveCount(1);
-
-    expect($this->directory.'/'.$expectedFileName)->toBeFile();
-    expect(file_get_contents($this->directory.'/'.$expectedFileName))->toBe($expectedContent);
+    expect($this->directory)->toBeFile()
+        ->and($this->filesystem->allFiles($this->directory))->toHaveCount(1)
+        ->and($this->directory.'/'.$expectedFileName)->toBeFile()
+        ->and(file_get_contents($this->directory.'/'.$expectedFileName))->toBe($expectedContent);
 });
 
 it('only logs slow queries', function () {
@@ -216,10 +211,11 @@ it('only logs slow queries', function () {
 
     $writer = Mockery::mock(Writer::class, [$this->formatter, $this->config, $this->filename])
         ->makePartial()->shouldAllowMockingProtectedMethods();
+    $writer->shouldAllowMockingProtectedMethods();
     $writer->shouldReceive('writeLine')->twice()->andReturn(false);
 
-    expect($writer->writeQuery($query1))->toBeFalse();
-    expect($writer->writeQuery($query2))->toBeTrue();
+    expect($writer->writeQuery($query1))->toBeFalse()
+        ->and($writer->writeQuery($query2))->toBeTrue();
 });
 
 it('respects query patterns', function () {
@@ -237,9 +233,10 @@ it('respects query patterns', function () {
 
     $writer = Mockery::mock(Writer::class, [$this->formatter, $this->config, $this->filename])
         ->makePartial()->shouldAllowMockingProtectedMethods();
+    $writer->shouldAllowMockingProtectedMethods();
     $writer->shouldReceive('writeLine')->twice()->andReturn(false);
 
-    expect($writer->writeQuery($query1))->toBeFalse();
-    expect($writer->writeQuery($query2))->toBeTrue();
-    expect($writer->writeQuery($query3))->toBeFalse();
+    expect($writer->writeQuery($query1))->toBeFalse()
+        ->and($writer->writeQuery($query2))->toBeTrue()
+        ->and($writer->writeQuery($query3))->toBeFalse();
 });

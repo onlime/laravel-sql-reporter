@@ -13,7 +13,8 @@ beforeEach(function () {
 });
 
 it('returns valid file name for queries when not running in console', function () {
-    $this->app->shouldReceive('runningInConsole')->once()->withNoArgs()->andReturn(false);
+    $this->app->shouldReceive('runningInConsole')->once()->withNoArgs()
+        ->andReturn(false);
     $this->config->shouldReceive('queriesFileName')->once()->withNoArgs()
         ->andReturn('sample[Y]-test-[m]-abc-[d]');
     $this->config->shouldReceive('fileExtension')->once()->withNoArgs()
@@ -23,7 +24,8 @@ it('returns valid file name for queries when not running in console', function (
 });
 
 it('returns valid file name for queries when running in console', function () {
-    $this->app->shouldReceive('runningInConsole')->once()->withNoArgs()->andReturn(true);
+    $this->app->shouldReceive('runningInConsole')->once()->withNoArgs()
+        ->andReturn(true);
     $this->config->shouldReceive('consoleSuffix')->once()->withNoArgs()
         ->andReturn('-artisan-suffix');
     $this->config->shouldReceive('queriesFileName')->once()->withNoArgs()
