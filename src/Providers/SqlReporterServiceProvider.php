@@ -35,7 +35,7 @@ class SqlReporterServiceProvider extends ServiceProvider
     {
         $this->publishes([
             $this->configFileLocation() => config_path('sql-reporter.php'),
-        ], 'config');
+        ], 'sql-reporter');
 
         if ($this->config->queriesEnabled()) {
             DB::enableQueryLog();

@@ -1,40 +1,24 @@
 <?php
 
-namespace Tests\Unit;
-
 use Illuminate\Console\Events\CommandFinished;
 use Illuminate\Foundation\Http\Events\RequestHandled;
-use Mockery;
 use Onlime\LaravelSqlReporter\Listeners\LogSqlQuery;
 use Onlime\LaravelSqlReporter\SqlLogger;
 
-class LogSqlQueryTest extends UnitTestCase
-{
-    /**
-     * @var SqlLogger
-     */
-    private $logger;
+beforeEach(function () {
+    $this->logger = Mockery::spy(SqlLogger::class);
+});
 
-    protected function setUp(): void
-    {
-        $this->logger = Mockery::spy(SqlLogger::class);
-    }
+it('can handle the command finished event', function () {
+    $listener = new LogSqlQuery($this->logger);
+    $listener->handle(Mockery::mock(CommandFinished::class));
 
-    /** @test */
-    public function it_can_handle_the_command_finished_event()
-    {
-        $listener = new LogSqlQuery($this->logger);
-        $listener->handle(Mockery::mock(CommandFinished::class));
+    $this->logger->shouldHaveReceived('log')->once();
+});
 
-        $this->logger->shouldHaveReceived('log')->once();
-    }
+it('can handle the request handled event', function () {
+    $listener = new LogSqlQuery($this->logger);
+    $listener->handle(Mockery::mock(RequestHandled::class));
 
-    /** @test */
-    public function it_can_handle_the_request_handled_event()
-    {
-        $listener = new LogSqlQuery($this->logger);
-        $listener->handle(Mockery::mock(RequestHandled::class));
-
-        $this->logger->shouldHaveReceived('log')->once();
-    }
-}
+    $this->logger->shouldHaveReceived('log')->once();
+});

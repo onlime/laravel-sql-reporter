@@ -1,52 +1,45 @@
 <?php
 
-namespace Tests\Unit;
-
 use Carbon\Carbon;
 use Illuminate\Container\Container;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Mockery;
 use Onlime\LaravelSqlReporter\Config;
 use Onlime\LaravelSqlReporter\Formatter;
 use Onlime\LaravelSqlReporter\SqlQuery;
 
-class FormatterTest extends UnitTestCase
-{
-    /** @test */
-    public function it_formats_header_in_valid_way_when_running_via_http()
-    {
-        $config = Mockery::mock(Config::class);
-        $app = Mockery::mock(Container::class);
-        $app->shouldReceive('runningInConsole')->once()->withNoArgs()->andReturn(false);
-        $app->shouldReceive('environment')->once()->withNoArgs()->andReturn('testing');
-        $config->shouldReceive('useSeconds')->once()->withNoArgs()->andReturn(false);
-        $config->shouldReceive('headerFields')->once()->withNoArgs()
-            ->andReturn(explode(',', 'origin,datetime,status,user,env,agent,ip,host,referer'));
-        $request = Mockery::mock(Request::class);
-        $app->shouldReceive('offsetGet')->times(2)->with('request')->andReturn($request);
-        $request->shouldReceive('method')->once()->withNoArgs()->andReturn('DELETE');
-        $request->shouldReceive('fullUrl')->once()->withNoArgs()
-            ->andReturn('http://example.com/test');
+it('formats header in valid way when running via http', function () {
+    $config = Mockery::mock(Config::class);
+    $app = Mockery::mock(Container::class);
+    $app->shouldReceive('runningInConsole')->once()->withNoArgs()->andReturn(false);
+    $app->shouldReceive('environment')->once()->withNoArgs()->andReturn('testing');
+    $config->shouldReceive('useSeconds')->once()->withNoArgs()->andReturn(false);
+    $config->shouldReceive('headerFields')->once()->withNoArgs()
+        ->andReturn(explode(',', 'origin,datetime,status,user,env,agent,ip,host,referer'));
+    $request = Mockery::mock(Request::class);
+    $app->shouldReceive('offsetGet')->times(2)->with('request')->andReturn($request);
+    $request->shouldReceive('method')->once()->withNoArgs()->andReturn('DELETE');
+    $request->shouldReceive('fullUrl')->once()->withNoArgs()
+        ->andReturn('http://example.com/test');
 
-        $now = '2015-03-04 08:12:07';
-        Carbon::setTestNow($now);
+    $now = '2015-03-04 08:12:07';
+    Carbon::setTestNow($now);
 
-        DB::shouldReceive('getRawQueryLog')->once()->withNoArgs()->andReturn([
-            ['raw_query' => 'foo', 'time' => 1.23],
-            ['raw_query' => 'bar', 'time' => 4.56],
-        ]);
-        Auth::shouldReceive('check')->once()->withNoArgs()->andReturn(false);
-        Auth::shouldReceive('user')->once()->withNoArgs()->andReturn(null);
-        \Illuminate\Support\Facades\Request::shouldReceive('ip')->once()->withNoArgs()->andReturn('127.0.0.1');
-        \Illuminate\Support\Facades\Request::shouldReceive('userAgent')->once()->withNoArgs()->andReturn('Mozilla/5.0');
-        \Illuminate\Support\Facades\Request::shouldReceive('header')->once()->with('referer')->andReturn('');
+    DB::shouldReceive('getRawQueryLog')->once()->withNoArgs()->andReturn([
+        ['raw_query' => 'foo', 'time' => 1.23],
+        ['raw_query' => 'bar', 'time' => 4.56],
+    ]);
+    Auth::shouldReceive('check')->once()->withNoArgs()->andReturn(false);
+    Auth::shouldReceive('user')->once()->withNoArgs()->andReturn(null);
+    \Illuminate\Support\Facades\Request::shouldReceive('ip')->once()->withNoArgs()->andReturn('127.0.0.1');
+    \Illuminate\Support\Facades\Request::shouldReceive('userAgent')->once()->withNoArgs()->andReturn('Mozilla/5.0');
+    \Illuminate\Support\Facades\Request::shouldReceive('header')->once()->with('referer')->andReturn('');
 
-        $formatter = new Formatter($app, $config);
-        $result = $formatter->getHeader();
+    $formatter = new Formatter($app, $config);
+    $result = $formatter->getHeader();
 
-        $expected = <<<EOT
+    $expected = <<<EOT
 -- --------------------------------------------------
 -- Datetime: {$now}
 -- Origin:   (request) DELETE http://example.com/test
@@ -60,36 +53,34 @@ class FormatterTest extends UnitTestCase
 -- --------------------------------------------------
 EOT;
 
-        $this->assertSame($expected, $result);
-    }
+    expect($result)->toBe($expected);
+});
 
-    /** @test */
-    public function it_formats_header_in_valid_way_when_running_in_console()
-    {
-        $config = Mockery::mock(Config::class);
-        $app = Mockery::mock(Container::class);
-        $app->shouldReceive('runningInConsole')->once()->withNoArgs()->andReturn(true);
-        $app->shouldReceive('environment')->once()->withNoArgs()->andReturn('testing');
-        $config->shouldReceive('useSeconds')->once()->withNoArgs()->andReturn(false);
-        $config->shouldReceive('headerFields')->once()->withNoArgs()
-            ->andReturn(explode(',', 'origin,datetime,status,user,env,agent,ip,host,referer'));
-        $request = Mockery::mock(Request::class);
-        $app->shouldReceive('offsetGet')->once()->with('request')->andReturn($request);
-        $request->shouldReceive('server')->once()->with('argv', [])->andReturn('php artisan test');
+it('formats header in valid way when running in console', function () {
+    $config = Mockery::mock(Config::class);
+    $app = Mockery::mock(Container::class);
+    $app->shouldReceive('runningInConsole')->once()->withNoArgs()->andReturn(true);
+    $app->shouldReceive('environment')->once()->withNoArgs()->andReturn('testing');
+    $config->shouldReceive('useSeconds')->once()->withNoArgs()->andReturn(false);
+    $config->shouldReceive('headerFields')->once()->withNoArgs()
+        ->andReturn(explode(',', 'origin,datetime,status,user,env,agent,ip,host,referer'));
+    $request = Mockery::mock(Request::class);
+    $app->shouldReceive('offsetGet')->once()->with('request')->andReturn($request);
+    $request->shouldReceive('server')->once()->with('argv', [])->andReturn('php artisan test');
 
-        $now = '2015-03-04 08:12:07';
-        Carbon::setTestNow($now);
+    $now = '2015-03-04 08:12:07';
+    Carbon::setTestNow($now);
 
-        DB::shouldReceive('getRawQueryLog')->once()->withNoArgs()->andReturn([]);
-        Auth::shouldReceive('user')->once()->withNoArgs()->andReturn(null);
-        \Illuminate\Support\Facades\Request::shouldReceive('ip')->once()->withNoArgs()->andReturn('127.0.0.1');
-        \Illuminate\Support\Facades\Request::shouldReceive('userAgent')->once()->withNoArgs()->andReturn('Mozilla/5.0');
-        \Illuminate\Support\Facades\Request::shouldReceive('header')->once()->with('referer')->andReturn('');
+    DB::shouldReceive('getRawQueryLog')->once()->withNoArgs()->andReturn([]);
+    Auth::shouldReceive('user')->once()->withNoArgs()->andReturn(null);
+    \Illuminate\Support\Facades\Request::shouldReceive('ip')->once()->withNoArgs()->andReturn('127.0.0.1');
+    \Illuminate\Support\Facades\Request::shouldReceive('userAgent')->once()->withNoArgs()->andReturn('Mozilla/5.0');
+    \Illuminate\Support\Facades\Request::shouldReceive('header')->once()->with('referer')->andReturn('');
 
-        $formatter = new Formatter($app, $config);
-        $result = $formatter->getHeader();
+    $formatter = new Formatter($app, $config);
+    $result = $formatter->getHeader();
 
-        $expected = <<<EOT
+    $expected = <<<EOT
 -- --------------------------------------------------
 -- Datetime: {$now}
 -- Origin:   (console) php artisan test
@@ -103,66 +94,62 @@ EOT;
 -- --------------------------------------------------
 EOT;
 
-        $this->assertSame($expected, $result);
-    }
+    expect($result)->toBe($expected);
+});
 
-    /** @test */
-    public function it_formats_line_in_valid_way_when_milliseconds_are_used()
-    {
-        $config = Mockery::mock(Config::class);
-        $app = Mockery::mock(Container::class);
-        $config->shouldReceive('useSeconds')->once()->withNoArgs()->andReturn(false);
-        $config->shouldReceive('entryFormat')->once()->withNoArgs()
-            ->andReturn('/* Query [query_nr] - [datetime] [[query_time]] */\n[query]\n[separator]\n');
+it('formats line in valid way when milliseconds are used', function () {
+    $config = Mockery::mock(Config::class);
+    $app = Mockery::mock(Container::class);
+    $config->shouldReceive('useSeconds')->once()->withNoArgs()->andReturn(false);
+    $config->shouldReceive('entryFormat')->once()->withNoArgs()
+        ->andReturn('/* Query [query_nr] - [datetime] [[query_time]] */\n[query]\n[separator]\n');
 
-        $now = '2015-03-04 08:12:07';
-        Carbon::setTestNow($now);
+    $now = '2015-03-04 08:12:07';
+    Carbon::setTestNow($now);
 
-        $query = Mockery::mock(SqlQuery::class);
-        $number = 434;
-        $time = 617.24;
-        $sql = 'SELECT * FROM somewhere';
-        $query->shouldReceive('number')->once()->withNoArgs()->andReturn($number);
-        $query->shouldReceive('rawQuery')->once()->withNoArgs()->andReturn($sql);
-        $query->shouldReceive('time')->once()->withNoArgs()->andReturn($time);
+    $query = Mockery::mock(SqlQuery::class);
+    $number = 434;
+    $time = 617.24;
+    $sql = 'SELECT * FROM somewhere';
+    $query->shouldReceive('number')->once()->withNoArgs()->andReturn($number);
+    $query->shouldReceive('rawQuery')->once()->withNoArgs()->andReturn($sql);
+    $query->shouldReceive('time')->once()->withNoArgs()->andReturn($time);
 
-        $formatter = new Formatter($app, $config);
-        $result = $formatter->getLine($query);
+    $formatter = new Formatter($app, $config);
+    $result = $formatter->getLine($query);
 
-        $expected = <<<EOT
+    $expected = <<<EOT
 /* Query {$number} - {$now} [{$time}ms] */
 {$sql};
 -- --------------------------------------------------
 
 EOT;
 
-        $this->assertSame($expected, $result);
-    }
+    expect($result)->toBe($expected);
+});
 
-    /** @test */
-    public function it_formats_line_in_valid_way_when_custom_entry_format_was_used()
-    {
-        $config = Mockery::mock(Config::class);
-        $app = Mockery::mock(Container::class);
-        $config->shouldReceive('useSeconds')->once()->withNoArgs()->andReturn(false);
-        $config->shouldReceive('entryFormat')->once()->withNoArgs()
-            ->andReturn("[separator]\n[query_nr] : [datetime] [query_time]\n[query]\n[separator]\n");
+it('formats line in valid way when custom entry format was used', function () {
+    $config = Mockery::mock(Config::class);
+    $app = Mockery::mock(Container::class);
+    $config->shouldReceive('useSeconds')->once()->withNoArgs()->andReturn(false);
+    $config->shouldReceive('entryFormat')->once()->withNoArgs()
+        ->andReturn("[separator]\n[query_nr] : [datetime] [query_time]\n[query]\n[separator]\n");
 
-        $now = '2015-03-04 08:12:07';
-        Carbon::setTestNow($now);
+    $now = '2015-03-04 08:12:07';
+    Carbon::setTestNow($now);
 
-        $query = Mockery::mock(SqlQuery::class);
-        $number = 434;
-        $time = 617.24;
-        $sql = 'SELECT * FROM somewhere';
-        $query->shouldReceive('number')->once()->withNoArgs()->andReturn($number);
-        $query->shouldReceive('rawQuery')->once()->withNoArgs()->andReturn($sql);
-        $query->shouldReceive('time')->once()->withNoArgs()->andReturn($time);
+    $query = Mockery::mock(SqlQuery::class);
+    $number = 434;
+    $time = 617.24;
+    $sql = 'SELECT * FROM somewhere';
+    $query->shouldReceive('number')->once()->withNoArgs()->andReturn($number);
+    $query->shouldReceive('rawQuery')->once()->withNoArgs()->andReturn($sql);
+    $query->shouldReceive('time')->once()->withNoArgs()->andReturn($time);
 
-        $formatter = new Formatter($app, $config);
-        $result = $formatter->getLine($query);
+    $formatter = new Formatter($app, $config);
+    $result = $formatter->getLine($query);
 
-        $expected = <<<EOT
+    $expected = <<<EOT
 -- --------------------------------------------------
 {$number} : {$now} {$time}ms
 {$sql};
@@ -170,39 +157,36 @@ EOT;
 
 EOT;
 
-        $this->assertSame($expected, $result);
-    }
+    expect($result)->toBe($expected);
+});
 
-    /** @test */
-    public function it_formats_line_in_valid_way_when_seconds_are_used()
-    {
-        $config = Mockery::mock(Config::class);
-        $app = Mockery::mock(Container::class);
-        $config->shouldReceive('useSeconds')->once()->withNoArgs()->andReturn(true);
-        $config->shouldReceive('entryFormat')->once()->withNoArgs()
-            ->andReturn('/* Query [query_nr] - [datetime] [[query_time]] */\n[query]\n[separator]\n');
+it('formats line in valid way when seconds are used', function () {
+    $config = Mockery::mock(Config::class);
+    $app = Mockery::mock(Container::class);
+    $config->shouldReceive('useSeconds')->once()->withNoArgs()->andReturn(true);
+    $config->shouldReceive('entryFormat')->once()->withNoArgs()
+        ->andReturn('/* Query [query_nr] - [datetime] [[query_time]] */\n[query]\n[separator]\n');
 
-        $now = '2015-03-04 08:12:07';
-        Carbon::setTestNow($now);
+    $now = '2015-03-04 08:12:07';
+    Carbon::setTestNow($now);
 
-        $query = Mockery::mock(SqlQuery::class);
-        $number = 434;
-        $time = 617.24;
-        $sql = 'SELECT * FROM somewhere';
-        $query->shouldReceive('number')->once()->withNoArgs()->andReturn($number);
-        $query->shouldReceive('rawQuery')->once()->withNoArgs()->andReturn($sql);
-        $query->shouldReceive('time')->once()->withNoArgs()->andReturn($time);
+    $query = Mockery::mock(SqlQuery::class);
+    $number = 434;
+    $time = 617.24;
+    $sql = 'SELECT * FROM somewhere';
+    $query->shouldReceive('number')->once()->withNoArgs()->andReturn($number);
+    $query->shouldReceive('rawQuery')->once()->withNoArgs()->andReturn($sql);
+    $query->shouldReceive('time')->once()->withNoArgs()->andReturn($time);
 
-        $formatter = new Formatter($app, $config);
-        $result = $formatter->getLine($query);
+    $formatter = new Formatter($app, $config);
+    $result = $formatter->getLine($query);
 
-        $expected = <<<EOT
+    $expected = <<<EOT
 /* Query {$number} - {$now} [0.61724s] */
 {$sql};
 -- --------------------------------------------------
 
 EOT;
 
-        $this->assertSame($expected, $result);
-    }
-}
+    expect($result)->toBe($expected);
+});

@@ -34,12 +34,4 @@ class SqlQuery
     {
         return $this->time;
     }
-
-    /**
-     * Check if this query should be reported.
-     */
-    public function shouldReport(Config $config): bool
-    {
-        return preg_match($config->queriesReportPattern(), $this->rawQuery) === 1;
-    }
 }
