@@ -5,10 +5,10 @@ namespace Tests\Unit;
 use Illuminate\Container\Container;
 use Mockery;
 use Onlime\LaravelSqlReporter\Config;
-use Onlime\LaravelSqlReporter\Providers\EventServiceProvider;
+use Onlime\LaravelSqlReporter\Providers\SqlReporterServiceProvider;
 use Onlime\LaravelSqlReporter\SqlLogger;
 
-class EventServiceProviderTest extends UnitTestCase
+class SqlReporterServiceProviderTest extends UnitTestCase
 {
     /** @test */
     public function it_merges_config_and_publishes_when_nothing_should_be_logged()
@@ -19,7 +19,7 @@ class EventServiceProviderTest extends UnitTestCase
 
         $app->shouldReceive('make')->once()->with(Config::class)->andReturn($config);
 
-        $provider = Mockery::mock(EventServiceProvider::class)->makePartial()
+        $provider = Mockery::mock(SqlReporterServiceProvider::class)->makePartial()
             ->shouldAllowMockingProtectedMethods();
         $provider->__construct($app);
 

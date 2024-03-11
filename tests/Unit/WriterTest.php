@@ -11,7 +11,7 @@ use Onlime\LaravelSqlReporter\Formatter;
 use Onlime\LaravelSqlReporter\SqlQuery;
 use Onlime\LaravelSqlReporter\Writer;
 
-class WriterTest extends UnitTestCase
+class WriterTest extends FeatureTestCase
 {
     /**
      * @var Formatter|\Mockery\Mock
@@ -50,13 +50,16 @@ class WriterTest extends UnitTestCase
 
     protected function setUp(): void
     {
+        parent::setUp();
+
         $this->now = Carbon::parse('2015-02-03 06:41:31');
         Carbon::setTestNow($this->now);
         $this->formatter = Mockery::mock(Formatter::class);
-        $this->config = Mockery::mock(Config::class);
+        $this->config = app(Config::class);
         $this->filename = Mockery::mock(FileName::class);
         $this->writer = new Writer($this->formatter, $this->config, $this->filename);
         $this->directory = __DIR__.'/test-dir/directory';
+        $this->setConfig('general.directory', $this->directory);
         $this->filesystem = new Filesystem();
     }
 
@@ -66,12 +69,23 @@ class WriterTest extends UnitTestCase
         parent::tearDown();
     }
 
+    protected function setConfig(string|array $key, mixed $value =null)
+    {
+        if (is_array($key)) {
+            // prepend all keys with 'sql-reporter.'
+            $key = collect($key)->mapWithKeys(fn ($value, $key) => ["sql-reporter.$key" => $value])->all();
+        } else {
+            $key = ['sql-reporter.'.$key => $value];
+        }
+
+        config()->set($key);
+    }
+
     /** @test */
     public function it_creates_directory_if_it_does_not_exist_for_1st_query()
     {
         $query = new SqlQuery(1, 'test', 5.41);
-        $this->config->shouldReceive('queriesEnabled')->once()->withNoArgs()->andReturn(false);
-        $this->config->shouldReceive('logDirectory')->once()->withNoArgs()->andReturn($this->directory);
+        $this->setConfig('queries.enabled', false);
         $this->assertFileDoesNotExist($this->directory);
         $this->writer->writeQuery($query);
         $this->assertFileExists($this->directory);
@@ -82,8 +96,7 @@ class WriterTest extends UnitTestCase
     public function it_does_not_create_directory_if_it_does_not_exist_for_2nd_query()
     {
         $query = new SqlQuery(2, 'test', 5.41);
-        $this->config->shouldReceive('queriesEnabled')->once()->withNoArgs()->andReturn(false);
-        $this->config->shouldNotReceive('logDirectory');
+        $this->setConfig('queries.enabled', false);
         $this->assertFileDoesNotExist($this->directory);
         $this->writer->writeQuery($query);
         $this->assertFileDoesNotExist($this->directory);
@@ -99,12 +112,9 @@ class WriterTest extends UnitTestCase
         $query = new SqlQuery(1, 'test', 5.41);
         $this->formatter->shouldReceive('getLine')->once()->with($query)->andReturn($lineContent);
         $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('-- header');
-        $this->config->shouldReceive('queriesEnabled')->once()->withNoArgs()->andReturn(true);
-        $this->config->shouldReceive('queriesIncludePattern')->once()->withNoArgs()->andReturn('#.*#i');
-        $this->config->shouldReceive('queriesExcludePattern')->once()->withNoArgs()->andReturn('/^$/');
-        $this->config->shouldReceive('logDirectory')->times(3)->withNoArgs()->andReturn($this->directory);
-        $this->config->shouldReceive('queriesOverrideLog')->once()->withNoArgs()->andReturn(false);
-        $this->config->shouldReceive('queriesMinExecTime')->once()->withNoArgs()->andReturn(0);
+
+        $this->setConfig('queries.include_pattern', '#.*#i');
+
         $this->filename->shouldReceive('getLogfile')->times(2)->withNoArgs()->andReturn($expectedFileName);
         $this->writer->writeQuery($query);
         $this->assertFileExists($this->directory);
@@ -127,12 +137,7 @@ class WriterTest extends UnitTestCase
         $query = new SqlQuery(1, 'test', 5.41);
         $this->formatter->shouldReceive('getLine')->once()->with($query)->andReturn($lineContent);
         $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('-- header');
-        $this->config->shouldReceive('queriesEnabled')->once()->withNoArgs()->andReturn(true);
-        $this->config->shouldReceive('queriesIncludePattern')->once()->withNoArgs()->andReturn('#.*#i');
-        $this->config->shouldReceive('queriesExcludePattern')->once()->withNoArgs()->andReturn('/^$/');
-        $this->config->shouldReceive('logDirectory')->times(3)->withNoArgs()->andReturn($this->directory);
-        $this->config->shouldReceive('queriesOverrideLog')->once()->withNoArgs()->andReturn(false);
-        $this->config->shouldReceive('queriesMinExecTime')->once()->withNoArgs()->andReturn(0);
+        $this->setConfig('queries.include_pattern', '#.*#i');
         $this->filename->shouldReceive('getLogfile')->times(2)->withNoArgs()->andReturn($expectedFileName);
         $this->assertFileExists($this->directory.'/'.$expectedFileName);
         $this->writer->writeQuery($query);
@@ -155,12 +160,10 @@ class WriterTest extends UnitTestCase
         $query = new SqlQuery(1, 'test', 5.41);
         $this->formatter->shouldReceive('getLine')->once()->with($query)->andReturn($lineContent);
         $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('-- header');
-        $this->config->shouldReceive('queriesEnabled')->once()->withNoArgs()->andReturn(true);
-        $this->config->shouldReceive('queriesIncludePattern')->once()->withNoArgs()->andReturn('#.*#i');
-        $this->config->shouldReceive('queriesExcludePattern')->once()->withNoArgs()->andReturn('/^$/');
-        $this->config->shouldReceive('logDirectory')->times(3)->withNoArgs()->andReturn($this->directory);
-        $this->config->shouldReceive('queriesOverrideLog')->once()->withNoArgs()->andReturn(true);
-        $this->config->shouldReceive('queriesMinExecTime')->once()->withNoArgs()->andReturn(0);
+        $this->setConfig([
+            'queries.include_pattern' => '#.*#i',
+            'queries.override_log' => true,
+        ]);
         $this->filename->shouldReceive('getLogfile')->times(2)->withNoArgs()->andReturn($expectedFileName);
         $this->assertFileExists($this->directory.'/'.$expectedFileName);
         $this->writer->writeQuery($query);
@@ -184,12 +187,10 @@ class WriterTest extends UnitTestCase
         $query2 = new SqlQuery(2, 'test', 5.41);
         $this->formatter->shouldReceive('getLine')->twice()->andReturn($lineContent);
         $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('-- header');
-        $this->config->shouldReceive('queriesEnabled')->twice()->withNoArgs()->andReturn(true);
-        $this->config->shouldReceive('queriesIncludePattern')->twice()->withNoArgs()->andReturn('#.*#i');
-        $this->config->shouldReceive('queriesExcludePattern')->twice()->withNoArgs()->andReturn('/^$/');
-        $this->config->shouldReceive('logDirectory')->times(4)->withNoArgs()->andReturn($this->directory);
-        $this->config->shouldReceive('queriesOverrideLog')->once()->withNoArgs()->andReturn(true);
-        $this->config->shouldReceive('queriesMinExecTime')->twice()->withNoArgs()->andReturn(0);
+        $this->setConfig([
+            'queries.include_pattern' => '#.*#i',
+            'queries.override_log' => true,
+        ]);
         $this->filename->shouldReceive('getLogfile')->times(3)->withNoArgs()->andReturn($expectedFileName);
         $this->assertFileExists($this->directory.'/'.$expectedFileName);
         $this->writer->writeQuery($query1);
@@ -209,13 +210,8 @@ class WriterTest extends UnitTestCase
         $query = new SqlQuery(1, 'select * FROM test', 5.41);
         $this->formatter->shouldReceive('getLine')->once()->with($query)->andReturn($lineContent);
         $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('');
-        $this->config->shouldReceive('queriesEnabled')->once()->withNoArgs()->andReturn(true);
-        $this->config->shouldReceive('queriesIncludePattern')->once()->withNoArgs()->andReturn('#^SELECT .*$#i');
-        $this->config->shouldReceive('queriesExcludePattern')->once()->withNoArgs()->andReturn('/^$/');
-        $this->config->shouldReceive('logDirectory')->times(3)->withNoArgs()->andReturn($this->directory);
-        $this->config->shouldReceive('queriesMinExecTime')->once()->withNoArgs()->andReturn(0);
+        $this->setConfig('queries.include_pattern', '#^SELECT .*$#i');
         $this->filename->shouldReceive('getLogfile')->twice()->withNoArgs()->andReturn($expectedFileName);
-        $this->config->shouldReceive('queriesOverrideLog')->once()->withNoArgs()->andReturn(false);
         $this->writer->writeQuery($query);
         $this->assertFileExists($this->directory);
         $this->assertCount(1, $this->filesystem->allFiles($this->directory));
@@ -228,10 +224,7 @@ class WriterTest extends UnitTestCase
     public function it_doesnt_save_select_query_to_file_when_pattern_set_to_insert_or_update_queries()
     {
         $query = new SqlQuery(1, 'select * FROM test', 5.41);
-        $this->config->shouldReceive('queriesEnabled')->once()->withNoArgs()->andReturn(true);
-        $this->config->shouldReceive('queriesIncludePattern')->once()->withNoArgs()->andReturn('#^(?:UPDATE|INSERT) .*$#i');
-        $this->config->shouldReceive('queriesMinExecTime')->once()->withNoArgs()->andReturn(0);
-        $this->config->shouldReceive('logDirectory')->once()->withNoArgs()->andReturn($this->directory);
+        $this->setConfig('queries.include_pattern', '#^(?:UPDATE|INSERT) .*$#i');
         $this->writer->writeQuery($query);
         $this->assertFileExists($this->directory);
         $this->assertCount(0, $this->filesystem->allFiles($this->directory));
@@ -247,13 +240,8 @@ class WriterTest extends UnitTestCase
         $query = new SqlQuery(1, 'INSERT INTO test(one, two, three) values(?, ?, ?)', 5.41);
         $this->formatter->shouldReceive('getLine')->once()->with($query)->andReturn($lineContent);
         $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('');
-        $this->config->shouldReceive('queriesEnabled')->once()->withNoArgs()->andReturn(true);
-        $this->config->shouldReceive('queriesIncludePattern')->once()->withNoArgs()->andReturn('#^(?:UPDATE|INSERT) .*$#i');
-        $this->config->shouldReceive('queriesExcludePattern')->once()->withNoArgs()->andReturn('/^$/');
-        $this->config->shouldReceive('logDirectory')->times(3)->withNoArgs()->andReturn($this->directory);
-        $this->config->shouldReceive('queriesMinExecTime')->once()->withNoArgs()->andReturn(0);
+        $this->setConfig('queries.include_pattern', '#^(?:UPDATE|INSERT) .*$#i');
         $this->filename->shouldReceive('getLogfile')->twice()->withNoArgs()->andReturn($expectedFileName);
-        $this->config->shouldReceive('queriesOverrideLog')->once()->withNoArgs()->andReturn(false);
         $this->writer->writeQuery($query);
         $this->assertFileExists($this->directory);
         $this->assertCount(1, $this->filesystem->allFiles($this->directory));
@@ -272,13 +260,8 @@ class WriterTest extends UnitTestCase
         $query = new SqlQuery(1, 'UPDATE test SET x = 2 WHERE id = 3', 5.41);
         $this->formatter->shouldReceive('getLine')->once()->with($query)->andReturn($lineContent);
         $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('');
-        $this->config->shouldReceive('queriesEnabled')->once()->withNoArgs()->andReturn(true);
-        $this->config->shouldReceive('queriesIncludePattern')->once()->withNoArgs()->andReturn('#^(?:UPDATE test SET x = \d |INSERT ).*$#i');
-        $this->config->shouldReceive('queriesExcludePattern')->once()->withNoArgs()->andReturn('/^$/');
-        $this->config->shouldReceive('logDirectory')->times(3)->withNoArgs()->andReturn($this->directory);
+        $this->setConfig('queries.include_pattern', '#^(?:UPDATE test SET x = \d |INSERT ).*$#i');
         $this->filename->shouldReceive('getLogfile')->twice()->withNoArgs()->andReturn($expectedFileName);
-        $this->config->shouldReceive('queriesMinExecTime')->once()->withNoArgs()->andReturn(0);
-        $this->config->shouldReceive('queriesOverrideLog')->once()->withNoArgs()->andReturn(false);
         $this->writer->writeQuery($query);
         $this->assertFileExists($this->directory);
         $this->assertCount(1, $this->filesystem->allFiles($this->directory));
@@ -293,12 +276,7 @@ class WriterTest extends UnitTestCase
         $query1 = new SqlQuery(1, 'test1', 5.41);
         $query2 = new SqlQuery(2, 'test2', 500.5);
 
-        $this->config->shouldReceive('queriesEnabled')->twice()->withNoArgs()->andReturn(true);
-        $this->config->shouldReceive('logDirectory')->once()->withNoArgs()->andReturn($this->directory);
-        $this->config->shouldReceive('queriesMinExecTime')->twice()->withNoArgs()->andReturn(500);
-        $this->config->shouldReceive('queriesIncludePattern')->once()->withNoArgs()->andReturn('/.*/i');
-        $this->config->shouldReceive('queriesExcludePattern')->once()->withNoArgs()->andReturn('/^$/');
-        $this->config->shouldReceive('queriesOverrideLog')->once()->withNoArgs()->andReturn(false);
+        $this->setConfig('queries.min_exec_time', 500);
 
         $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('');
         $this->formatter->shouldReceive('getLine')->once()->with($query2)->andReturn('');
@@ -318,12 +296,10 @@ class WriterTest extends UnitTestCase
         $query2 = new SqlQuery(2, 'update bar set foo = 1', 3.55);
         $query3 = new SqlQuery(3, "update bar set last_visit = '2021-06-03 10:26:00'", 3.22);
 
-        $this->config->shouldReceive('queriesEnabled')->times(3)->withNoArgs()->andReturn(true);
-        $this->config->shouldReceive('logDirectory')->once()->withNoArgs()->andReturn($this->directory);
-        $this->config->shouldReceive('queriesMinExecTime')->times(3)->withNoArgs()->andReturn(0);
-        $this->config->shouldReceive('queriesIncludePattern')->times(3)->withNoArgs()->andReturn('/^(?!SELECT).*$/i');
-        $this->config->shouldReceive('queriesExcludePattern')->twice()->withNoArgs()->andReturn('/^UPDATE.*last_visit/i');
-        $this->config->shouldReceive('queriesOverrideLog')->once()->withNoArgs()->andReturn(false);
+        $this->setConfig([
+            'queries.include_pattern' => '/^(?!SELECT).*$/i',
+            'queries.exclude_pattern' => '/^UPDATE.*last_visit/i',
+        ]);
 
         $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('');
         $this->formatter->shouldReceive('getLine')->once()->with($query2)->andReturn('');

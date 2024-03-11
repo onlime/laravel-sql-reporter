@@ -37,6 +37,7 @@ class FormatterTest extends UnitTestCase
             ['raw_query' => 'foo', 'time' => 1.23],
             ['raw_query' => 'bar', 'time' => 4.56],
         ]);
+        Auth::shouldReceive('check')->once()->withNoArgs()->andReturn(false);
         Auth::shouldReceive('user')->once()->withNoArgs()->andReturn(null);
         \Illuminate\Support\Facades\Request::shouldReceive('ip')->once()->withNoArgs()->andReturn('127.0.0.1');
         \Illuminate\Support\Facades\Request::shouldReceive('userAgent')->once()->withNoArgs()->andReturn('Mozilla/5.0');
@@ -50,12 +51,12 @@ class FormatterTest extends UnitTestCase
 -- Datetime: {$now}
 -- Origin:   (request) DELETE http://example.com/test
 -- Status:   Executed 2 queries in 5.79ms
--- User:     
+-- User:
 -- Env:      testing
 -- Agent:    Mozilla/5.0
 -- Ip:       127.0.0.1
 -- Host:     localhost
--- Referer:  
+-- Referer:
 -- --------------------------------------------------
 EOT;
 
@@ -93,12 +94,12 @@ EOT;
 -- Datetime: {$now}
 -- Origin:   (console) php artisan test
 -- Status:   Executed 0 queries in 0ms
--- User:     
+-- User:
 -- Env:      testing
 -- Agent:    Mozilla/5.0
 -- Ip:       127.0.0.1
 -- Host:     localhost
--- Referer:  
+-- Referer:
 -- --------------------------------------------------
 EOT;
 

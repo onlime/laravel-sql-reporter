@@ -85,7 +85,7 @@ class Formatter
         $formatted[]  = $this->separatorLine();
         $maxKeyLength = max(array_map('strlen', array_keys($headers)));
         foreach ($headers as $key => $value) {
-            $formatted[] = '-- '.Str::padRight(Str::ucfirst($key).':', $maxKeyLength + 2).$value;
+            $formatted[] = trim('-- '.Str::padRight(Str::ucfirst($key).':', $maxKeyLength + 2).$value);
         }
         $formatted[] = $this->separatorLine();
 
@@ -106,8 +106,8 @@ class Formatter
     protected function originLine(): string
     {
         return $this->app->runningInConsole()
-                ? '(console) '.$this->getArtisanLine()
-                : '(request) '.$this->getRequestLine();
+            ? '(console) '.$this->getArtisanLine()
+            : '(request) '.$this->getRequestLine();
     }
 
     /**

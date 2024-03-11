@@ -2,22 +2,16 @@
 
 namespace Onlime\LaravelSqlReporter\Providers;
 
-use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
+use Illuminate\Console\Events\CommandFinished;
+use Illuminate\Foundation\Http\Events\RequestHandled;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\ServiceProvider;
 use Onlime\LaravelSqlReporter\Config;
-use Onlime\LaravelSqlReporter\Listeners\SqlQueryLogSubscriber;
+use Onlime\LaravelSqlReporter\Listeners\LogSqlQuery;
 
-class EventServiceProvider extends ServiceProvider
+class SqlReporterServiceProvider extends ServiceProvider
 {
-    /**
-     * The subscriber classes to register.
-     *
-     * @var array
-     */
-    protected $subscribe = [
-        SqlQueryLogSubscriber::class,
-    ];
-
     protected Config $config;
 
     /**
@@ -30,8 +24,7 @@ class EventServiceProvider extends ServiceProvider
         $this->mergeConfigFrom($this->configFileLocation(), 'sql-reporter');
 
         if ($this->config->queriesEnabled()) {
-            // registering subscriber(s) from $this->subscribe
-            parent::register();
+            Event::listen([CommandFinished::class, RequestHandled::class], LogSqlQuery::class);
         }
     }
 
