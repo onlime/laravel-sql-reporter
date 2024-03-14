@@ -40,5 +40,4 @@ jobs:
 
       - name: Execute tests
         run: |
-          vendor/bin/pest tests/Feature
-          vendor/bin/pest tests/Unit
+          vendor/bin/pest
