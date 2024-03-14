@@ -1,8 +1,14 @@
 # CHANGELOG
 
-## [v1.2.x (Unreleased)](https://github.com/onlime/laravel-sql-reporter/compare/v1.2.0...main)
+## [v1.2.x (Unreleased)](https://github.com/onlime/laravel-sql-reporter/compare/v1.2.1...main)
 
 - ...
+
+## [v1.2.1 (2024-03-14)](https://github.com/onlime/laravel-sql-reporter/compare/v1.2.0...v1.2.1)
+
+- Fix | It now runs the whole test suite with a single `vendor/bin/pest` command. by @pascalbaljet in #3
+- Moved `FormatterTest` and `SqlLoggerTest` to the Feature directory as they're interacting with the app container.
+- Single `Request` mock in `FormatterTest`.
 
 ## [v1.2.0 (2024-03-11)](https://github.com/onlime/laravel-sql-reporter/compare/v1.1.0...v1.2.0)
 
