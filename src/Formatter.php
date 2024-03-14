@@ -7,7 +7,6 @@ use Illuminate\Container\Container;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Request;
 use Illuminate\Support\Str;
 
 class Formatter
@@ -53,7 +52,8 @@ class Formatter
         $queryLog  = DB::getRawQueryLog();
         $times     = Arr::pluck($queryLog, 'time');
         $totalTime = $this->time(array_sum($times));
-        $ip        = Request::ip();
+        $request   = $this->app['request'];
+        $ip        = $request->ip();
 
         // TODO: datetime information should be replaced by lowest query timestamp, see https://github.com/laravel/framework/pull/37514
         $data = [
@@ -63,10 +63,10 @@ class Formatter
             'user'     => $username,
             'guard'    => Auth::check() ? Auth::getDefaultDriver() : '',
             'env'      => $this->app->environment(),
-            'agent'    => Request::userAgent() ?? PHP_SAPI,
+            'agent'    => $request->userAgent() ?? PHP_SAPI,
             'ip'       => $ip,
             'host'     => gethostbyaddr($ip),
-            'referer'  => Request::header('referer'),
+            'referer'  => $request->header('referer'),
         ];
         $headers = Arr::only($data, $headerFields);
 

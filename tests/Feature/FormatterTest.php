@@ -18,10 +18,13 @@ it('formats header in valid way when running via http', function () {
     $config->shouldReceive('headerFields')->once()->withNoArgs()
         ->andReturn(explode(',', 'origin,datetime,status,user,env,agent,ip,host,referer'));
     $request = Mockery::mock(Request::class);
-    $app->shouldReceive('offsetGet')->times(2)->with('request')->andReturn($request);
+    $app->shouldReceive('offsetGet')->times(3)->with('request')->andReturn($request);
     $request->shouldReceive('method')->once()->withNoArgs()->andReturn('DELETE');
     $request->shouldReceive('fullUrl')->once()->withNoArgs()
         ->andReturn('http://example.com/test');
+    $request->shouldReceive('ip')->once()->withNoArgs()->andReturn('127.0.0.1');
+    $request->shouldReceive('userAgent')->once()->withNoArgs()->andReturn('Mozilla/5.0');
+    $request->shouldReceive('header')->once()->with('referer')->andReturn('');
 
     $now = '2015-03-04 08:12:07';
     Carbon::setTestNow($now);
@@ -32,9 +35,6 @@ it('formats header in valid way when running via http', function () {
     ]);
     Auth::shouldReceive('check')->once()->withNoArgs()->andReturn(false);
     Auth::shouldReceive('user')->once()->withNoArgs()->andReturn(null);
-    \Illuminate\Support\Facades\Request::shouldReceive('ip')->once()->withNoArgs()->andReturn('127.0.0.1');
-    \Illuminate\Support\Facades\Request::shouldReceive('userAgent')->once()->withNoArgs()->andReturn('Mozilla/5.0');
-    \Illuminate\Support\Facades\Request::shouldReceive('header')->once()->with('referer')->andReturn('');
 
     $formatter = new Formatter($app, $config);
     $result = $formatter->getHeader();
@@ -65,17 +65,18 @@ it('formats header in valid way when running in console', function () {
     $config->shouldReceive('headerFields')->once()->withNoArgs()
         ->andReturn(explode(',', 'origin,datetime,status,user,env,agent,ip,host,referer'));
     $request = Mockery::mock(Request::class);
-    $app->shouldReceive('offsetGet')->once()->with('request')->andReturn($request);
+    $app->shouldReceive('offsetGet')->twice()->with('request')->andReturn($request);
     $request->shouldReceive('server')->once()->with('argv', [])->andReturn('php artisan test');
+    $request->shouldReceive('ip')->once()->withNoArgs()->andReturn('127.0.0.1');
+    $request->shouldReceive('userAgent')->once()->withNoArgs()->andReturn('Mozilla/5.0');
+    $request->shouldReceive('header')->once()->with('referer')->andReturn('');
 
     $now = '2015-03-04 08:12:07';
     Carbon::setTestNow($now);
 
     DB::shouldReceive('getRawQueryLog')->once()->withNoArgs()->andReturn([]);
+    Auth::shouldReceive('check')->once()->withNoArgs()->andReturn(false);
     Auth::shouldReceive('user')->once()->withNoArgs()->andReturn(null);
-    \Illuminate\Support\Facades\Request::shouldReceive('ip')->once()->withNoArgs()->andReturn('127.0.0.1');
-    \Illuminate\Support\Facades\Request::shouldReceive('userAgent')->once()->withNoArgs()->andReturn('Mozilla/5.0');
-    \Illuminate\Support\Facades\Request::shouldReceive('header')->once()->with('referer')->andReturn('');
 
     $formatter = new Formatter($app, $config);
     $result = $formatter->getHeader();
