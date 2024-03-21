@@ -35,7 +35,7 @@ function setConfig(string|array $key, mixed $value =null)
 }
 
 it('creates directory if it does not exist for 1st query', function () {
-    $query = new SqlQuery(1, 'test', 5.41);
+    $query = new SqlQuery(1, 'test', 5.41, 'test');
     setConfig('queries.enabled', false);
     expect($this->directory)->not()->toBeDirectory();
     $this->writer->writeQuery($query);
@@ -44,7 +44,7 @@ it('creates directory if it does not exist for 1st query', function () {
 });
 
 it('does not create directory if it does not exist for 2nd query', function () {
-    $query = new SqlQuery(2, 'test', 5.41);
+    $query = new SqlQuery(2, 'test', 5.41, 'test');
     setConfig('queries.enabled', false);
     expect($this->directory)->not()->toBeDirectory();
     $this->writer->writeQuery($query);
@@ -56,7 +56,7 @@ it('creates log file', function () {
     $expectedContent = "-- header\nSample log line\n";
     $expectedFileName = $this->now->format('Y-m').'-log.sql';
 
-    $query = new SqlQuery(1, 'test', 5.41);
+    $query = new SqlQuery(1, 'test', 5.41, 'test');
     $this->formatter->shouldReceive('getLine')->once()->with($query)->andReturn($lineContent);
     $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('-- header');
 
@@ -79,7 +79,7 @@ it('appends to existing log file', function () {
     $lineContent = 'Sample log line';
     $expectedContent = $initialContent."-- header\nSample log line\n";
 
-    $query = new SqlQuery(1, 'test', 5.41);
+    $query = new SqlQuery(1, 'test', 5.41, 'test');
     $this->formatter->shouldReceive('getLine')->once()->with($query)->andReturn($lineContent);
     $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('-- header');
     setConfig('queries.include_pattern', '#.*#i');
@@ -100,7 +100,7 @@ it('replaces current file content for 1st query when overriding is turned on', f
     $lineContent = 'Sample log line';
     $expectedContent = "-- header\nSample log line\n";
 
-    $query = new SqlQuery(1, 'test', 5.41);
+    $query = new SqlQuery(1, 'test', 5.41, 'test');
     $this->formatter->shouldReceive('getLine')->once()->with($query)->andReturn($lineContent);
     $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('-- header');
     setConfig([
@@ -124,8 +124,8 @@ it('appends to current file content for 2nd query when overriding is turned on',
     $lineContent = 'Sample log line';
     $expectedContent = "-- header\n$lineContent\n$lineContent\n";
 
-    $query1 = new SqlQuery(1, 'test', 5.41);
-    $query2 = new SqlQuery(2, 'test', 5.41);
+    $query1 = new SqlQuery(1, 'test', 5.41, 'test');
+    $query2 = new SqlQuery(2, 'test', 5.41, 'test');
     $this->formatter->shouldReceive('getLine')->twice()->andReturn($lineContent);
     $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('-- header');
     setConfig([
@@ -146,7 +146,7 @@ it('saves select query to file when pattern set to select queries', function () 
     $lineContent = 'Sample log line';
     $expectedContent = "\n$lineContent\n";
 
-    $query = new SqlQuery(1, 'select * FROM test', 5.41);
+    $query = new SqlQuery(1, 'select * FROM test', 5.41, 'select * FROM test');
     $this->formatter->shouldReceive('getLine')->once()->with($query)->andReturn($lineContent);
     $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('');
     setConfig('queries.include_pattern', '#^SELECT .*$#i');
@@ -159,7 +159,7 @@ it('saves select query to file when pattern set to select queries', function () 
 });
 
 it('doesnt save select query to file when pattern set to insert or update queries', function () {
-    $query = new SqlQuery(1, 'select * FROM test', 5.41);
+    $query = new SqlQuery(1, 'select * FROM test', 5.41, 'select * FROM test');
     setConfig('queries.include_pattern', '#^(?:UPDATE|INSERT) .*$#i');
     $this->writer->writeQuery($query);
     expect($this->directory)->toBeFile()
@@ -171,7 +171,7 @@ it('saves insert query to file when pattern set to insert or update queries', fu
     $lineContent = 'Sample log line';
     $expectedContent = "\n$lineContent\n";
 
-    $query = new SqlQuery(1, 'INSERT INTO test(one, two, three) values(?, ?, ?)', 5.41);
+$query = new SqlQuery(1, 'INSERT INTO test(one, two, three) values(?, ?, ?)', 5.41, 'INSERT INTO test(one, two, three) values(?, ?, ?)');
     $this->formatter->shouldReceive('getLine')->once()->with($query)->andReturn($lineContent);
     $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('');
     setConfig('queries.include_pattern', '#^(?:UPDATE|INSERT) .*$#i');
@@ -188,7 +188,7 @@ it('uses raw query without bindings when using query pattern', function () {
     $lineContent = 'Sample log line';
     $expectedContent = "\n$lineContent\n";
 
-    $query = new SqlQuery(1, 'UPDATE test SET x = 2 WHERE id = 3', 5.41);
+    $query = new SqlQuery(1, 'UPDATE test SET x = 2 WHERE id = 3', 5.41, 'UPDATE test SET x = 2 WHERE id = 3');
     $this->formatter->shouldReceive('getLine')->once()->with($query)->andReturn($lineContent);
     $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('');
     setConfig('queries.include_pattern', '#^(?:UPDATE test SET x = \d |INSERT ).*$#i');
@@ -201,8 +201,8 @@ it('uses raw query without bindings when using query pattern', function () {
 });
 
 it('only logs slow queries', function () {
-    $query1 = new SqlQuery(1, 'test1', 5.41);
-    $query2 = new SqlQuery(2, 'test2', 500.5);
+    $query1 = new SqlQuery(1, 'test1', 5.41, 'test1');
+    $query2 = new SqlQuery(2, 'test2', 500.5, 'test2');
 
     setConfig('queries.min_exec_time', 500);
 
@@ -219,9 +219,9 @@ it('only logs slow queries', function () {
 });
 
 it('respects query patterns', function () {
-    $query1 = new SqlQuery(1, 'select foo from bar', 5.41);
-    $query2 = new SqlQuery(2, 'update bar set foo = 1', 3.55);
-    $query3 = new SqlQuery(3, "update bar set last_visit = '2021-06-03 10:26:00'", 3.22);
+    $query1 = new SqlQuery(1, 'select foo from bar', 5.41, 'select foo from bar');
+    $query2 = new SqlQuery(2, 'update bar set foo = 1', 3.55, 'update bar set foo = 1');
+    $query3 = new SqlQuery(3, "update bar set last_visit = '2021-06-03 10:26:00'", 3.22, "update bar set last_visit = '2021-06-03 10:26:00'");
 
     setConfig([
         'queries.include_pattern' => '/^(?!SELECT).*$/i',

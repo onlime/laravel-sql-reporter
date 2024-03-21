@@ -2,15 +2,11 @@
 
 namespace Onlime\LaravelSqlReporter;
 
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class SqlLogger
 {
-    /**
-     * Number of executed queries.
-     */
-    private int $queryNumber = 0;
-
     /**
      * SqlLogger constructor.
      */
@@ -24,11 +20,19 @@ class SqlLogger
      */
     public function log(): void
     {
-        foreach (DB::getRawQueryLog() as $query) {
-            $this->writer->writeQuery(
-                new SqlQuery(++$this->queryNumber, $query['raw_query'], $query['time'])
-            );
-        }
+        $queryLog = DB::getQueryLog();
+
+        // getQueryLog() and getRawQueryLog() have the same keys
+        Collection::make(DB::getRawQueryLog())
+            ->map(fn (array $query, int $key) => new SqlQuery(
+                $key + 1,
+                $query['raw_query'],
+                $query['time'],
+                $queryLog[$key]['query'],
+                $queryLog[$key]['bindings']
+            ))
+            ->each(fn (SqlQuery $query) => $this->writer->writeQuery($query));
+
         $this->writer->report();
     }
 }
