@@ -29,9 +29,9 @@ class Writer
     private static ?Closure $shouldReportQuery = null;
 
     public function __construct(
-        private Formatter $formatter,
-        private Config $config,
-        private FileName $fileName
+        private readonly Formatter $formatter,
+        private readonly Config $config,
+        private readonly FileName $fileName
     ) {
     }
 
