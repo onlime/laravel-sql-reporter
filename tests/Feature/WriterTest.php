@@ -259,6 +259,40 @@ it('can provide a callback to the writer to determine if a query should be repor
     ['delete from users', true],
 ]);
 
+it('can combine the report pattern config and the callback to determine if a query should be reported', function (string $query, bool $report) {
+    config(['sql-reporter.queries.report_pattern' => '/^DELETE.*$/i']);
+    Writer::shouldReportQuery(fn (SqlQuery $query) => ! str_contains($query->rawQuery, 'sessions'));
+    expect($this->writer->shouldReportSqlQuery(new SqlQuery(1, $query, 1, $query)))->toBe($report);
+})->with([
+    ['select * from users', false],
+    ['delete from sessions', false],
+    ['delete from users', true],
+]);
+
+it('dispatches an event when there are queries to report', function () {
+    Event::fake();
+
+    $query1 = new SqlQuery(1, 'select * from users', 5.41, 'select * from users');
+    $query2 = new SqlQuery(2, 'delete from users', 5.41, 'delete from users');
+
+    $expectedFileName = $this->now->format('Y-m').'-log.sql';
+    $lineContent1 = 'Sample log line 1';
+    $lineContent2 = 'Sample log line 2';
+
+    $this->formatter->shouldReceive('getLine')->once()->with($query1)->andReturn($lineContent1);
+    $this->formatter->shouldReceive('getLine')->once()->with($query2)->andReturn($lineContent2);
+    $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('-- header');
+    $this->filename->shouldReceive('getLogfile')->times(3)->withNoArgs()->andReturn($expectedFileName);
+
+    $this->writer->writeQuery($query1);
+    $this->writer->writeQuery($query2);
+    $this->writer->report();
+
+    Event::assertDispatched(function (QueryLogWritten $event) use ($lineContent2) {
+        return count($event->reportQueries) === 1 && $event->reportQueries[0] === $lineContent2;
+    });
+});
+
 it('does not dispatch an event when there are no queries to report', function () {
     Event::fake();
 
