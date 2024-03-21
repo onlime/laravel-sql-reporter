@@ -67,6 +67,22 @@ It reports a lot of metadata like total query count, total execution time, origi
 
 5. Make sure on live server you will set logging SQL queries to false in your `.env` file: `SQL_REPORTER_QUERIES_ENABLED=false`. This package is recommended to be used only for development to not impact production application performance.
 
+## `QueryLogWritten` event
+
+This package fires a `QueryLogWritten` event after the log file has been written. You may use this event to further debug or analyze the logged queries in your application. The queries are filtered by the `SQL_REPORTER_QUERIES_REPORT_PATTERN` setting, which comes with a sensible default to exclude `SELECT` queries and some default tables like `sessions`, `jobs`, `bans`, `logins`. If you don't want to filter any queries, you may leave this setting empty.
+
+In addition to the pattern, you may also configure a callback to define your own custom filtering logic, for example, in your `AppServiceProvider`:
+
+```php
+use Onlime\LaravelSqlReporter\SqlQuery;
+use Onlime\LaravelSqlReporter\Writer;
+
+Writer::shouldReportQuery(function (SqlQuery $query) {
+    // Only include queries in the `QueryLogWritten` event that took longer than 100ms
+    return $query->time > 100;
+});
+```
+
 ## Optional
 
 For optional GeoIP support (adding country information to client IP in log headers), you may install [stevebauman/location](https://github.com/stevebauman/location) in your project:
