@@ -17,7 +17,7 @@ class SqlReporterServiceProvider extends ServiceProvider
     /**
      * {@inheritdoc}
      */
-    public function register()
+    public function register(): void
     {
         $this->config = $this->app->make(Config::class);
 
@@ -31,7 +31,7 @@ class SqlReporterServiceProvider extends ServiceProvider
     /**
      * {@inheritdoc}
      */
-    public function boot()
+    public function boot(): void
     {
         $this->publishes([
             $this->configFileLocation() => config_path('sql-reporter.php'),

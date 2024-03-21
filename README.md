@@ -19,16 +19,16 @@ It reports a lot of metadata like total query count, total execution time, origi
    ```bash
    $ composer require onlime/laravel-sql-reporter --dev
    ```
-   in console to install this module (Notice `--dev` flag - it's recommended to use this package only for development). 
+   in console to install this module (Notice `--dev` flag - it's recommended to use this package only for development).
 
    Laravel uses package auto-discovery, and it will automatically load this service provider, so you don't need to add anything into the `providers` section of `config/app.php`.
-   
+
 2. Run the following in your console to publish the default configuration file:
-  
+
     ```bash
     $ php artisan vendor:publish --provider="Onlime\LaravelSqlReporter\Providers\ServiceProvider"
     ```
-    
+
     By default, you should not edit published file because all the settings are loaded from `.env` file by default.
 
 3. In your `.env` file add the following entries:
@@ -48,7 +48,7 @@ It reports a lot of metadata like total query count, total execution time, origi
     SQL_REPORTER_FORMAT_HEADER_FIELDS="origin,datetime,status,user,env,agent,ip,host,referer"
     SQL_REPORTER_FORMAT_ENTRY_FORMAT="-- Query [query_nr] [[query_time]]\\n[query]"
     ```
-    
+
     and adjust values to your needs. You can skip variables for which you want to use default values.
 
     To only log DML / modifying queries like `INSERT`, `UPDATE`, `DELETE`, but not logging any updates on
@@ -58,16 +58,18 @@ It reports a lot of metadata like total query count, total execution time, origi
    SQL_REPORTER_QUERIES_INCLUDE_PATTERN="/^(?!SELECT).*/i"
    SQL_REPORTER_QUERIES_EXCLUDE_PATTERN="/^UPDATE.*(last_visit|remember_token)/i"
    ```
-   
+
     If you have also `.env.example` it's recommended to add those entries also in `.env.example` file just to make sure everyone knows about those env variables. Be aware that `SQL_REPORTER_DIRECTORY` is directory inside storage directory.
-   
+
     To find out more about those setting please take a look at [Configuration file](config/sql-reporter.php)
-   
+
 4. Make sure directory specified in `.env` file exists in storage path, and you have valid permissions to create and modify files in this directory (If it does not exist this package will automatically create it when needed, but it's recommended to create it manually with valid file permissions)
 
 5. Make sure on live server you will set logging SQL queries to false in your `.env` file: `SQL_REPORTER_QUERIES_ENABLED=false`. This package is recommended to be used only for development to not impact production application performance.
 
 ## Optional
+
+### GeoIP support
 
 For optional GeoIP support (adding country information to client IP in log headers), you may install [stevebauman/location](https://github.com/stevebauman/location) in your project:
 
@@ -78,6 +80,24 @@ $ php artisan vendor:publish --provider="Stevebauman\Location\LocationServicePro
 
 It will be auto-detected, no configuration needed for this. If you wish to use a different driver than the default [IpApi](https://ip-api.com/), e.g. `MaxMind` make sure you correctly configure it according to the docs: [Available Drivers](https://github.com/stevebauman/location#available-drivers)
 
+### `QueryLogWritten` event
+
+This package fires a `QueryLogWritten` event after the log file has been written. You may use this event to further debug or analyze the logged queries in your application. The queries are filtered by the `SQL_REPORTER_QUERIES_REPORT_PATTERN` setting, which comes with a sensible default to exclude `SELECT` queries and some default tables like `sessions`, `jobs`, `bans`, `logins`. If you don't want to filter any queries, you may leave this setting empty.
+
+In addition to the pattern, you may also configure a callback to define your own custom filtering logic, for example, in your `AppServiceProvider`:
+
+```php
+use Onlime\LaravelSqlReporter\SqlQuery;
+use Onlime\LaravelSqlReporter\Writer;
+
+Writer::shouldReportQuery(function (SqlQuery $query) {
+    // Only include queries in the `QueryLogWritten` event that took longer than 100ms
+    return $query->time > 100;
+});
+```
+
+With the `SqlQuery` object, you have access to both `$rawQuery` and the (unprepared) `$query`/`$bindings`. The filter possibilities by providing a callback to `Writer::shouldReportQuery()` are endless!
+
 ## Development
 
 Checkout project and run tests:
@@ -87,10 +107,10 @@ $ git clone https://github.com/onlime/laravel-sql-reporter.git
 $ cd laravel-sql-reporter
 $ composer install
 
-# run unit tests
-$ vendor/bin/phpunit
+# run both Feature and Unit tests
+$ vendor/bin/pest
 # run unit tests with coverage report
-$ XDEBUG_MODE=coverage vendor/bin/phpunit
+$ vendor/bin/pest --coverage
 ```
 
 ## FAQ
@@ -101,7 +121,7 @@ This package was inspired by [mnabialek/laravel-sql-logger](https://github.com/m
 
 - Query logging is not triggered upon each query execution but instead at a final step, using `RequestHandled` and `CommandFinished` events.
 - This allows us to include much more information about the whole query executions like total query count, total execution time, and very detailed header information like origin (request URL/console command), authenticated user, app environment, client browser agent / IP / hostname.
-- This package is greatly simplified and only provides support for Laravel 10+ / PHP 8.1+
+- This package is greatly simplified and only provides support for Laravel 10+ / PHP 8.2+
 - It uses the Laravel built-in query logging (`DB::enableQueryLog()`) which logs all queries in memory, which should perform much better than writing every single query to the log file.
 - By default, `onlime/laravel-sql-reporter` produces much nicer log output, especially since we only write header information before the first query.
 
@@ -152,8 +172,8 @@ All changes are listed in [CHANGELOG](CHANGELOG.md)
 
 ## Caveats
 
-- If your application crashes, this package will not log any queries, as logging is only triggered at the end. As alternative, you could use [mnabialek/laravel-sql-logger](https://github.com/mnabialek/laravel-sql-logger) which triggers sql logging on each query execution.
-- It's currently not possible to log slow queries into a separate logfile. I wanted to keep that package simpel.
+- If your application crashes, this package will not log any queries, as logging is only triggered at the end of the request cycle. As alternative, you could use [mnabialek/laravel-sql-logger](https://github.com/mnabialek/laravel-sql-logger) which triggers sql logging on each query execution.
+- It's currently not possible to log slow queries into a separate logfile. I wanted to keep that package simple.
 
 ## TODO
 

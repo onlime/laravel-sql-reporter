@@ -108,13 +108,10 @@ it('formats line in valid way when milliseconds are used', function () {
     $now = '2015-03-04 08:12:07';
     Carbon::setTestNow($now);
 
-    $query = Mockery::mock(SqlQuery::class);
     $number = 434;
     $time = 617.24;
     $sql = 'SELECT * FROM somewhere';
-    $query->shouldReceive('number')->once()->withNoArgs()->andReturn($number);
-    $query->shouldReceive('rawQuery')->once()->withNoArgs()->andReturn($sql);
-    $query->shouldReceive('time')->once()->withNoArgs()->andReturn($time);
+    $query = SqlQuery::make($number, $sql, $time);
 
     $formatter = new Formatter($app, $config);
     $result = $formatter->getLine($query);
@@ -139,13 +136,10 @@ it('formats line in valid way when custom entry format was used', function () {
     $now = '2015-03-04 08:12:07';
     Carbon::setTestNow($now);
 
-    $query = Mockery::mock(SqlQuery::class);
     $number = 434;
     $time = 617.24;
     $sql = 'SELECT * FROM somewhere';
-    $query->shouldReceive('number')->once()->withNoArgs()->andReturn($number);
-    $query->shouldReceive('rawQuery')->once()->withNoArgs()->andReturn($sql);
-    $query->shouldReceive('time')->once()->withNoArgs()->andReturn($time);
+    $query = SqlQuery::make($number, $sql, $time);
 
     $formatter = new Formatter($app, $config);
     $result = $formatter->getLine($query);
@@ -171,13 +165,10 @@ it('formats line in valid way when seconds are used', function () {
     $now = '2015-03-04 08:12:07';
     Carbon::setTestNow($now);
 
-    $query = Mockery::mock(SqlQuery::class);
     $number = 434;
     $time = 617.24;
     $sql = 'SELECT * FROM somewhere';
-    $query->shouldReceive('number')->once()->withNoArgs()->andReturn($number);
-    $query->shouldReceive('rawQuery')->once()->withNoArgs()->andReturn($sql);
-    $query->shouldReceive('time')->once()->withNoArgs()->andReturn($time);
+    $query = SqlQuery::make($number, $sql, $time);
 
     $formatter = new Formatter($app, $config);
     $result = $formatter->getLine($query);

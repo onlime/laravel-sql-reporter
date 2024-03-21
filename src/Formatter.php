@@ -23,9 +23,9 @@ class Formatter
     public function getLine(SqlQuery $query): string
     {
         $replace = [
-            '[query_nr]'   => $query->number(),
+            '[query_nr]'   => $query->number,
             '[datetime]'   => Carbon::now()->toDateTimeString(),
-            '[query_time]' => $this->time($query->time()),
+            '[query_time]' => $this->time($query->time),
             '[query]'      => $this->getQueryLine($query),
             '[separator]'  => $this->separatorLine(),
             '\n'           => PHP_EOL,
@@ -115,7 +115,7 @@ class Formatter
      */
     protected function getQueryLine(SqlQuery $query): string
     {
-        return $query->rawQuery().';';
+        return $query->rawQuery.';';
     }
 
     /**

@@ -2,6 +2,7 @@
 
 namespace Onlime\LaravelSqlReporter;
 
+use Closure;
 use Onlime\LaravelSqlReporter\Events\QueryLogWritten;
 
 class Writer
@@ -22,11 +23,24 @@ class Writer
      */
     private array $reportQueries = [];
 
+    /**
+     * Callback to determine whether query should be reported.
+     */
+    private static ?Closure $shouldReportQuery = null;
+
     public function __construct(
-        private Formatter $formatter,
-        private Config $config,
-        private FileName $fileName
+        private readonly Formatter $formatter,
+        private readonly Config $config,
+        private readonly FileName $fileName
     ) {
+    }
+
+    /**
+     * Set callback to determine whether query should be reported.
+     */
+    public static function shouldReportQuery(callable $callback): void
+    {
+        self::$shouldReportQuery = $callback;
     }
 
     /**
@@ -36,7 +50,7 @@ class Writer
      */
     public function writeQuery(SqlQuery $query): bool
     {
-        $this->createDirectoryIfNotExists($query->number());
+        $this->createDirectoryIfNotExists($query->number);
 
         if ($this->shouldLogQuery($query)) {
             if ($this->loggedQueryCount === 0) {
@@ -60,9 +74,15 @@ class Writer
     /**
      * Verify whether query should be reported.
      */
-    private function shouldReportSqlQuery(SqlQuery $query): bool
+    public function shouldReportSqlQuery(SqlQuery $query): bool
     {
-        return preg_match($this->config->queriesReportPattern(), $query->rawQuery()) === 1;
+        $pattern = $this->config->queriesReportPattern();
+
+        if ($pattern && preg_match($pattern, $query->rawQuery) !== 1) {
+            return false;
+        }
+
+        return call_user_func(self::$shouldReportQuery ?? fn () => true, $query);
     }
 
     /**
@@ -92,9 +112,9 @@ class Writer
     protected function shouldLogQuery(SqlQuery $query): bool
     {
         return $this->config->queriesEnabled() &&
-            $query->time() >= $this->config->queriesMinExecTime() &&
-            preg_match($this->config->queriesIncludePattern(), $query->rawQuery()) &&
-            ! preg_match($this->config->queriesExcludePattern(), $query->rawQuery());
+            $query->time >= $this->config->queriesMinExecTime() &&
+            preg_match($this->config->queriesIncludePattern(), $query->rawQuery) &&
+            ! preg_match($this->config->queriesExcludePattern(), $query->rawQuery);
     }
 
     /**

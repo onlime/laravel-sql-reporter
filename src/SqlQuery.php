@@ -2,36 +2,24 @@
 
 namespace Onlime\LaravelSqlReporter;
 
-class SqlQuery
+readonly class SqlQuery
 {
     public function __construct(
-        private int $number,
-        private string $rawQuery,
-        private float $time
+        public int $number,
+        public string $rawQuery,
+        public float $time,
+        public string $query,
+        public array $bindings = []
     ) {
     }
 
-    /**
-     * Get query number.
-     */
-    public function number(): int
-    {
-        return $this->number;
-    }
-
-    /**
-     * Get raw SQL query with embedded bindings.
-     */
-    public function rawQuery(): string
-    {
-        return $this->rawQuery;
-    }
-
-    /**
-     * Get query execution time.
-     */
-    public function time(): float
-    {
-        return $this->time;
+    public static function make(
+        int $number,
+        string $rawQuery,
+        float $time,
+        ?string $query = null,
+        array $bindings = []
+    ): self {
+        return new self($number, $rawQuery, $time, $query ?? $rawQuery, $bindings);
     }
 }
