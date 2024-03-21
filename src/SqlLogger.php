@@ -23,6 +23,7 @@ class SqlLogger
         $queryLog = DB::getQueryLog();
 
         // getQueryLog() and getRawQueryLog() have the same keys
+        // see \Illuminate\Database\Connection::getRawQueryLog()
         Collection::make(DB::getRawQueryLog())
             ->map(fn (array $query, int $key) => new SqlQuery(
                 $key + 1,
@@ -31,7 +32,9 @@ class SqlLogger
                 $queryLog[$key]['query'],
                 $queryLog[$key]['bindings']
             ))
-            ->each(fn (SqlQuery $query) => $this->writer->writeQuery($query));
+            ->each(function (SqlQuery $query) {
+                $this->writer->writeQuery($query);
+            });
 
         $this->writer->report();
     }
