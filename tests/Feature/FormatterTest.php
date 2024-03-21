@@ -111,7 +111,7 @@ it('formats line in valid way when milliseconds are used', function () {
     $number = 434;
     $time = 617.24;
     $sql = 'SELECT * FROM somewhere';
-    $query = new SqlQuery($number, $sql, $time, $sql);
+    $query = SqlQuery::make($number, $sql, $time);
 
     $formatter = new Formatter($app, $config);
     $result = $formatter->getLine($query);
@@ -139,7 +139,7 @@ it('formats line in valid way when custom entry format was used', function () {
     $number = 434;
     $time = 617.24;
     $sql = 'SELECT * FROM somewhere';
-    $query = new SqlQuery($number, $sql, $time, $sql);
+    $query = SqlQuery::make($number, $sql, $time);
 
     $formatter = new Formatter($app, $config);
     $result = $formatter->getLine($query);
@@ -168,7 +168,7 @@ it('formats line in valid way when seconds are used', function () {
     $number = 434;
     $time = 617.24;
     $sql = 'SELECT * FROM somewhere';
-    $query = new SqlQuery($number, $sql, $time, $sql);
+    $query = SqlQuery::make($number, $sql, $time);
 
     $formatter = new Formatter($app, $config);
     $result = $formatter->getLine($query);

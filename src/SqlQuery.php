@@ -12,4 +12,14 @@ readonly class SqlQuery
         public array $bindings = []
     ) {
     }
+
+    public static function make(
+        int $number,
+        string $rawQuery,
+        float $time,
+        ?string $query = null,
+        array $bindings = []
+    ): self {
+        return new self($number, $rawQuery, $time, $query ?? $rawQuery, $bindings);
+    }
 }
