@@ -74,7 +74,7 @@ class Writer
     /**
      * Verify whether query should be reported.
      */
-    private function shouldReportSqlQuery(SqlQuery $query): bool
+    public function shouldReportSqlQuery(SqlQuery $query): bool
     {
         $pattern = $this->config->queriesReportPattern();
 

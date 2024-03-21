@@ -2,7 +2,9 @@
 
 use Carbon\Carbon;
 use Illuminate\Filesystem\Filesystem;
+use Illuminate\Support\Facades\Event;
 use Onlime\LaravelSqlReporter\Config;
+use Onlime\LaravelSqlReporter\Events\QueryLogWritten;
 use Onlime\LaravelSqlReporter\FileName;
 use Onlime\LaravelSqlReporter\Formatter;
 use Onlime\LaravelSqlReporter\SqlQuery;
@@ -171,7 +173,7 @@ it('saves insert query to file when pattern set to insert or update queries', fu
     $lineContent = 'Sample log line';
     $expectedContent = "\n$lineContent\n";
 
-$query = new SqlQuery(1, 'INSERT INTO test(one, two, three) values(?, ?, ?)', 5.41, 'INSERT INTO test(one, two, three) values(?, ?, ?)');
+    $query = new SqlQuery(1, 'INSERT INTO test(one, two, three) values(?, ?, ?)', 5.41, 'INSERT INTO test(one, two, three) values(?, ?, ?)');
     $this->formatter->shouldReceive('getLine')->once()->with($query)->andReturn($lineContent);
     $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('');
     setConfig('queries.include_pattern', '#^(?:UPDATE|INSERT) .*$#i');
@@ -239,4 +241,28 @@ it('respects query patterns', function () {
     expect($writer->writeQuery($query1))->toBeFalse()
         ->and($writer->writeQuery($query2))->toBeTrue()
         ->and($writer->writeQuery($query3))->toBeFalse();
+});
+
+it('respects the report pattern from the config to determine if a query should be reported', function (string $query, bool $report) {
+    expect($this->writer->shouldReportSqlQuery(new SqlQuery(1, $query, 1, $query)))->toBe($report);
+})->with([
+    ['select * from users', false],
+    ['delete from users', true],
+]);
+
+it('can provide a callback to the writer to determine if a query should be reported', function (string $query, bool $report) {
+    config(['sql-reporter.queries.report_pattern' => null]);
+    Writer::shouldReportQuery(fn (SqlQuery $query) => ! str_contains($query->rawQuery, 'sessions'));
+    expect($this->writer->shouldReportSqlQuery(new SqlQuery(1, $query, 1, $query)))->toBe($report);
+})->with([
+    ['delete from sessions', false],
+    ['delete from users', true],
+]);
+
+it('does not dispatch an event when there are no queries to report', function () {
+    Event::fake();
+
+    $this->writer->report();
+
+    Event::assertNotDispatched(QueryLogWritten::class);
 });

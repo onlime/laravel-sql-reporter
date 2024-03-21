@@ -88,7 +88,7 @@ class Config
      */
     public function queriesReportPattern(): string
     {
-        return $this->repository->get('sql-reporter.queries.report_pattern');
+        return $this->repository->get('sql-reporter.queries.report_pattern') ?: '';
     }
 
     /**
