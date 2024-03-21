@@ -1,8 +1,16 @@
 # CHANGELOG
 
-## [v1.2.x (Unreleased)](https://github.com/onlime/laravel-sql-reporter/compare/v1.2.1...main)
+## [v1.2.x (Unreleased)](https://github.com/onlime/laravel-sql-reporter/compare/v1.2.2...main)
 
 - ...
+
+## [v1.2.2 (2024-03-21)](https://github.com/onlime/laravel-sql-reporter/compare/v1.2.1...v1.2.2)
+
+- The `Writer` object now has a static `shouldReportSqlQuery()` method to define a custom callback for filtering queries included in the `QueryLogWritten` event. by @pascalbaljet in #4
+- The `SqlQuery` object is now a `readonly` class, and all the getter methods have been removed. **This is a breaking change.**
+- The `SqlQuery` object now includes the unprepared query and bindings.
+- Added tests for the reporting mechanism and the `QueryLogWritten` event
+- Drops support for 8.1
 
 ## [v1.2.1 (2024-03-14)](https://github.com/onlime/laravel-sql-reporter/compare/v1.2.0...v1.2.1)
 
