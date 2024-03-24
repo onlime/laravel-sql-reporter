@@ -108,6 +108,14 @@ class Config
     }
 
     /**
+     * Get header datetime format.
+     */
+    public function headerDatetimeFormat(): string
+    {
+        return $this->repository->get('sql-reporter.formatting.header_datetime_format');
+    }
+
+    /**
      * Get query format that should be used to save query.
      */
     public function entryFormat(): string

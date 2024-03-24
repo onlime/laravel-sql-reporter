@@ -57,7 +57,7 @@ class Formatter
 
         // TODO: datetime information should be replaced by lowest query timestamp, see https://github.com/laravel/framework/pull/37514
         $data = [
-            'datetime' => Carbon::now()->toDateTimeString(),
+            'datetime' => Carbon::now()->format($this->config->headerDatetimeFormat()),
             'origin'   => $this->originLine(),
             'status'   => sprintf('Executed %s queries in %s', count($queryLog), $totalTime),
             'user'     => $username,

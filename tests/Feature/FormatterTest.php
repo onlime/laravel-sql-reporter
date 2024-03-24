@@ -16,7 +16,8 @@ it('formats header in valid way when running via http', function () {
     $app->shouldReceive('environment')->once()->withNoArgs()->andReturn('testing');
     $config->shouldReceive('useSeconds')->once()->withNoArgs()->andReturn(false);
     $config->shouldReceive('headerFields')->once()->withNoArgs()
-        ->andReturn(explode(',', 'origin,datetime,status,user,env,agent,ip,host,referer'));
+        ->andReturn(explode(',', 'datetime,origin,status,user,env,agent,ip,host,referer'));
+    $config->shouldReceive('headerDatetimeFormat')->once()->withNoArgs()->andReturn('Y-m-d H:i:s P');
     $request = Mockery::mock(Request::class);
     $app->shouldReceive('offsetGet')->times(3)->with('request')->andReturn($request);
     $request->shouldReceive('method')->once()->withNoArgs()->andReturn('DELETE');
@@ -26,7 +27,7 @@ it('formats header in valid way when running via http', function () {
     $request->shouldReceive('userAgent')->once()->withNoArgs()->andReturn('Mozilla/5.0');
     $request->shouldReceive('header')->once()->with('referer')->andReturn('');
 
-    $now = '2015-03-04 08:12:07';
+    $now = '2015-03-04 08:12:07 +00:00';
     Carbon::setTestNow($now);
 
     DB::shouldReceive('getRawQueryLog')->once()->withNoArgs()->andReturn([
@@ -63,7 +64,8 @@ it('formats header in valid way when running in console', function () {
     $app->shouldReceive('environment')->once()->withNoArgs()->andReturn('testing');
     $config->shouldReceive('useSeconds')->once()->withNoArgs()->andReturn(false);
     $config->shouldReceive('headerFields')->once()->withNoArgs()
-        ->andReturn(explode(',', 'origin,datetime,status,user,env,agent,ip,host,referer'));
+        ->andReturn(explode(',', 'datetime,origin,status,user,env,agent,ip,host,referer'));
+    $config->shouldReceive('headerDatetimeFormat')->once()->withNoArgs()->andReturn('Y-m-d H:i:s P');
     $request = Mockery::mock(Request::class);
     $app->shouldReceive('offsetGet')->twice()->with('request')->andReturn($request);
     $request->shouldReceive('server')->once()->with('argv', [])->andReturn('php artisan test');
@@ -71,7 +73,7 @@ it('formats header in valid way when running in console', function () {
     $request->shouldReceive('userAgent')->once()->withNoArgs()->andReturn('Mozilla/5.0');
     $request->shouldReceive('header')->once()->with('referer')->andReturn('');
 
-    $now = '2015-03-04 08:12:07';
+    $now = '2015-03-04 08:12:07 +00:00';
     Carbon::setTestNow($now);
 
     DB::shouldReceive('getRawQueryLog')->once()->withNoArgs()->andReturn([]);

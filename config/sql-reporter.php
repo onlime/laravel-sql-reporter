@@ -29,8 +29,8 @@ return [
         /*
          * Header fields, comma-separated. Available options:
          *
-         * - origin: where this query coming from - method/request or artisan command
          * - datetime: date and time when the first query was executed
+         * - origin: where this query coming from - method/request or artisan command
          * - status: total query count and execution time for all queries
          * - user: username of authenticated user
          * - guard: name of the auth guard (defaults to 'web' if not logged in)
@@ -44,8 +44,13 @@ return [
          * data if origin is an Artisan command.
          */
         'header_fields' => array_filter(explode(',', env('SQL_REPORTER_FORMAT_HEADER_FIELDS',
-            'origin,datetime,status,user,guard,env,agent,ip,host,referer'
+            'datetime,origin,status,user,guard,env,agent,ip,host,referer'
         ))),
+
+        /*
+         * Header datetime format.
+         */
+        'header_datetime_format' => env('SQL_REPORTER_FORMAT_HEADER_DATETIME_FORMAT', 'Y-m-d H:i:s P'),
 
         /*
          * Single entry format. Available options:

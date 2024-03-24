@@ -2,6 +2,7 @@
 
 ## [v1.2.x (Unreleased)](https://github.com/onlime/laravel-sql-reporter/compare/v1.2.2...main)
 
+- Made datetime format of formatted header configurable and added TZ offset to default format `Y-m-d H:i:s P`.
 - ...
 
 ## [v1.2.2 (2024-03-21)](https://github.com/onlime/laravel-sql-reporter/compare/v1.2.1...v1.2.2)
