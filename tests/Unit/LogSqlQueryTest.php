@@ -2,6 +2,7 @@
 
 use Illuminate\Console\Events\CommandFinished;
 use Illuminate\Foundation\Http\Events\RequestHandled;
+use Illuminate\Support\Facades\App;
 use Onlime\LaravelSqlReporter\Listeners\LogSqlQuery;
 use Onlime\LaravelSqlReporter\SqlLogger;
 
@@ -17,6 +18,8 @@ it('can handle the command finished event', function () {
 });
 
 it('can handle the request handled event', function () {
+    App::shouldReceive('runningInConsole')->andReturn(false);
+
     $listener = new LogSqlQuery($this->logger);
     $listener->handle(Mockery::mock(RequestHandled::class));
 
