@@ -1,9 +1,13 @@
 # CHANGELOG
 
-## [v1.2.x (Unreleased)](https://github.com/onlime/laravel-sql-reporter/compare/v1.2.2...main)
+## [v1.2.x (Unreleased)](https://github.com/onlime/laravel-sql-reporter/compare/v1.2.3...main)
+
+- ...
+
+## [v1.2.3 (2024-09-12)](https://github.com/onlime/laravel-sql-reporter/compare/v1.2.2...v1.2.3)
 
 - Made datetime format of formatted header configurable and added TZ offset to default format `Y-m-d H:i:s P`.
-- ...
+- Fix | Prevent duplicate logging when a console command is called from a regular web request (e.g. programmatically executing an Artisan command with `Artisan::call()`). In web context, we're now only logging on `RequestHandled` event, while in console only on `CommandFinished` event.
 
 ## [v1.2.2 (2024-03-21)](https://github.com/onlime/laravel-sql-reporter/compare/v1.2.1...v1.2.2)
 
