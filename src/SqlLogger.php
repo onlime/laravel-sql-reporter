@@ -5,15 +5,14 @@ namespace Onlime\LaravelSqlReporter;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
-class SqlLogger
+readonly class SqlLogger
 {
     /**
      * SqlLogger constructor.
      */
     public function __construct(
         private Writer $writer
-    ) {
-    }
+    ) {}
 
     /**
      * Log queries

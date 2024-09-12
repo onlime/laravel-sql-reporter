@@ -14,8 +14,7 @@ readonly class LogSqlQuery
      */
     public function __construct(
         private SqlLogger $logger,
-    ) {
-    }
+    ) {}
 
     /**
      * Handle the event.

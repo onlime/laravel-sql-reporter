@@ -19,7 +19,7 @@ beforeEach(function () {
     $this->writer = new Writer($this->formatter, $this->config, $this->filename);
     $this->directory = __DIR__.'/test-dir/directory';
     setConfig('general.directory', $this->directory);
-    $this->filesystem = new Filesystem();
+    $this->filesystem = new Filesystem;
 });
 
 afterEach(function () {

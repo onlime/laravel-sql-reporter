@@ -10,8 +10,7 @@ class FileName
     public function __construct(
         private Container $app,
         private Config $config
-    ) {
-    }
+    ) {}
 
     /**
      * Create file name for query log.

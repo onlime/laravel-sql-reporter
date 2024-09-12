@@ -14,8 +14,7 @@ class Formatter
     public function __construct(
         private Container $app,
         private Config $config
-    ) {
-    }
+    ) {}
 
     /**
      * Get formatted single query line(s).

@@ -32,8 +32,7 @@ class Writer
         private readonly Formatter $formatter,
         private readonly Config $config,
         private readonly FileName $fileName
-    ) {
-    }
+    ) {}
 
     /**
      * Set callback to determine whether query should be reported.

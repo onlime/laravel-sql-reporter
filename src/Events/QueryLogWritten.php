@@ -12,6 +12,5 @@ class QueryLogWritten
         public int $loggedQueryCount,
         public string $reportHeader,
         public array $reportQueries,
-    ) {
-    }
+    ) {}
 }

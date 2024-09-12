@@ -8,8 +8,7 @@ class Config
 {
     public function __construct(
         protected ConfigRepository $repository
-    ) {
-    }
+    ) {}
 
     /**
      * Get directory where log files should be saved.

@@ -10,8 +10,7 @@ readonly class SqlQuery
         public float $time,
         public string $query,
         public array $bindings = []
-    ) {
-    }
+    ) {}
 
     public static function make(
         int $number,
