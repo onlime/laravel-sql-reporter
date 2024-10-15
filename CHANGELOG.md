@@ -1,8 +1,8 @@
 # CHANGELOG
 
-## [v1.2.x (Unreleased)](https://github.com/onlime/laravel-sql-reporter/compare/v1.2.4...main)
+## [v1.3.x (Unreleased)](https://github.com/onlime/laravel-sql-reporter/compare/v1.3.0...main)
 
-## [v1.2.4 (2024-10-15)](https://github.com/onlime/laravel-sql-reporter/compare/v1.2.3...v1.2.4)
+## [v1.3.0 (2024-10-15)](https://github.com/onlime/laravel-sql-reporter/compare/v1.2.3...v1.3.0)
 
 - Upgrade Pest to v3
 - Drop Laravel 10 support and fixed CI
