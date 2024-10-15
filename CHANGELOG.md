@@ -5,6 +5,7 @@
 ## [v1.2.4 (2024-10-15)](https://github.com/onlime/laravel-sql-reporter/compare/v1.2.3...v1.2.4)
 
 - Upgrade Pest to v3
+- Drop Laravel 10 support and fixed CI
 
 ## [v1.2.3 (2024-09-12)](https://github.com/onlime/laravel-sql-reporter/compare/v1.2.2...v1.2.3)
 
