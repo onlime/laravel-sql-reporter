@@ -13,6 +13,8 @@ class FeatureTestCase extends TestCase
     {
         Mockery::close();
         Carbon::setTestNow();
+
+        parent::tearDown();
     }
 
     protected function getPackageProviders($app)

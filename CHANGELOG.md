@@ -1,8 +1,10 @@
 # CHANGELOG
 
-## [v1.2.x (Unreleased)](https://github.com/onlime/laravel-sql-reporter/compare/v1.2.3...main)
+## [v1.2.x (Unreleased)](https://github.com/onlime/laravel-sql-reporter/compare/v1.2.4...main)
 
-- ...
+## [v1.2.4 (2024-10-15)](https://github.com/onlime/laravel-sql-reporter/compare/v1.2.3...v1.2.4)
+
+- Upgrade Pest to v3
 
 ## [v1.2.3 (2024-09-12)](https://github.com/onlime/laravel-sql-reporter/compare/v1.2.2...v1.2.3)
 
@@ -15,7 +17,7 @@
 - The `SqlQuery` object is now a `readonly` class, and all the getter methods have been removed. **This is a breaking change.**
 - The `SqlQuery` object now includes the unprepared query and bindings.
 - Added tests for the reporting mechanism and the `QueryLogWritten` event
-- Drops support for 8.1
+- Drops support for PHP 8.1
 
 ## [v1.2.1 (2024-03-14)](https://github.com/onlime/laravel-sql-reporter/compare/v1.2.0...v1.2.1)
 
