@@ -1,6 +1,10 @@
 # CHANGELOG
 
-## [v1.3.x (Unreleased)](https://github.com/onlime/laravel-sql-reporter/compare/v1.3.0...main)
+## [v1.3.x (Unreleased)](https://github.com/onlime/laravel-sql-reporter/compare/v1.3.1...main)
+
+## [v1.3.1 (2025-02-21)](https://github.com/onlime/laravel-sql-reporter/compare/v1.3.0...v1.3.1)
+
+- Support Laravel 12
 
 ## [v1.3.0 (2024-10-15)](https://github.com/onlime/laravel-sql-reporter/compare/v1.2.3...v1.3.0)
 
