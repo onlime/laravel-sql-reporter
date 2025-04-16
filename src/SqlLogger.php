@@ -7,7 +7,7 @@ namespace Onlime\LaravelSqlReporter;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
-readonly class SqlLogger
+class SqlLogger
 {
     /**
      * SqlLogger constructor.
