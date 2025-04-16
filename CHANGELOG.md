@@ -1,6 +1,11 @@
 # CHANGELOG
 
-## [v1.3.x (Unreleased)](https://github.com/onlime/laravel-sql-reporter/compare/v1.3.1...main)
+## [v1.3.x (Unreleased)](https://github.com/onlime/laravel-sql-reporter/compare/v1.3.2...main)
+
+## [v1.3.2 (2025-04-16)](https://github.com/onlime/laravel-sql-reporter/compare/v1.3.1...v1.3.2)
+
+- Push the logging to the background, after the response has been sent, using Laravel's [`defer()`](https://laravel.com/docs/12.x/helpers#deferred-functions) helper.
+- Declare PHP `strict_types` in all classes.
 
 ## [v1.3.1 (2025-02-21)](https://github.com/onlime/laravel-sql-reporter/compare/v1.3.0...v1.3.1)
 

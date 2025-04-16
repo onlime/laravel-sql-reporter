@@ -29,6 +29,7 @@ readonly class LogSqlQuery
             return;
         }
 
-        $this->logger->log();
+        // Push the logging to the background, after the response has been sent.
+        defer(fn () => $this->logger->log())->always();
     }
 }
