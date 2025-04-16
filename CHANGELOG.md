@@ -1,6 +1,10 @@
 # CHANGELOG
 
-## [v1.3.x (Unreleased)](https://github.com/onlime/laravel-sql-reporter/compare/v1.3.2...main)
+## [v1.3.x (Unreleased)](https://github.com/onlime/laravel-sql-reporter/compare/v1.3.3...main)
+
+## [v1.3.3 (2025-04-16)](https://github.com/onlime/laravel-sql-reporter/compare/v1.3.2...v1.3.3)
+
+- Fix CI/testing for the newly introduced deferred logging.
 
 ## [v1.3.2 (2025-04-16)](https://github.com/onlime/laravel-sql-reporter/compare/v1.3.1...v1.3.2)
 
