@@ -7,6 +7,7 @@ use Onlime\LaravelSqlReporter\Listeners\LogSqlQuery;
 use Onlime\LaravelSqlReporter\SqlLogger;
 
 beforeEach(function () {
+    $this->withoutDefer();
     $this->logger = Mockery::spy(SqlLogger::class);
 });
 
