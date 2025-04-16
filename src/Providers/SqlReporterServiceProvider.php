@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Onlime\LaravelSqlReporter\Providers;
 
 use Illuminate\Console\Events\CommandFinished;

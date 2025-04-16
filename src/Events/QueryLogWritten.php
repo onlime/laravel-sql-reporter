@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Onlime\LaravelSqlReporter\Events;
 
 use Illuminate\Foundation\Events\Dispatchable;

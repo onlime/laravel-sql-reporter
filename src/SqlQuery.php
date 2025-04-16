@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Onlime\LaravelSqlReporter;
 
 readonly class SqlQuery

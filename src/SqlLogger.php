@@ -1,11 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Onlime\LaravelSqlReporter;
 
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
-class SqlLogger
+readonly class SqlLogger
 {
     /**
      * SqlLogger constructor.
