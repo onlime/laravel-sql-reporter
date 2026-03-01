@@ -50,7 +50,7 @@
             "symfony/thanks": "Star packages you use running 'composer thanks' command"
         }
     },
-    "minimum-stability": "stable",
+    "minimum-stability": "dev",
     "prefer-stable": true,
     "config": {
         "allow-plugins": {
