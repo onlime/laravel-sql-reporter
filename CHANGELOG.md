@@ -1,6 +1,12 @@
 # CHANGELOG
 
-## [v1.3.x (Unreleased)](https://github.com/onlime/laravel-sql-reporter/compare/v1.3.5...main)
+## [v1.3.x (Unreleased)](https://github.com/onlime/laravel-sql-reporter/compare/v1.3.6...main)
+
+## [v1.3.6 (2026-03-19)](https://github.com/onlime/laravel-sql-reporter/compare/v1.3.5...v1.3.6)
+
+- Drop Laravel 11 and PHP 8.2 support
+- Bump `laravel/pint` to `^2.0`, `pestphp/pest` to `^4.1`
+- Bump GitHub Actions: `actions/checkout` to v5, `actions/cache` to v5
 
 ## [v1.3.5 (2026-03-01)](https://github.com/onlime/laravel-sql-reporter/compare/v1.3.4...v1.3.5)
 
