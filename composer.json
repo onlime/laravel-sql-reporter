@@ -1,29 +1,37 @@
 {
     "name": "onlime/laravel-sql-reporter",
     "description": "Log SQL queries in Laravel framework",
+    "type": "library",
     "keywords": ["laravel", "sql", "log", "logger", "sql logger", "log sql queries", "log sql", "sql log"],
+    "homepage": "https://github.com/onlime/laravel-sql-reporter",
     "license": "MIT",
     "authors": [
         {
             "name": "Philip Iezzi",
-            "email": "philip@onlime.ch"
+            "email": "philip@onlime.ch",
+            "role": "Developer"
         },
         {
             "name": "Onlime GmbH",
             "homepage": "https://www.onlime.ch/"
         }
     ],
+    "support": {
+        "issues": "https://github.com/onlime/laravel-sql-reporter/issues",
+        "source": "https://github.com/onlime/laravel-sql-reporter"
+    },
     "require": {
         "php": "^8.3",
-        "illuminate/support": "^12.0 || ^13.0",
-        "illuminate/filesystem": "^12.0 || ^13.0",
-        "illuminate/container": "^12.0 || ^13.0"
+        "laravel/framework": "^12.0 || ^13.0"
     },
     "require-dev": {
-        "laravel/pint": "^2.0",
-        "mockery/mockery": "^1.0",
+        "laravel/pint": "^1.32",
+        "mockery/mockery": "^1.6.13",
         "orchestra/testbench": "^10.0 || ^11.0",
-        "pestphp/pest": "^4.1"
+        "pestphp/pest": "^4.7 || ^5.3"
+    },
+    "suggest": {
+        "stevebauman/location": "GeoIP country detection for the client IP in log headers"
     },
     "autoload": {
         "psr-4": {
@@ -35,6 +43,18 @@
             "Tests\\": "tests/"
         }
     },
+    "scripts": {
+        "test": "vendor/bin/pest",
+        "test-coverage": "vendor/bin/pest --coverage --coverage-html=build/coverage",
+        "format": "vendor/bin/pint",
+        "lint": "vendor/bin/pint --test"
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
     "extra": {
         "laravel": {
             "providers": [
@@ -42,19 +62,10 @@
             ]
         },
         "thanks": {
-            "name": "mnabialek/laravel-version",
-            "url": "https://github.com/mnabialek/laravel-version"
-        },
-        "suggest": {
-            "stevebaumann/location": "GeoIP country detection for log headers information",
-            "symfony/thanks": "Star packages you use running 'composer thanks' command"
+            "name": "mnabialek/laravel-sql-logger",
+            "url": "https://github.com/mnabialek/laravel-sql-logger"
         }
     },
-    "minimum-stability": "dev",
-    "prefer-stable": true,
-    "config": {
-        "allow-plugins": {
-            "pestphp/pest-plugin": true
-        }
-    }
+    "minimum-stability": "stable",
+    "prefer-stable": true
 }
