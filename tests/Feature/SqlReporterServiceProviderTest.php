@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Illuminate\Console\Events\CommandFinished;
 use Illuminate\Foundation\Http\Events\RequestHandled;
 use Illuminate\Support\Facades\Event;
@@ -24,9 +26,16 @@ it('merges the default config', function () {
 });
 
 it('can publish the config file', function () {
-    @unlink(config_path('sql-reporter.php'));
+    $published = config_path('sql-reporter.php');
+    @unlink($published);
 
-    $this->artisan('vendor:publish', ['--tag' => 'sql-reporter']);
+    try {
+        $this->artisan('vendor:publish', ['--tag' => 'sql-reporter'])->assertSuccessful();
 
-    $this->assertFileExists(config_path('sql-reporter.php'));
+        expect($published)->toBeFile()
+            ->and(file_get_contents($published))->toBe(file_get_contents(__DIR__.'/../../config/sql-reporter.php'));
+    } finally {
+        // don't leave the published config in the Testbench skeleton, where it would be loaded by later tests
+        @unlink($published);
+    }
 });

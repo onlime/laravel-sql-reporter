@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Illuminate\Support\Facades\DB;
 use Onlime\LaravelSqlReporter\SqlLogger;
 use Onlime\LaravelSqlReporter\SqlQuery;
@@ -24,7 +26,6 @@ it('runs writer with valid query', function () {
     $this->writer->shouldReceive('report')->once()->withNoArgs();
 
     $this->logger->log();
-    expect(true)->toBeTrue();
 });
 
 it('uses valid query number for multiple queries', function () {

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Illuminate\Contracts\Config\Repository;
 use Onlime\LaravelSqlReporter\Config;
 
