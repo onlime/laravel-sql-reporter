@@ -21,8 +21,7 @@ use Onlime\LaravelSqlReporter\Writer;
  */
 
 beforeEach(function () {
-    // run the deferred logging immediately
-    $this->withoutDefer();
+    // No withoutDefer(): requests are logged by a deferred callback, which must be invoked by Laravel.
     // Laravel only dispatches CommandFinished outside of unit tests
     $this->app->make(Kernel::class)->rerouteSymfonyCommandEvents();
 

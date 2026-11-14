@@ -4,27 +4,35 @@ declare(strict_types=1);
 
 use Illuminate\Console\Events\CommandFinished;
 use Illuminate\Foundation\Http\Events\RequestHandled;
+use Illuminate\Support\Defer\DeferredCallbackCollection;
 use Illuminate\Support\Facades\App;
 use Onlime\LaravelSqlReporter\Listeners\LogSqlQuery;
 use Onlime\LaravelSqlReporter\SqlLogger;
 
 beforeEach(function () {
-    $this->withoutDefer();
     $this->logger = Mockery::spy(SqlLogger::class);
 });
 
-it('can handle the command finished event', function () {
+it('logs right away when a command has finished', function () {
+    // Laravel invokes deferred callbacks in its own CommandFinished listener, which runs before this one,
+    // so a deferred callback would never run
     $listener = new LogSqlQuery($this->logger);
     $listener->handle(Mockery::mock(CommandFinished::class));
 
     $this->logger->shouldHaveReceived('log')->once();
+    expect(app(DeferredCallbackCollection::class))->toHaveCount(0);
 });
 
-it('can handle the request handled event', function () {
+it('defers the logging until the response of a request has been sent', function () {
     App::shouldReceive('runningInConsole')->andReturn(false);
 
     $listener = new LogSqlQuery($this->logger);
     $listener->handle(Mockery::mock(RequestHandled::class));
+
+    $this->logger->shouldNotHaveReceived('log');
+
+    // also invoked for failed requests (status code >= 400)
+    app(DeferredCallbackCollection::class)->invokeWhen(fn ($callback) => $callback->always);
 
     $this->logger->shouldHaveReceived('log')->once();
 });

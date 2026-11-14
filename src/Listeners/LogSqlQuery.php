@@ -29,6 +29,14 @@ readonly class LogSqlQuery
             return;
         }
 
+        if ($event instanceof CommandFinished) {
+            // Log right away, as there is no response to be sent first. A deferred callback would never run, because
+            // Laravel invokes deferred callbacks in its own CommandFinished listener, which runs before this one.
+            $this->logger->log();
+
+            return;
+        }
+
         // Push the logging to the background, after the response has been sent.
         defer(fn () => $this->logger->log())->always();
     }
