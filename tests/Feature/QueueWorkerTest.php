@@ -195,3 +195,9 @@ it('does not log an Artisan command called by a queued job by default', function
     expect(DB::table('users')->pluck('name')->all())->toBe(['Dave'])
         ->and($this->logFile)->not->toBeFile();
 });
+
+it('does not log the worker polling an empty queue with queue:work --once', function () {
+    $this->artisan('queue:work', ['--once' => true, '--sleep' => 0])->assertSuccessful();
+
+    expect($this->logFile)->not->toBeFile();
+});

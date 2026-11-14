@@ -9,6 +9,7 @@ use Illuminate\Support\Defer\DeferredCallbackCollection;
 use Illuminate\Support\Facades\App;
 use Onlime\LaravelSqlReporter\Listeners\LogSqlQuery;
 use Onlime\LaravelSqlReporter\SqlLogger;
+use Onlime\LaravelSqlReporter\Support\ConsoleState;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\NullOutput;
 
@@ -75,4 +76,13 @@ it('only logs the outermost command, including the commands it calls', function 
     $this->listener->handle(commandFinished('outer'));
 
     $this->logger->shouldHaveReceived('log')->once();
+});
+
+it('does not log the command of a queue worker, which logs each job separately', function () {
+    app(ConsoleState::class)->markQueueWorker();
+
+    $this->listener->handle(commandStarting('queue:work'));
+    $this->listener->handle(commandFinished('queue:work'));
+
+    $this->logger->shouldNotHaveReceived('log');
 });

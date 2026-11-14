@@ -9,6 +9,7 @@ use Illuminate\Console\Events\CommandFinished;
 use Illuminate\Console\Events\CommandStarting;
 use Illuminate\Foundation\Http\Events\RequestHandled;
 use Illuminate\Queue\Events\JobAttempted;
+use Illuminate\Queue\Events\JobPopping;
 use Illuminate\Queue\Events\JobProcessing;
 use Illuminate\Queue\Events\Looping;
 use Illuminate\Queue\Events\WorkerStopping;
@@ -42,7 +43,9 @@ class SqlReporterServiceProvider extends ServiceProvider
             Artisan::starting(fn (Artisan $artisan) => $this->app->make(AttributeResolver::class)->setArtisan($artisan));
 
             Event::listen([CommandStarting::class, CommandFinished::class, RequestHandled::class], LogSqlQuery::class);
-            Event::listen([Looping::class, JobProcessing::class, JobAttempted::class, WorkerStopping::class], LogJobQueries::class);
+            Event::listen([
+                Looping::class, JobPopping::class, JobProcessing::class, JobAttempted::class, WorkerStopping::class,
+            ], LogJobQueries::class);
         }
     }
 

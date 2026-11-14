@@ -6,6 +6,7 @@ namespace Onlime\LaravelSqlReporter\Listeners;
 
 use Illuminate\Contracts\Queue\Job;
 use Illuminate\Queue\Events\JobAttempted;
+use Illuminate\Queue\Events\JobPopping;
 use Illuminate\Queue\Events\JobProcessing;
 use Illuminate\Queue\Events\Looping;
 use Illuminate\Queue\Events\WorkerStopping;
@@ -16,6 +17,7 @@ use Onlime\LaravelSqlReporter\Attributes\DontReportQueries;
 use Onlime\LaravelSqlReporter\Config;
 use Onlime\LaravelSqlReporter\SqlLogger;
 use Onlime\LaravelSqlReporter\Support\AttributeResolver;
+use Onlime\LaravelSqlReporter\Support\ConsoleState;
 
 /**
  * Handles the query log of long-running queue workers, which would otherwise collect the queries of all processed
@@ -27,18 +29,22 @@ readonly class LogJobQueries
         private Config $config,
         private SqlLogger $logger,
         private AttributeResolver $attributes,
+        private ConsoleState $state,
     ) {}
 
     /**
      * Handle the event.
      */
-    public function handle(Looping|JobProcessing|JobAttempted|WorkerStopping $event): void
+    public function handle(Looping|JobPopping|JobProcessing|JobAttempted|WorkerStopping $event): void
     {
         // Jobs on a sync queue (or the deferred / background queues based on it) run within the current
         // request or command, so their queries are logged as part of it.
         if (($event instanceof JobProcessing || $event instanceof JobAttempted) && $event->job instanceof SyncJob) {
             return;
         }
+
+        // The queries of a queue worker are logged per job, not when the worker command finishes
+        $this->state->markQueueWorker();
 
         if ($event instanceof JobAttempted && $this->config->queriesLogJobs()) {
             $this->logJob($event->job);

@@ -56,6 +56,11 @@ readonly class LogSqlQuery
             return;
         }
 
+        // A queue worker logs the queries of each job separately, but not its own (e.g. polling a database queue)
+        if ($this->state->isQueueWorker()) {
+            return;
+        }
+
         // Log right away, as there is no response to be sent first. A deferred callback would never run, because
         // Laravel invokes deferred callbacks in its own CommandFinished listener, which runs before this one.
         $this->logger->log(report: ! $this->attributes->has($classes, DontReportQueries::class));
