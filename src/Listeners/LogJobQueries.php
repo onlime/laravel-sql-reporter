@@ -8,6 +8,7 @@ use Illuminate\Contracts\Queue\Job;
 use Illuminate\Queue\Events\JobAttempted;
 use Illuminate\Queue\Events\JobPopping;
 use Illuminate\Queue\Events\JobProcessing;
+use Illuminate\Queue\Events\JobTimedOut;
 use Illuminate\Queue\Events\Looping;
 use Illuminate\Queue\Events\WorkerStopping;
 use Illuminate\Queue\Jobs\SyncJob;
@@ -35,7 +36,7 @@ readonly class LogJobQueries
     /**
      * Handle the event.
      */
-    public function handle(Looping|JobPopping|JobProcessing|JobAttempted|WorkerStopping $event): void
+    public function handle(Looping|JobPopping|JobProcessing|JobAttempted|JobTimedOut|WorkerStopping $event): void
     {
         // Jobs on a sync queue (or the deferred / background queues based on it) run within the current
         // request or command, so their queries are logged as part of it.
@@ -46,7 +47,8 @@ readonly class LogJobQueries
         // The queries of a queue worker are logged per job, not when the worker command finishes
         $this->state->markQueueWorker();
 
-        if ($event instanceof JobAttempted && $this->config->queriesLogJobs()) {
+        // A timed out job is killed right after the JobTimedOut event, without a JobAttempted event
+        if (($event instanceof JobAttempted || $event instanceof JobTimedOut) && $this->config->queriesLogJobs()) {
             $this->logJob($event->job);
         }
 

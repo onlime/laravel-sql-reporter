@@ -3,8 +3,10 @@
 declare(strict_types=1);
 
 use Illuminate\Contracts\Console\Kernel;
+use Illuminate\Contracts\Queue\Job;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Filesystem\Filesystem;
+use Illuminate\Queue\Events\JobTimedOut;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
@@ -200,4 +202,19 @@ it('does not log the worker polling an empty queue with queue:work --once', func
     $this->artisan('queue:work', ['--once' => true, '--sleep' => 0])->assertSuccessful();
 
     expect($this->logFile)->not->toBeFile();
+});
+
+it('logs timed out jobs, which are killed without a JobAttempted event', function () {
+    config(['sql-reporter.queries.log_jobs' => true]);
+    $job = Mockery::mock(Job::class);
+    $job->shouldReceive('resolveName')->andReturn(InsertUserJob::class);
+    $job->shouldReceive('resolveQueuedJobClass')->andReturn(InsertUserJob::class);
+    DB::table('users')->insert(['name' => 'Eve']);
+
+    event(new JobTimedOut('database', $job));
+
+    expect(file_get_contents($this->logFile))
+        ->toContain('-- Origin:   (job) '.InsertUserJob::class.PHP_EOL)
+        ->toContain('insert into "users" ("name") values (\'Eve\');')
+        ->and(DB::getQueryLog())->toBe([]);
 });

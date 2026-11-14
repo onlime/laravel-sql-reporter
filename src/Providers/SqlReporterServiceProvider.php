@@ -11,6 +11,7 @@ use Illuminate\Foundation\Http\Events\RequestHandled;
 use Illuminate\Queue\Events\JobAttempted;
 use Illuminate\Queue\Events\JobPopping;
 use Illuminate\Queue\Events\JobProcessing;
+use Illuminate\Queue\Events\JobTimedOut;
 use Illuminate\Queue\Events\Looping;
 use Illuminate\Queue\Events\WorkerStopping;
 use Illuminate\Support\Facades\DB;
@@ -44,7 +45,7 @@ class SqlReporterServiceProvider extends ServiceProvider
 
             Event::listen([CommandStarting::class, CommandFinished::class, RequestHandled::class], LogSqlQuery::class);
             Event::listen([
-                Looping::class, JobPopping::class, JobProcessing::class, JobAttempted::class, WorkerStopping::class,
+                Looping::class, JobPopping::class, JobProcessing::class, JobAttempted::class, JobTimedOut::class, WorkerStopping::class,
             ], LogJobQueries::class);
         }
     }
