@@ -49,6 +49,14 @@ class Writer
     }
 
     /**
+     * Set the origin shown in the log header instead of the request or console command, e.g. a queued job.
+     */
+    public function setOrigin(?string $origin): void
+    {
+        $this->formatter->setOrigin($origin);
+    }
+
+    /**
      * Write a query to log.
      *
      * @return bool true if query was written to log, false if skipped

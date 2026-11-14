@@ -126,3 +126,13 @@ it('returns valid value for header datetime format', function () {
         ->andReturn('Y-m-d H:i:s P');
     expect($this->config->headerDatetimeFormat())->toBe('Y-m-d H:i:s P');
 });
+
+it('returns valid values for queries log jobs', function () {
+    $this->repository->shouldReceive('get')->once()->with('sql-reporter.queries.log_jobs')
+        ->andReturn(1);
+    expect($this->config->queriesLogJobs())->toBeTrue();
+
+    $this->repository->shouldReceive('get')->once()->with('sql-reporter.queries.log_jobs')
+        ->andReturn(null);
+    expect($this->config->queriesLogJobs())->toBeFalse();
+});

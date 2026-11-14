@@ -18,9 +18,15 @@ class SqlLogger
 
     /**
      * Log queries
+     *
+     * @param  string|null  $origin  shown in the log header instead of the request or console command, e.g. a queued job
      */
-    public function log(): void
+    public function log(?string $origin = null): void
     {
+        if ($origin !== null) {
+            $this->writer->setOrigin($origin);
+        }
+
         $queryLog = DB::getQueryLog();
 
         // getQueryLog() and getRawQueryLog() have the same keys

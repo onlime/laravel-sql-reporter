@@ -15,10 +15,23 @@ use Stevebauman\Location\Facades\Location;
 
 class Formatter
 {
+    /**
+     * Origin shown in the header instead of the request or console command, e.g. a queued job.
+     */
+    private ?string $origin = null;
+
     public function __construct(
         private Application $app,
         private Config $config
     ) {}
+
+    /**
+     * Set the origin shown in the header instead of the request or console command, e.g. a queued job.
+     */
+    public function setOrigin(?string $origin): void
+    {
+        $this->origin = $origin;
+    }
 
     /**
      * Get formatted single query line(s).
@@ -146,6 +159,10 @@ class Formatter
      */
     protected function originLine(): string
     {
+        if ($this->origin !== null) {
+            return $this->origin;
+        }
+
         return $this->app->runningInConsole()
             ? '(console) '.$this->getArtisanLine()
             : '(request) '.$this->getRequestLine();

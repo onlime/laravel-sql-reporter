@@ -6,10 +6,15 @@ namespace Onlime\LaravelSqlReporter\Providers;
 
 use Illuminate\Console\Events\CommandFinished;
 use Illuminate\Foundation\Http\Events\RequestHandled;
+use Illuminate\Queue\Events\JobAttempted;
+use Illuminate\Queue\Events\JobProcessing;
+use Illuminate\Queue\Events\Looping;
+use Illuminate\Queue\Events\WorkerStopping;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use Onlime\LaravelSqlReporter\Config;
+use Onlime\LaravelSqlReporter\Listeners\LogJobQueries;
 use Onlime\LaravelSqlReporter\Listeners\LogSqlQuery;
 
 class SqlReporterServiceProvider extends ServiceProvider
@@ -27,6 +32,7 @@ class SqlReporterServiceProvider extends ServiceProvider
 
         if ($this->config->queriesEnabled()) {
             Event::listen([CommandFinished::class, RequestHandled::class], LogSqlQuery::class);
+            Event::listen([Looping::class, JobProcessing::class, JobAttempted::class, WorkerStopping::class], LogJobQueries::class);
         }
     }
 

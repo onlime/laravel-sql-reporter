@@ -53,6 +53,14 @@ class Config
     }
 
     /**
+     * Whether queries of queued jobs should be logged.
+     */
+    public function queriesLogJobs(): bool
+    {
+        return (bool) $this->repository->get('sql-reporter.queries.log_jobs');
+    }
+
+    /**
      * Minimum execution time (in milliseconds) for queries to be logged.
      */
     public function queriesMinExecTime(): float

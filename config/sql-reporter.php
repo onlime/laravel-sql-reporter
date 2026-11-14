@@ -74,6 +74,13 @@ return [
         'enabled' => env('SQL_REPORTER_QUERIES_ENABLED', true),
 
         /*
+         * Whether queries of queued jobs should be logged, each job separately with its own header ('(job) <name>'
+         * origin) and QueryLogWritten event. Jobs on a sync queue are always logged as part of the request or
+         * command that dispatched them. See README for details and possible impacts before enabling this.
+         */
+        'log_jobs' => env('SQL_REPORTER_QUERIES_LOG_JOBS', false),
+
+        /*
          * Whether log (for all queries, not for slow queries) should be overridden.
          * It might be useful when you test some functionality, and you want to
          * compare your queries (or number of queries) - be aware that when using
