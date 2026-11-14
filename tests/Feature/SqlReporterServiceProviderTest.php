@@ -3,21 +3,41 @@
 declare(strict_types=1);
 
 use Illuminate\Console\Events\CommandFinished;
+use Illuminate\Console\Events\CommandStarting;
 use Illuminate\Foundation\Http\Events\RequestHandled;
+use Illuminate\Queue\Events\JobAttempted;
+use Illuminate\Queue\Events\JobPopping;
+use Illuminate\Queue\Events\JobProcessing;
+use Illuminate\Queue\Events\JobTimedOut;
+use Illuminate\Queue\Events\Looping;
+use Illuminate\Queue\Events\WorkerStopping;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
+use Onlime\LaravelSqlReporter\Listeners\LogJobQueries;
 use Onlime\LaravelSqlReporter\Listeners\LogSqlQuery;
 use Onlime\LaravelSqlReporter\Providers\SqlReporterServiceProvider;
 
-it('registers event listeners', function (string $eventName) {
-    $listeners = Event::getRawListeners()[$eventName] ?? [];
+/**
+ * @return array<class-string, class-string>
+ */
+function listenedEvents(): array
+{
+    return [
+        CommandStarting::class => LogSqlQuery::class,
+        CommandFinished::class => LogSqlQuery::class,
+        RequestHandled::class => LogSqlQuery::class,
+        Looping::class => LogJobQueries::class,
+        JobPopping::class => LogJobQueries::class,
+        JobProcessing::class => LogJobQueries::class,
+        JobAttempted::class => LogJobQueries::class,
+        JobTimedOut::class => LogJobQueries::class,
+        WorkerStopping::class => LogJobQueries::class,
+    ];
+}
 
-    expect($listeners)->not->toBeEmpty()
-        ->and($listeners)->toContain(LogSqlQuery::class);
-})->with([
-    CommandFinished::class,
-    RequestHandled::class,
-]);
+it('registers event listeners', function (string $event, string $listener) {
+    expect(Event::getRawListeners()[$event] ?? [])->toContain($listener);
+})->with(array_map(null, array_keys(listenedEvents()), listenedEvents()));
 
 it('enables the query log', function () {
     expect(DB::logging())->toBeTrue();
@@ -25,17 +45,18 @@ it('enables the query log', function () {
 
 it('neither registers the listener nor enables the query log if queries are disabled', function () {
     config(['sql-reporter.queries.enabled' => false]);
-    Event::forget(CommandFinished::class);
-    Event::forget(RequestHandled::class);
+    $events = array_keys(listenedEvents());
+    array_map(Event::forget(...), $events);
     DB::disableQueryLog();
 
     $provider = new SqlReporterServiceProvider($this->app);
     $provider->register();
     $provider->boot();
 
-    expect(Event::hasListeners(CommandFinished::class))->toBeFalse()
-        ->and(Event::hasListeners(RequestHandled::class))->toBeFalse()
-        ->and(DB::logging())->toBeFalse();
+    foreach ($events as $event) {
+        expect(Event::hasListeners($event))->toBeFalse();
+    }
+    expect(DB::logging())->toBeFalse();
 });
 
 it('excludes long-running vendor commands by default', function () {
