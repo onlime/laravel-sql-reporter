@@ -10,6 +10,9 @@ class QueryLogWritten
 {
     use Dispatchable;
 
+    /**
+     * @param  list<string>  $reportQueries
+     */
     public function __construct(
         public int $loggedQueryCount,
         public string $reportHeader,

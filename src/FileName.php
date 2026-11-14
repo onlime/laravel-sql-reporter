@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Onlime\LaravelSqlReporter;
 
 use Carbon\Carbon;
-use Illuminate\Container\Container;
+use Illuminate\Contracts\Foundation\Application;
 
 class FileName
 {
     public function __construct(
-        private Container $app,
+        private Application $app,
         private Config $config
     ) {}
 
@@ -38,9 +38,9 @@ class FileName
      */
     protected function parseFileName(string $fileName): string
     {
-        return preg_replace_callback('#(\[.*\])#U', function ($matches) {
+        return preg_replace_callback('#(\[.*\])#U', function (array $matches): string {
             $format = str_replace(['[', ']'], [], $matches[1]);
             return Carbon::now()->format($format);
-        }, $fileName);
+        }, $fileName) ?? $fileName;
     }
 }

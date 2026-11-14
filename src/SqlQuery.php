@@ -6,6 +6,9 @@ namespace Onlime\LaravelSqlReporter;
 
 readonly class SqlQuery
 {
+    /**
+     * @param  array<mixed>  $bindings
+     */
     public function __construct(
         public int $number,
         public string $rawQuery,
@@ -14,6 +17,9 @@ readonly class SqlQuery
         public array $bindings = []
     ) {}
 
+    /**
+     * @param  array<mixed>  $bindings
+     */
     public static function make(
         int $number,
         string $rawQuery,

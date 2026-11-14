@@ -22,6 +22,8 @@ class Writer
 
     /**
      * Stores query log lines that should be reported.
+     *
+     * @var list<string>
      */
     private array $reportQueries = [];
 
@@ -37,11 +39,13 @@ class Writer
     ) {}
 
     /**
-     * Set callback to determine whether query should be reported.
+     * Set callback to determine whether query should be reported, or null to reset it.
+     *
+     * @param  (callable(SqlQuery): bool)|null  $callback
      */
-    public static function shouldReportQuery(callable $callback): void
+    public static function shouldReportQuery(?callable $callback): void
     {
-        self::$shouldReportQuery = $callback;
+        self::$shouldReportQuery = $callback === null ? null : $callback(...);
     }
 
     /**
@@ -83,7 +87,7 @@ class Writer
             return false;
         }
 
-        return call_user_func(self::$shouldReportQuery ?? fn () => true, $query);
+        return self::$shouldReportQuery === null || (self::$shouldReportQuery)($query);
     }
 
     /**

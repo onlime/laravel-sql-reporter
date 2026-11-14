@@ -6,7 +6,6 @@ namespace Onlime\LaravelSqlReporter\Providers;
 
 use Illuminate\Console\Events\CommandFinished;
 use Illuminate\Foundation\Http\Events\RequestHandled;
-use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
@@ -22,7 +21,7 @@ class SqlReporterServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->config = App::make(Config::class);
+        $this->config = $this->app->make(Config::class);
 
         $this->mergeConfigFrom($this->configFileLocation(), 'sql-reporter');
 
@@ -50,6 +49,6 @@ class SqlReporterServiceProvider extends ServiceProvider
      */
     protected function configFileLocation(): string
     {
-        return realpath(__DIR__.'/../../config/sql-reporter.php');
+        return dirname(__DIR__, 2).'/config/sql-reporter.php';
     }
 }

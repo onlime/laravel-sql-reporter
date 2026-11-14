@@ -102,6 +102,8 @@ class Config
 
     /**
      * Get header fields that should be printed in header before query loglines.
+     *
+     * @return array<int, string>
      */
     public function headerFields(): array
     {

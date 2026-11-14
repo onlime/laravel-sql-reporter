@@ -3,13 +3,13 @@
 declare(strict_types=1);
 
 use Carbon\Carbon;
-use Illuminate\Container\Container;
+use Illuminate\Contracts\Foundation\Application;
 use Onlime\LaravelSqlReporter\Config;
 use Onlime\LaravelSqlReporter\FileName;
 
 beforeEach(function () {
     Carbon::setTestNow('2015-03-07 08:16:09');
-    $this->app = Mockery::mock(Container::class);
+    $this->app = Mockery::mock(Application::class);
     $this->config = Mockery::mock(Config::class);
     $this->filename = new FileName($this->app, $this->config);
 });

@@ -6,7 +6,7 @@ return [
         /*
          * Directory where log files will be saved
          */
-        'directory' => storage_path(env('SQL_REPORTER_DIRECTORY', 'logs/sql')),
+        'directory' => storage_path((string) env('SQL_REPORTER_DIRECTORY', 'logs/sql')),
 
         /*
          * Whether execution time in log file should be displayed in seconds
@@ -43,7 +43,7 @@ return [
          * It does not harm to keep all fields enabled. The request-only fields would simply report some standard/empty
          * data if origin is an Artisan command.
          */
-        'header_fields' => array_filter(explode(',', env('SQL_REPORTER_FORMAT_HEADER_FIELDS',
+        'header_fields' => array_filter(explode(',', (string) env('SQL_REPORTER_FORMAT_HEADER_FIELDS',
             'datetime,origin,status,user,guard,env,agent,ip,host,referer'
         ))),
 

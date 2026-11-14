@@ -261,6 +261,45 @@ it('can combine the report pattern config and the callback to determine if a que
     ['delete from users', true],
 ]);
 
+it('accepts any callable to determine if a query should be reported', function ($callback) {
+    // untyped, so Pest resolves the dataset closures (it passes them through as-is for a callable parameter)
+    Writer::shouldReportQuery($callback);
+
+    expect($this->writer->shouldReportSqlQuery(SqlQuery::make(1, 'delete from sessions', 1)))->toBeFalse()
+        ->and($this->writer->shouldReportSqlQuery(SqlQuery::make(2, 'delete from users', 1)))->toBeTrue();
+})->with([
+    'closure' => fn () => fn (SqlQuery $query) => ! str_contains($query->rawQuery, 'sessions'),
+    'invokable object' => fn () => new class
+    {
+        public function __invoke(SqlQuery $query): bool
+        {
+            return ! str_contains($query->rawQuery, 'sessions');
+        }
+    },
+    'array callable' => fn () => [new class
+    {
+        public function check(SqlQuery $query): bool
+        {
+            return ! str_contains($query->rawQuery, 'sessions');
+        }
+    }, 'check'],
+]);
+
+it('casts the callback result to bool', function () {
+    // e.g. preg_match() returns int, which caused a TypeError under strict types
+    Writer::shouldReportQuery(fn (SqlQuery $query) => preg_match('/users/', $query->rawQuery));
+
+    expect($this->writer->shouldReportSqlQuery(SqlQuery::make(1, 'delete from users', 1)))->toBeTrue()
+        ->and($this->writer->shouldReportSqlQuery(SqlQuery::make(2, 'delete from sessions', 1)))->toBeFalse();
+});
+
+it('resets the report callback when passing null', function () {
+    Writer::shouldReportQuery(fn () => false);
+    Writer::shouldReportQuery(null);
+
+    expect($this->writer->shouldReportSqlQuery(SqlQuery::make(1, 'delete from users', 1)))->toBeTrue();
+});
+
 it('dispatches an event when there are queries to report', function () {
     Event::fake();
 

@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use Carbon\Carbon;
-use Illuminate\Container\Container;
+use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -13,7 +13,7 @@ use Onlime\LaravelSqlReporter\SqlQuery;
 
 it('formats header in valid way when running via http', function () {
     $config = Mockery::mock(Config::class);
-    $app = Mockery::mock(Container::class);
+    $app = Mockery::mock(Application::class);
     $app->shouldReceive('runningInConsole')->once()->withNoArgs()->andReturn(false);
     $app->shouldReceive('environment')->once()->withNoArgs()->andReturn('testing');
     $config->shouldReceive('useSeconds')->once()->withNoArgs()->andReturn(false);
@@ -21,7 +21,7 @@ it('formats header in valid way when running via http', function () {
         ->andReturn(explode(',', 'datetime,origin,status,user,env,agent,ip,host,referer'));
     $config->shouldReceive('headerDatetimeFormat')->once()->withNoArgs()->andReturn('Y-m-d H:i:s P');
     $request = Mockery::mock(Request::class);
-    $app->shouldReceive('offsetGet')->times(3)->with('request')->andReturn($request);
+    $app->shouldReceive('make')->twice()->with('request')->andReturn($request);
     $request->shouldReceive('method')->once()->withNoArgs()->andReturn('DELETE');
     $request->shouldReceive('fullUrl')->once()->withNoArgs()
         ->andReturn('http://example.com/test');
@@ -61,7 +61,7 @@ EOT;
 
 it('formats header in valid way when running in console', function () {
     $config = Mockery::mock(Config::class);
-    $app = Mockery::mock(Container::class);
+    $app = Mockery::mock(Application::class);
     $app->shouldReceive('runningInConsole')->once()->withNoArgs()->andReturn(true);
     $app->shouldReceive('environment')->once()->withNoArgs()->andReturn('testing');
     $config->shouldReceive('useSeconds')->once()->withNoArgs()->andReturn(false);
@@ -69,7 +69,7 @@ it('formats header in valid way when running in console', function () {
         ->andReturn(explode(',', 'datetime,origin,status,user,env,agent,ip,host,referer'));
     $config->shouldReceive('headerDatetimeFormat')->once()->withNoArgs()->andReturn('Y-m-d H:i:s P');
     $request = Mockery::mock(Request::class);
-    $app->shouldReceive('offsetGet')->twice()->with('request')->andReturn($request);
+    $app->shouldReceive('make')->twice()->with('request')->andReturn($request);
     $request->shouldReceive('server')->once()->with('argv', [])->andReturn('php artisan test');
     $request->shouldReceive('ip')->once()->withNoArgs()->andReturn('127.0.0.1');
     $request->shouldReceive('userAgent')->once()->withNoArgs()->andReturn('Mozilla/5.0');
@@ -104,7 +104,7 @@ EOT;
 
 it('formats line in valid way when milliseconds are used', function () {
     $config = Mockery::mock(Config::class);
-    $app = Mockery::mock(Container::class);
+    $app = Mockery::mock(Application::class);
     $config->shouldReceive('useSeconds')->once()->withNoArgs()->andReturn(false);
     $config->shouldReceive('entryFormat')->once()->withNoArgs()
         ->andReturn('/* Query [query_nr] - [datetime] [[query_time]] */\n[query]\n[separator]\n');
@@ -132,7 +132,7 @@ EOT;
 
 it('formats line in valid way when custom entry format was used', function () {
     $config = Mockery::mock(Config::class);
-    $app = Mockery::mock(Container::class);
+    $app = Mockery::mock(Application::class);
     $config->shouldReceive('useSeconds')->once()->withNoArgs()->andReturn(false);
     $config->shouldReceive('entryFormat')->once()->withNoArgs()
         ->andReturn("[separator]\n[query_nr] : [datetime] [query_time]\n[query]\n[separator]\n");
@@ -161,7 +161,7 @@ EOT;
 
 it('formats line in valid way when seconds are used', function () {
     $config = Mockery::mock(Config::class);
-    $app = Mockery::mock(Container::class);
+    $app = Mockery::mock(Application::class);
     $config->shouldReceive('useSeconds')->once()->withNoArgs()->andReturn(true);
     $config->shouldReceive('entryFormat')->once()->withNoArgs()
         ->andReturn('/* Query [query_nr] - [datetime] [[query_time]] */\n[query]\n[separator]\n');
@@ -185,4 +185,17 @@ it('formats line in valid way when seconds are used', function () {
 EOT;
 
     expect($result)->toBe($expected);
+});
+
+it('returns an empty header if none of the configured header fields is supported', function () {
+    config(['sql-reporter.formatting.header_fields' => ['foo', 'bar']]);
+
+    expect(app(Formatter::class)->getHeader())->toBe('');
+});
+
+it('leaves the host empty if the client IP is unknown', function () {
+    config(['sql-reporter.formatting.header_fields' => ['ip', 'host']]);
+    $this->app->instance('request', Request::create('/', server: ['REMOTE_ADDR' => null]));
+
+    expect(app(Formatter::class)->getHeader())->toContain("-- Ip:\n-- Host:\n");
 });
