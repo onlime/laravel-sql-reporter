@@ -9,9 +9,14 @@
 This module allows you to log SQL queries to log file in Laravel framework. It's useful mainly
 when developing your application to verify whether your queries are valid and to make sure your application doesn't run too many or too slow database queries.
 
-You may also use this in production as it should not cause a lot of overhead. Logged queries can be limited by query pattern, and logging only occurs at the end of each request or artisan command execution, not per query execution.
+You may also use this in production as it should not cause a lot of overhead. Logged queries can be limited by query pattern, and logging only occurs at the end of each request, Artisan command, or (optionally) queued job, not per query execution.
 
-It reports a lot of metadata like total query count, total execution time, origin (request URL/console command), authenticated user, app environment, client browser agent / IP / hostname.
+It reports a lot of metadata like total query count, total execution time, origin (request URL/console command/queued job), authenticated user, app environment, client browser agent / IP / hostname.
+
+## Requirements
+
+- PHP 8.3+ (tested up to PHP 8.6)
+- Laravel 12 or 13
 
 ## Installation
 
@@ -26,7 +31,7 @@ It reports a lot of metadata like total query count, total execution time, origi
 2. Run the following in your console to publish the default configuration file:
 
     ```bash
-    $ php artisan vendor:publish --provider="Onlime\LaravelSqlReporter\Providers\ServiceProvider"
+    $ php artisan vendor:publish --tag=sql-reporter
     ```
 
     By default, you should not edit published file because all the settings are loaded from `.env` file by default.
@@ -39,13 +44,15 @@ It reports a lot of metadata like total query count, total execution time, origi
     SQL_REPORTER_CONSOLE_SUFFIX=
     SQL_REPORTER_LOG_EXTENSION=".sql"
     SQL_REPORTER_QUERIES_ENABLED=true
+    SQL_REPORTER_QUERIES_LOG_JOBS=false
     SQL_REPORTER_QUERIES_OVERRIDE_LOG=false
-    SQL_REPORTER_QUERIES_INCLUDE_PATTERN="#.*#i"
+    SQL_REPORTER_QUERIES_INCLUDE_PATTERN="/.*/i"
     SQL_REPORTER_QUERIES_EXCLUDE_PATTERN="/^\$/"
     SQL_REPORTER_QUERIES_REPORT_PATTERN='/^(?!select\s|start transaction|commit|(insert into|update|delete from) `(sessions|jobs|bans|logins)`).*/i'
     SQL_REPORTER_QUERIES_MIN_EXEC_TIME=0
     SQL_REPORTER_QUERIES_FILE_NAME="[Y-m]-log"
-    SQL_REPORTER_FORMAT_HEADER_FIELDS="datetime,origin,status,user,env,agent,ip,host,referer"
+    SQL_REPORTER_FORMAT_HEADER_FIELDS="datetime,origin,status,user,guard,env,agent,ip,host,referer"
+    SQL_REPORTER_FORMAT_HEADER_DATETIME_FORMAT="Y-m-d H:i:s P"
     SQL_REPORTER_FORMAT_ENTRY_FORMAT="-- Query [query_nr] [[query_time]]\\n[query]"
     ```
 
@@ -55,9 +62,9 @@ It reports a lot of metadata like total query count, total execution time, origi
     `last_visit` or `remember_token`, I recommend to use:
 
     ```ini
-   SQL_REPORTER_QUERIES_INCLUDE_PATTERN="/^(?!SELECT).*/i"
-   SQL_REPORTER_QUERIES_EXCLUDE_PATTERN="/^UPDATE.*(last_visit|remember_token)/i"
-   ```
+    SQL_REPORTER_QUERIES_INCLUDE_PATTERN="/^(?!SELECT).*/i"
+    SQL_REPORTER_QUERIES_EXCLUDE_PATTERN="/^UPDATE.*(last_visit|remember_token)/i"
+    ```
 
     If you have also `.env.example` it's recommended to add those entries also in `.env.example` file just to make sure everyone knows about those env variables. Be aware that `SQL_REPORTER_DIRECTORY` is directory inside storage directory.
 
@@ -66,6 +73,54 @@ It reports a lot of metadata like total query count, total execution time, origi
 4. Make sure directory specified in `.env` file exists in storage path, and you have valid permissions to create and modify files in this directory (If it does not exist this package will automatically create it when needed, but it's recommended to create it manually with valid file permissions)
 
 5. Make sure on live server you will set logging SQL queries to false in your `.env` file: `SQL_REPORTER_QUERIES_ENABLED=false`. This package is recommended to be used only for development to not impact production application performance.
+
+## Queued jobs
+
+A queue worker (`queue:work`, `horizon:work`) is a long-running Artisan command, processing many jobs before it stops. This package handles its query log as follows, no matter how `SQL_REPORTER_QUERIES_LOG_JOBS` is set:
+
+- The query log of a queue worker is flushed before and after each job, while the worker is waiting for jobs, and when it stops. So the query log no longer grows with the number of processed jobs, and the worker command itself is not logged.
+- Jobs on a `sync` or `deferred` queue don't run in a worker, but within the request or Artisan command that dispatched them. Their queries are logged as part of that request or command. Jobs on a `background` queue run in a separate Artisan process, which is logged like any other Artisan command.
+
+### `SQL_REPORTER_QUERIES_LOG_JOBS`
+
+Queries of queued jobs are not logged by default. Enable it in your `.env` file:
+
+```ini
+SQL_REPORTER_QUERIES_LOG_JOBS=true
+```
+
+The queries of each processed job are then logged separately, right after the job has been attempted, with their own header. The origin shows the job's display name, which is the class name of the job, queued event listener, notification or mailable:
+
+```
+-- --------------------------------------------------
+-- Datetime: 2026-11-14 21:30:12 +01:00
+-- Origin:   (job) App\Jobs\SyncInvoices
+-- Status:   Executed 2 queries in 1.37ms
+-- User:
+-- Guard:
+-- Env:      production
+-- Agent:    Symfony
+-- Ip:       127.0.0.1
+-- Host:     localhost
+-- Referer:
+-- --------------------------------------------------
+-- Query 1 [0.89ms]
+select * from `invoices` where `synced_at` is null;
+-- Query 2 [0.48ms]
+update `invoices` set `synced_at` = '2026-11-14 21:30:12' where `id` in (17, 18);
+```
+
+All the other options apply to jobs as well, e.g. the include/exclude patterns and `SQL_REPORTER_QUERIES_MIN_EXEC_TIME`. Jobs run in console, so they are written to the same log file as Artisan commands, including `SQL_REPORTER_CONSOLE_SUFFIX`. Each job also dispatches its own [`QueryLogWritten` event](#querylogwritten-event) if it ran any queries to report.
+
+Before enabling it, be aware of these impacts:
+
+- **Logging time per job:** Jobs are logged synchronously by the worker, right after each job attempt, not deferred like requests. This adds the time to resolve the header fields and to write the log file to every job, slowing down the processing of your queue a bit. In a worker, the `host` header field is the reverse DNS lookup of `127.0.0.1`, so you may remove it from `SQL_REPORTER_FORMAT_HEADER_FIELDS` for busy queues.
+- **Log file size:** Every job running queries adds a log entry with a full header. On a busy queue, the log file grows much faster than with requests only. Use a daily file name like `SQL_REPORTER_QUERIES_FILE_NAME="[Y-m-d]-log"`, a separate console log file (`SQL_REPORTER_CONSOLE_SUFFIX`), logrotate, or limit the logged queries with `SQL_REPORTER_QUERIES_INCLUDE_PATTERN` / `SQL_REPORTER_QUERIES_EXCLUDE_PATTERN`.
+- **`QueryLogWritten` event per job:** Your listeners run for every job that ran queries matching the report pattern, inside the worker. If they send notifications (e.g. a report by email), you may get many more of them than before. Exclude noisy jobs with `SQL_REPORTER_QUERIES_REPORT_PATTERN`, `Writer::shouldReportQuery()` or by checking the `-- Origin:` header line in your listener.
+- **Feedback loops:** If your `QueryLogWritten` listener queues a job (e.g. a queued listener or notification) which runs queries to report itself, each of these jobs dispatches another `QueryLogWritten` event, and so on. Make sure such jobs are not reported.
+- **Retries:** Each job attempt is logged separately, so a retried job shows up several times. Failed attempts are logged as well, with the queries up to the exception.
+
+The query log of a single job is still kept in memory until the job has finished, like for a request or an Artisan command. Jobs running a huge number of queries (e.g. imports) therefore still need the memory for all of them, no matter if `SQL_REPORTER_QUERIES_LOG_JOBS` is enabled.
 
 ## Optional
 
@@ -82,7 +137,9 @@ It will be auto-detected, no configuration needed for this. If you wish to use a
 
 ### `QueryLogWritten` event
 
-This package fires a `QueryLogWritten` event after the log file has been written. You may use this event to further debug or analyze the logged queries in your application. The queries are filtered by the `SQL_REPORTER_QUERIES_REPORT_PATTERN` setting, which comes with a sensible default to exclude `SELECT` queries and some default tables like `sessions`, `jobs`, `bans`, `logins`. If you don't want to filter any queries, you may leave this setting empty.
+This package fires a `QueryLogWritten` event after the log file has been written for a request, an Artisan command or (with `SQL_REPORTER_QUERIES_LOG_JOBS` enabled) a queued job. You may use this event to further debug or analyze the logged queries in your application. It provides the number of logged queries (`$loggedQueryCount`), the formatted header (`$reportHeader`) and the formatted queries to report (`$reportQueries`).
+
+The queries to report are filtered by the `SQL_REPORTER_QUERIES_REPORT_PATTERN` setting, which comes with a sensible default to exclude `SELECT` queries and some default tables like `sessions`, `jobs`, `bans`, `logins`. If you don't want to filter any queries, you may leave this setting empty. The event is only fired if there are queries to report.
 
 In addition to the pattern, you may also configure a callback to define your own custom filtering logic, for example, in your `AppServiceProvider`:
 
@@ -96,21 +153,21 @@ Writer::shouldReportQuery(function (SqlQuery $query) {
 });
 ```
 
-With the `SqlQuery` object, you have access to both `$rawQuery` and the (unprepared) `$query`/`$bindings`. The filter possibilities by providing a callback to `Writer::shouldReportQuery()` are endless!
+With the `SqlQuery` object, you have access to both `$rawQuery` and the (unprepared) `$query`/`$bindings`. The filter possibilities by providing a callback to `Writer::shouldReportQuery()` are endless! It accepts any callable, e.g. an invokable class, and `Writer::shouldReportQuery(null)` removes the callback again.
 
-## Development
+## Testing
 
-Checkout project and run tests:
+We're using [Pest](https://pestphp.com/) for testing, [Larastan](https://github.com/larastan/larastan) for static analysis, and [Pint](https://laravel.com/docs/pint) for code style:
 
 ```bash
 $ git clone https://github.com/onlime/laravel-sql-reporter.git
 $ cd laravel-sql-reporter
 $ composer install
 
-# run both Feature and Unit tests
-$ vendor/bin/pest
-# run unit tests with coverage report
-$ vendor/bin/pest --coverage
+$ composer test           # run the test suite
+$ composer test-coverage  # run the test suite with coverage report (requires pcov or Xdebug)
+$ composer analyse        # run static analysis
+$ composer lint           # check code style (use `composer format` to fix it)
 ```
 
 ## FAQ
@@ -119,9 +176,9 @@ $ vendor/bin/pest --coverage
 
 This package was inspired by [mnabialek/laravel-sql-logger](https://github.com/mnabialek/laravel-sql-logger) and basically does the same thing: Logging your SQL queries. Here's the difference:
 
-- Query logging is not triggered upon each query execution but instead at a final step, using `RequestHandled` and `CommandFinished` events.
-- This allows us to include much more information about the whole query executions like total query count, total execution time, and very detailed header information like origin (request URL/console command), authenticated user, app environment, client browser agent / IP / hostname.
-- This package is greatly simplified and only provides support for Laravel 10+ / PHP 8.2+
+- Query logging is not triggered upon each query execution but instead at a final step, using `RequestHandled` and `CommandFinished` events (and optionally per queued job).
+- This allows us to include much more information about the whole query executions like total query count, total execution time, and very detailed header information like origin (request URL/console command/queued job), authenticated user, app environment, client browser agent / IP / hostname.
+- This package is greatly simplified and only provides support for Laravel 12+ / PHP 8.3+
 - It uses the Laravel built-in query logging (`DB::enableQueryLog()`) which logs all queries in memory, which should perform much better than writing every single query to the log file.
 - By default, `onlime/laravel-sql-reporter` produces much nicer log output, especially since we only write header information before the first query.
 
@@ -129,7 +186,7 @@ Sample log output:
 
 ```
 -- --------------------------------------------------
--- Datetime: 2024-03-11 09:33:22
+-- Datetime: 2024-03-11 09:33:22 +01:00
 -- Origin:   (request) GET http://localhost:8000/demo
 -- Status:   Executed 3 queries in 1.85ms
 -- User:     testuser@example.com
@@ -174,10 +231,10 @@ All changes are listed in [CHANGELOG](CHANGELOG.md)
 
 - If your application crashes, this package will not log any queries, as logging is only triggered at the end of the request cycle. As alternative, you could use [mnabialek/laravel-sql-logger](https://github.com/mnabialek/laravel-sql-logger) which triggers sql logging on each query execution.
 - It's currently not possible to log slow queries into a separate logfile. I wanted to keep that package simple.
+- Only queries of the default database connection are logged.
 
 ## TODO
 
-- [ ] Improve unit testing to reach 100% coverage
 - [ ] Integrate Coveralls.io and add test coverage status badge to README
 - [ ] Add browser type information to log headers, maybe using [hisorange/browser-detect](https://github.com/hisorange/browser-detect)
 

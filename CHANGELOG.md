@@ -1,6 +1,26 @@
 # CHANGELOG
 
-## [v1.3.x (Unreleased)](https://github.com/onlime/laravel-sql-reporter/compare/v1.3.6...main)
+## [v1.4.0 (Unreleased)](https://github.com/onlime/laravel-sql-reporter/compare/v1.3.6...main)
+
+- PHP 8.6 support
+- Fix | Queries of Artisan commands were not logged since v1.3.2, because Laravel invoked the deferred logging callback before it was registered. Commands are now logged right away, requests are still logged after the response has been sent.
+- Queue workers no longer collect the queries of all processed jobs in memory: their query log is flushed before and after each job, and the worker command itself is no longer logged.
+- Feature | New `SQL_REPORTER_QUERIES_LOG_JOBS` option (default: `false`) to log the queries of each queued job separately, with a `(job) App\Jobs\Foo` origin and its own `QueryLogWritten` event. See [Queued jobs](README.md#queued-jobs) for the impacts before enabling it.
+- Fix | The logged query could differ from the executed one, as `\n` (e.g. an escaped line break in a JSON value) or placeholders like `[separator]` within the query got replaced by the entry format.
+- Fix | `SQL_REPORTER_QUERIES_MIN_EXEC_TIME` set in `.env` caused a `TypeError` since v1.3.2.
+- Fix | `Writer::shouldReportQuery()` caused a `TypeError` for callables other than closures (e.g. invokable objects) or callbacks returning a non-bool value (e.g. `preg_match()`). `Writer::shouldReportQuery(null)` removes the callback.
+- Fix | No more `ValueError` if none of the configured header fields is supported, no more `TypeError` if the client IP is unknown, and the `user` header field also works for user models preventing access to missing attributes (`Model::preventAccessingMissingAttributes()`).
+- Only the configured header fields are resolved, e.g. no more reverse DNS lookup of the client IP if `host` is not configured.
+- Require `laravel/framework` instead of `illuminate/support`, `illuminate/filesystem` and `illuminate/container`, as the package depends on Laravel Foundation.
+- Fixed CI, which failed since v1.3.6 because of a non-existent `laravel/pint` `^2.0` constraint. Restored `minimum-stability` to `stable`.
+- Pest v5 support. Bumped dev dependencies (`laravel/pint` `^1.32`, `mockery/mockery` `^1.6.13`), added `stevebauman/location` `^7.8` for testing the GeoIP lookup.
+- Fixed `composer.json`: the `stevebauman/location` suggestion was ignored by Composer, `composer thanks` now stars `mnabialek/laravel-sql-logger`.
+- Added static analysis with [Larastan](https://github.com/larastan/larastan) (PHPStan level 8). `Formatter` and `FileName` now depend on the `Application` contract instead of `Container`.
+- Tests: 100% code coverage, end-to-end tests with real queries for requests, Artisan commands and queue workers, strict types, architecture tests, namespaced as `Onlime\LaravelSqlReporter\Tests`.
+- CI: Added PHP 8.6 to the matrix, code style and static analysis job, pull requests from forks, Composer download cache, coverage on a single job enforcing 100%. Bumped `actions/checkout` to v7 and `actions/cache` to v6, added Dependabot for GitHub Actions.
+- Added `.gitattributes` to exclude development files from Composer dist archives.
+- PHPUnit configuration: `phpunit.xml` was renamed to `phpunit.xml.dist`, coverage reports are no longer generated on every test run, use `composer test-coverage` instead.
+- README: added requirements, fixed the `vendor:publish` command, documented queued jobs.
 
 ## [v1.3.6 (2026-03-19)](https://github.com/onlime/laravel-sql-reporter/compare/v1.3.5...v1.3.6)
 
