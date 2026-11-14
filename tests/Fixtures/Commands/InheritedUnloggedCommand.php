@@ -9,5 +9,5 @@ namespace Onlime\LaravelSqlReporter\Tests\Fixtures\Commands;
  */
 class InheritedUnloggedCommand extends UnloggedCommand
 {
-    protected $signature = 'sql-reporter:inherited-unlogged';
+    protected $signature = 'sql-reporter:inherited-unlogged {--call=}';
 }

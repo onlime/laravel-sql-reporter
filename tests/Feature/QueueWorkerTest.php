@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Schema;
 use Onlime\LaravelSqlReporter\Events\QueryLogWritten;
+use Onlime\LaravelSqlReporter\Tests\Fixtures\CallCommandJob;
 use Onlime\LaravelSqlReporter\Tests\Fixtures\InsertUserJob;
 use Onlime\LaravelSqlReporter\Tests\Fixtures\UnloggedJob;
 use Onlime\LaravelSqlReporter\Tests\Fixtures\UnloggedListener;
@@ -166,4 +167,31 @@ it('logs, but does not report queued jobs with the DontReportQueries attribute',
         ->toContain('insert into "users" ("name") values (\'Alice\');')
         ->and($events)->toHaveCount(1)
         ->and($events[0]->reportHeader)->toContain('-- Origin:   (job) '.InsertUserJob::class.PHP_EOL);
+});
+
+it('logs an Artisan command called by a queued job as part of the job', function () {
+    config(['sql-reporter.queries.log_jobs' => true]);
+    Artisan::command('sql-reporter:insert', function () {
+        DB::table('users')->insert(['name' => 'Dave']);
+    });
+    CallCommandJob::dispatch('sql-reporter:insert');
+
+    $this->artisan('queue:work', ['--stop-when-empty' => true, '--sleep' => 0])->assertSuccessful();
+
+    $log = file_get_contents($this->logFile);
+    expect(substr_count($log, '-- Origin:'))->toBe(1)
+        ->and($log)->toContain('-- Origin:   (job) '.CallCommandJob::class.PHP_EOL)
+        ->toContain('insert into "users" ("name") values (\'Dave\');');
+});
+
+it('does not log an Artisan command called by a queued job by default', function () {
+    Artisan::command('sql-reporter:insert', function () {
+        DB::table('users')->insert(['name' => 'Dave']);
+    });
+    CallCommandJob::dispatch('sql-reporter:insert');
+
+    $this->artisan('queue:work', ['--stop-when-empty' => true, '--sleep' => 0])->assertSuccessful();
+
+    expect(DB::table('users')->pluck('name')->all())->toBe(['Dave'])
+        ->and($this->logFile)->not->toBeFile();
 });

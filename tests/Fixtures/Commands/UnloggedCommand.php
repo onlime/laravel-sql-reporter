@@ -9,5 +9,5 @@ use Onlime\LaravelSqlReporter\Attributes\DontLogQueries;
 #[DontLogQueries]
 class UnloggedCommand extends InsertUserCommand
 {
-    protected $signature = 'sql-reporter:unlogged';
+    protected $signature = 'sql-reporter:unlogged {--call=}';
 }

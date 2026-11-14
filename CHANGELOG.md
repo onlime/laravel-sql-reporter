@@ -5,6 +5,7 @@
 - PHP 8.6 support
 - Fix | Queries of Artisan commands were not logged since v1.3.2, because Laravel invoked the deferred logging callback before it was registered. Commands are now logged right away, requests are still logged after the response has been sent.
 - Queue workers no longer collect the queries of all processed jobs in memory: their query log is flushed before and after each job, and the worker command itself is no longer logged.
+- Only the outermost Artisan command is logged. Commands called with `Artisan::call()` by a command or a queued job are logged as part of it, instead of logging the queries collected so far once more.
 - Feature | New `SQL_REPORTER_QUERIES_LOG_JOBS` option (default: `false`) to log the queries of each queued job separately, with a `(job) App\Jobs\Foo` origin and its own `QueryLogWritten` event. See [Queued jobs](README.md#queued-jobs) for the impacts before enabling it.
 - Feature | New `#[DontLogQueries]` and `#[DontReportQueries]` attributes to exclude Artisan commands and queued jobs (also queued listeners, notifications and mailables) from logging or from the `QueryLogWritten` event. See [Excluding Artisan commands and queued jobs](README.md#excluding-artisan-commands-and-queued-jobs).
 - Logging errors (e.g. an unwritable log file or a failing `QueryLogWritten` listener) are passed to the exception handler, instead of failing the request, command or job. Fixed a race condition when several processes create the log directory at the same time.

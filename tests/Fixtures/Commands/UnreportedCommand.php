@@ -9,5 +9,5 @@ use Onlime\LaravelSqlReporter\Attributes\DontReportQueries;
 #[DontReportQueries]
 class UnreportedCommand extends InsertUserCommand
 {
-    protected $signature = 'sql-reporter:unreported';
+    protected $signature = 'sql-reporter:unreported {--call=}';
 }

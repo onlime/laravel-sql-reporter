@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Schema;
 use Onlime\LaravelSqlReporter\Events\QueryLogWritten;
 use Onlime\LaravelSqlReporter\SqlQuery;
 use Onlime\LaravelSqlReporter\Tests\Fixtures\Commands\InheritedUnloggedCommand;
+use Onlime\LaravelSqlReporter\Tests\Fixtures\Commands\PlainCommand;
 use Onlime\LaravelSqlReporter\Tests\Fixtures\Commands\UnloggedCommand;
 use Onlime\LaravelSqlReporter\Tests\Fixtures\Commands\UnreportedCommand;
 use Onlime\LaravelSqlReporter\Writer;
@@ -46,7 +47,7 @@ beforeEach(function () {
         DB::table('users')->insert(['name' => 'Alice']);
         DB::table('users')->where('name', 'Alice')->first();
     });
-    foreach ([UnloggedCommand::class, InheritedUnloggedCommand::class, UnreportedCommand::class] as $command) {
+    foreach ([PlainCommand::class, UnloggedCommand::class, InheritedUnloggedCommand::class, UnreportedCommand::class] as $command) {
         $this->app->make(Kernel::class)->registerCommand(new $command);
     }
 
@@ -192,6 +193,25 @@ it('ignores the attributes of an Artisan command called during an HTTP request',
         ->toContain('-- Origin:   (request) GET http://localhost/call')
         ->toContain('insert into "users" ("name") values (\'sql-reporter:unlogged\');')
         ->and($this->reported)->toHaveCount(1);
+});
+
+it('logs an Artisan command calling another one only once, as part of the outer command', function () {
+    $this->artisan('sql-reporter:plain', ['--call' => 'sql-reporter:test'])->assertSuccessful();
+
+    $log = file_get_contents($this->logFile);
+    expect(substr_count($log, '-- Origin:'))->toBe(1)
+        ->and($log)->toContain('-- Status:   Executed 3 queries in ')
+        ->toContain('insert into "users" ("name") values (\'sql-reporter:plain\');')
+        ->toContain('insert into "users" ("name") values (\'Alice\');')
+        ->and($this->reported)->toHaveCount(1);
+});
+
+it('applies the attributes of the outermost command to the commands it calls', function () {
+    $this->artisan('sql-reporter:unlogged', ['--call' => 'sql-reporter:test'])->assertSuccessful();
+
+    expect(DB::table('users')->count())->toBe(2)
+        ->and($this->logFile)->not->toBeFile()
+        ->and($this->reported)->toBeEmpty();
 });
 
 it('reports logging errors instead of failing the command', function () {
