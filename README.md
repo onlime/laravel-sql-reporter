@@ -48,7 +48,7 @@ It reports a lot of metadata like total query count, total execution time, origi
     SQL_REPORTER_QUERIES_OVERRIDE_LOG=false
     SQL_REPORTER_QUERIES_INCLUDE_PATTERN="/.*/i"
     SQL_REPORTER_QUERIES_EXCLUDE_PATTERN="/^\$/"
-    SQL_REPORTER_QUERIES_REPORT_PATTERN='/^(?!select\s|start transaction|commit|(insert into|update|delete from) `(sessions|jobs|bans|logins)`).*/i'
+    SQL_REPORTER_QUERIES_REPORT_PATTERN='/^(?!select\s|start transaction|commit|(insert into|update|delete from) [`"]?(sessions|jobs|bans|logins)\b).*/i'
     SQL_REPORTER_QUERIES_MIN_EXEC_TIME=0
     SQL_REPORTER_QUERIES_FILE_NAME="[Y-m]-log"
     SQL_REPORTER_FORMAT_HEADER_FIELDS="datetime,origin,status,user,guard,env,agent,ip,host,referer"
@@ -111,6 +111,8 @@ update `invoices` set `synced_at` = '2026-11-14 21:30:12' where `id` in (17, 18)
 ```
 
 All the other options apply to jobs as well, e.g. the include/exclude patterns and `SQL_REPORTER_QUERIES_MIN_EXEC_TIME`. Jobs run in console, so they are written to the same log file as Artisan commands, including `SQL_REPORTER_CONSOLE_SUFFIX`. Each job also dispatches its own [`QueryLogWritten` event](#querylogwritten-event) if it ran any queries to report.
+
+- With the `database` queue driver, the log of a job also contains the queries deleting (or releasing) the job in the `jobs` table, because they run while the job is processed. The default report pattern doesn't report them.
 
 Before enabling it, be aware of these impacts:
 

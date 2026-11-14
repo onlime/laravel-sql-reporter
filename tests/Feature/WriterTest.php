@@ -240,6 +240,10 @@ it('respects the report pattern from the config to determine if a query should b
 })->with([
     ['select * from users', false],
     ['delete from users', true],
+    ['delete from `jobs` where `id` = 1', false],
+    ['delete from "jobs" where "id" = 1', false],
+    ['insert into "sessions" ("id") values (1)', false],
+    ['update "jobs_batches" set "x" = 1', true],
 ]);
 
 it('can provide a callback to the writer to determine if a query should be reported', function (string $query, bool $report) {

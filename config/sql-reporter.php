@@ -109,13 +109,14 @@ return [
         'exclude_pattern' => env('SQL_REPORTER_QUERIES_EXCLUDE_PATTERN', '/^$/'),
 
         /*
-         * Pattern which is used to detect DML queries.
+         * Pattern which is used to detect DML queries to report (QueryLogWritten event).
          * (Data Manipulation Language - INSERT, UPDATE, DELETE, etc.)
-         * see https://regex101.com/r/vB1QAM/1
+         * By default, it excludes SELECT queries, transactions, and modifications of some framework tables,
+         * with any identifier quoting (MySQL `jobs`, PostgreSQL / SQLite "jobs").
          */
         'report_pattern' => env(
             'SQL_REPORTER_QUERIES_REPORT_PATTERN',
-            '/^(?!select\s|start transaction|commit|(insert into|update|delete from) `(sessions|jobs|bans|logins)`).*/i'
+            '/^(?!select\s|start transaction|commit|(insert into|update|delete from) [`"]?(sessions|jobs|bans|logins)\b).*/i'
         ),
 
         /*
