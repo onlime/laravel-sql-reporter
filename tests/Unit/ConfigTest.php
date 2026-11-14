@@ -97,3 +97,10 @@ it('returns valid value for entry format', function () {
         ->andReturn('[sample]/[example]/foo');
     expect($this->config->entryFormat())->toBe('[sample]/[example]/foo');
 });
+
+it('casts the slow log time to float', function () {
+    // values from .env are strings
+    $this->repository->shouldReceive('get')->once()->with('sql-reporter.queries.min_exec_time')
+        ->andReturn('100');
+    expect($this->config->queriesMinExecTime())->toBe(100.0);
+});

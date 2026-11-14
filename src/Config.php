@@ -57,7 +57,8 @@ class Config
      */
     public function queriesMinExecTime(): float
     {
-        return $this->repository->get('sql-reporter.queries.min_exec_time');
+        // values from .env are strings
+        return (float) $this->repository->get('sql-reporter.queries.min_exec_time');
     }
 
     /**

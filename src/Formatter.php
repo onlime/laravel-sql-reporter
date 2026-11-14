@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Onlime\LaravelSqlReporter;
 
 use Carbon\Carbon;
+use Closure;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
@@ -24,15 +25,15 @@ class Formatter
      */
     public function getLine(SqlQuery $query): string
     {
-        $replace = [
+        // strtr() replaces all placeholders in a single pass, so placeholders or "\n" within the query stay untouched
+        return strtr($this->config->entryFormat(), [
             '[query_nr]'   => (string) $query->number,
             '[datetime]'   => Carbon::now()->toDateTimeString(),
             '[query_time]' => $this->time($query->time),
             '[query]'      => $this->getQueryLine($query),
             '[separator]'  => $this->separatorLine(),
             '\n'           => PHP_EOL,
-        ];
-        return str_replace(array_keys($replace), array_values($replace), $this->config->entryFormat());
+        ]);
     }
 
     /**
@@ -45,45 +46,31 @@ class Formatter
             return '';
         }
 
-        // Try to resolve username, which is stored in 'email' field by default, but could be mapped by username() method
-        // by some custom trait. data_get() also works for models that prevent accessing missing attributes.
-        $username = ($user = Auth::user())
-            ? (method_exists($user, 'username') ? $user->username() : data_get($user, 'email'))
-            : '';
+        $request = $this->app->make('request');
+        $ip      = $request->ip();
 
-        $queryLog  = DB::getRawQueryLog();
-        $times     = Arr::pluck($queryLog, 'time');
-        $totalTime = $this->time(array_sum($times));
-        $request   = $this->app->make('request');
-        $ip        = $request->ip();
-
+        // All supported header fields in output order. Only the configured ones get resolved,
+        // e.g. to avoid a reverse DNS lookup of the client IP if 'host' is not configured.
         // TODO: datetime information should be replaced by lowest query timestamp, see https://github.com/laravel/framework/pull/37514
-        $data = [
-            'datetime' => Carbon::now()->format($this->config->headerDatetimeFormat()),
-            'origin'   => $this->originLine(),
-            'status'   => sprintf('Executed %s queries in %s', count($queryLog), $totalTime),
-            'user'     => $username,
-            'guard'    => Auth::check() ? Auth::getDefaultDriver() : '',
-            'env'      => $this->app->environment(),
-            'agent'    => $request->userAgent() ?? PHP_SAPI,
-            'ip'       => $ip,
-            'host'     => $ip !== null ? gethostbyaddr($ip) : '',
-            'referer'  => $request->header('referer'),
+        $resolvers = [
+            'datetime' => fn () => Carbon::now()->format($this->config->headerDatetimeFormat()),
+            'origin'   => fn () => $this->originLine(),
+            'status'   => fn () => $this->statusLine(),
+            'user'     => fn () => $this->username(),
+            'guard'    => fn () => Auth::check() ? Auth::getDefaultDriver() : '',
+            'env'      => fn () => $this->app->environment(),
+            'agent'    => fn () => $request->userAgent() ?? PHP_SAPI,
+            'ip'       => fn () => $this->ipLine($ip),
+            'host'     => fn () => $ip !== null ? gethostbyaddr($ip) : '',
+            'referer'  => fn () => $request->header('referer'),
         ];
-        $headers = Arr::only($data, $headerFields);
+        $headers = array_map(
+            fn (Closure $resolve) => $resolve(),
+            array_intersect_key($resolvers, array_flip($headerFields))
+        );
         if (empty($headers)) {
             // none of the configured header fields is supported
             return '';
-        }
-
-        // (optional) GeoIP lookup if stevebauman/location is installed, appending country information to IP
-        if (in_array('ip', $headerFields) && $ip !== '127.0.0.1' && class_exists(Location::class)) {
-            $position = Location::get();
-            $headers['ip'] .= sprintf(
-                ' (%s / %s)',
-                $position->isoCode ?? 'XX',
-                $position->countryName ?? 'Unknown Country'
-            );
         }
 
         // get formatted header lines with padded keys
@@ -104,6 +91,54 @@ class Formatter
     protected function time(float $time): string
     {
         return $this->config->useSeconds() ? ($time / 1000.0).'s' : $time.'ms';
+    }
+
+    /**
+     * Get status line with total query count and execution time.
+     */
+    protected function statusLine(): string
+    {
+        $queryLog = DB::getRawQueryLog();
+
+        return sprintf(
+            'Executed %s queries in %s',
+            count($queryLog),
+            $this->time(array_sum(Arr::pluck($queryLog, 'time')))
+        );
+    }
+
+    /**
+     * Get username of the authenticated user.
+     */
+    protected function username(): string
+    {
+        $user = Auth::user();
+        if ($user === null) {
+            return '';
+        }
+
+        // The username is stored in 'email' field by default, but could be mapped by username() method by some custom
+        // trait. data_get() also works for models that prevent accessing missing attributes.
+        return (string) (method_exists($user, 'username') ? $user->username() : data_get($user, 'email'));
+    }
+
+    /**
+     * Get client IP, with country information appended if stevebauman/location is installed (optional GeoIP lookup).
+     */
+    protected function ipLine(?string $ip): string
+    {
+        if ($ip === null || $ip === '127.0.0.1' || ! class_exists(Location::class)) {
+            return (string) $ip;
+        }
+
+        $position = Location::get($ip);
+
+        return sprintf(
+            '%s (%s / %s)',
+            $ip,
+            $position->isoCode ?? 'XX',
+            $position->countryName ?? 'Unknown Country'
+        );
     }
 
     /**

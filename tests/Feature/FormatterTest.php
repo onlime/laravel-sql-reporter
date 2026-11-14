@@ -36,7 +36,7 @@ it('formats header in valid way when running via http', function () {
         ['raw_query' => 'foo', 'time' => 1.23],
         ['raw_query' => 'bar', 'time' => 4.56],
     ]);
-    Auth::shouldReceive('check')->once()->withNoArgs()->andReturn(false);
+    Auth::shouldReceive('check')->never(); // guard is not configured, so it doesn't get resolved
     Auth::shouldReceive('user')->once()->withNoArgs()->andReturn(null);
 
     $formatter = new Formatter($app, $config);
@@ -79,7 +79,7 @@ it('formats header in valid way when running in console', function () {
     Carbon::setTestNow($now);
 
     DB::shouldReceive('getRawQueryLog')->once()->withNoArgs()->andReturn([]);
-    Auth::shouldReceive('check')->once()->withNoArgs()->andReturn(false);
+    Auth::shouldReceive('check')->never(); // guard is not configured, so it doesn't get resolved
     Auth::shouldReceive('user')->once()->withNoArgs()->andReturn(null);
 
     $formatter = new Formatter($app, $config);
@@ -198,4 +198,18 @@ it('leaves the host empty if the client IP is unknown', function () {
     $this->app->instance('request', Request::create('/', server: ['REMOTE_ADDR' => null]));
 
     expect(app(Formatter::class)->getHeader())->toContain("-- Ip:\n-- Host:\n");
+});
+
+it('does not replace placeholders within the query', function () {
+    $config = Mockery::mock(Config::class);
+    $config->shouldReceive('useSeconds')->once()->withNoArgs()->andReturn(false);
+    // single-quoted, so \n is a literal backslash-n, as when set in .env
+    $config->shouldReceive('entryFormat')->once()->withNoArgs()->andReturn('-- Query [query_nr]\n[query]');
+
+    // e.g. a JSON value with an escaped line break
+    $sql = 'insert into `posts` (`body`) values (\'{"text":"Hello\nWorld [separator] [query_nr]"}\')';
+
+    $formatter = new Formatter(Mockery::mock(Application::class), $config);
+
+    expect($formatter->getLine(SqlQuery::make(7, $sql, 1.0)))->toBe('-- Query 7'.PHP_EOL.$sql.';');
 });
