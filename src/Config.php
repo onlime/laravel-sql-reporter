@@ -61,6 +61,17 @@ class Config
     }
 
     /**
+     * Get the Artisan commands (names or class names, with wildcards) whose queries should not be logged.
+     *
+     * @return array<int, string>
+     */
+    public function queriesExcludeCommands(): array
+    {
+        // a published config file of an older version doesn't have this option yet
+        return (array) $this->repository->get('sql-reporter.queries.exclude_commands', []);
+    }
+
+    /**
      * Minimum execution time (in milliseconds) for queries to be logged.
      */
     public function queriesMinExecTime(): float

@@ -81,6 +81,22 @@ return [
         'log_jobs' => env('SQL_REPORTER_QUERIES_LOG_JOBS', false),
 
         /*
+         * Artisan commands whose queries should not be logged at all, like with the #[DontLogQueries] attribute.
+         * Their query log is disabled while they run, so use it for long-running commands (daemons), which would
+         * otherwise collect all their queries in memory, and for vendor commands. Comma-separated command names
+         * (e.g. 'pulse:check') or fully-qualified class names, both with * wildcards. A class name also matches
+         * its subclasses. Queue workers are handled separately, see 'log_jobs'.
+         */
+        'exclude_commands' => array_filter(array_map('trim', explode(',', (string) env('SQL_REPORTER_QUERIES_EXCLUDE_COMMANDS', implode(',', [
+            'Illuminate\Console\Scheduling\ScheduleWorkCommand', // schedule:work
+            'Laravel\Horizon\Console\HorizonCommand', // horizon
+            'Laravel\Horizon\Console\SupervisorCommand', // horizon:supervisor
+            'Laravel\Pulse\Commands\CheckCommand', // pulse:check
+            'Laravel\Pulse\Commands\WorkCommand', // pulse:work
+            'Laravel\Reverb\Servers\Reverb\Console\Commands\StartServer', // reverb:start
+        ]))))),
+
+        /*
          * Whether log (for all queries, not for slow queries) should be overridden.
          * It might be useful when you test some functionality, and you want to
          * compare your queries (or number of queries) - be aware that when using

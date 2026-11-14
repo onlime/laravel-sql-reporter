@@ -38,6 +38,17 @@ it('neither registers the listener nor enables the query log if queries are disa
         ->and(DB::logging())->toBeFalse();
 });
 
+it('excludes long-running vendor commands by default', function () {
+    expect(config('sql-reporter.queries.exclude_commands'))->toBe([
+        'Illuminate\\Console\\Scheduling\\ScheduleWorkCommand',
+        'Laravel\\Horizon\\Console\\HorizonCommand',
+        'Laravel\\Horizon\\Console\\SupervisorCommand',
+        'Laravel\\Pulse\\Commands\\CheckCommand',
+        'Laravel\\Pulse\\Commands\\WorkCommand',
+        'Laravel\\Reverb\\Servers\\Reverb\\Console\\Commands\\StartServer',
+    ]);
+});
+
 it('merges the default config', function () {
     $config = config('sql-reporter');
 

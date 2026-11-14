@@ -45,6 +45,7 @@ It reports a lot of metadata like total query count, total execution time, origi
     SQL_REPORTER_LOG_EXTENSION=".sql"
     SQL_REPORTER_QUERIES_ENABLED=true
     SQL_REPORTER_QUERIES_LOG_JOBS=false
+    SQL_REPORTER_QUERIES_EXCLUDE_COMMANDS='Illuminate\Console\Scheduling\ScheduleWorkCommand,Laravel\Horizon\Console\HorizonCommand,Laravel\Horizon\Console\SupervisorCommand,Laravel\Pulse\Commands\CheckCommand,Laravel\Pulse\Commands\WorkCommand,Laravel\Reverb\Servers\Reverb\Console\Commands\StartServer'
     SQL_REPORTER_QUERIES_OVERRIDE_LOG=false
     SQL_REPORTER_QUERIES_INCLUDE_PATTERN="/.*/i"
     SQL_REPORTER_QUERIES_EXCLUDE_PATTERN="/^\$/"
@@ -153,7 +154,7 @@ class PruneStaleRecords extends Command
 | `#[DontReportQueries]` | yes | no |
 | `#[DontLogQueries]` | no | no |
 
-- **`#[DontLogQueries]`**: The queries are neither written to the log file nor reported. Use it for frequent or noisy commands and jobs whose queries you never need to see.
+- **`#[DontLogQueries]`**: The queries are neither written to the log file nor reported. Use it for frequent or noisy commands and jobs whose queries you never need to see, and for long-running commands: for an Artisan command, the query log is even disabled while it runs, so its queries are not collected in memory.
 - **`#[DontReportQueries]`**: The queries are logged as usual, but no [`QueryLogWritten` event](#querylogwritten-event) is dispatched. Use it for commands and jobs whose modifying queries are expected, so they don't trigger your reports or notifications. This is easier to maintain than checking the `-- Origin:` header line in your `QueryLogWritten` listener, and keeps working if a command is renamed.
 
 The attributes work on:
@@ -167,6 +168,39 @@ Good to know:
 - The attributes apply to the request, command or job that is logged as a whole. A command called with `Artisan::call()` during a request, by another command or by a queued job, or a job dispatched on a `sync` or `deferred` queue, is logged as part of that request, command or job. Its own attributes are ignored, the ones of the outermost command or job apply.
 - Closure commands (`Artisan::command()` in `routes/console.php`) can't carry attributes. Use a command class if you need to exclude one.
 - The query log of an excluded job is still flushed after the job, so excluded jobs don't make the queue worker's memory grow.
+
+### `SQL_REPORTER_QUERIES_EXCLUDE_COMMANDS`
+
+You can't add attributes to the commands of other packages. Use the `SQL_REPORTER_QUERIES_EXCLUDE_COMMANDS` option instead, which has the same effect as `#[DontLogQueries]`: the command's queries are not logged, and its query log is disabled while it runs.
+
+This is especially important for long-running commands (daemons). They would otherwise collect every query in memory for their whole runtime, and write all of them as one huge log entry (and `QueryLogWritten` event) when they stop. Queue workers don't need to be listed, they are [handled separately](#queued-jobs).
+
+By default, these long-running commands are excluded:
+
+| Command | Class |
+|---|---|
+| `schedule:work` | `Illuminate\Console\Scheduling\ScheduleWorkCommand` |
+| `horizon` | `Laravel\Horizon\Console\HorizonCommand` |
+| `horizon:supervisor` | `Laravel\Horizon\Console\SupervisorCommand` |
+| `pulse:check` | `Laravel\Pulse\Commands\CheckCommand` |
+| `pulse:work` | `Laravel\Pulse\Commands\WorkCommand` |
+| `reverb:start` | `Laravel\Reverb\Servers\Reverb\Console\Commands\StartServer` |
+
+The option is a comma-separated list of:
+
+- **Command names**, e.g. `pulse:check`, with `*` wildcards, e.g. `pulse:*`.
+- **Fully-qualified class names**, e.g. `Laravel\Pulse\Commands\CheckCommand`, with `*` wildcards, e.g. `Laravel\Pulse\Commands\*`. A class name also matches its subclasses. Class names are more precise than command names, and keep working if a command is renamed.
+
+Setting the option replaces the defaults, so include them if you want to keep them:
+
+```ini
+SQL_REPORTER_QUERIES_EXCLUDE_COMMANDS='Illuminate\Console\Scheduling\ScheduleWorkCommand,Laravel\Horizon\Console\HorizonCommand,Laravel\Horizon\Console\SupervisorCommand,Laravel\Pulse\Commands\*,Laravel\Reverb\Servers\Reverb\Console\Commands\StartServer,app:sync-last-logins'
+```
+
+> [!WARNING]
+> Put class names in **single quotes** in your `.env` file. In double quotes, a backslash starts an escape sequence, and phpdotenv fails to parse the whole `.env` file (`Encountered an unexpected escape sequence`). Unquoted values work as well.
+
+To exclude no command at all, set it to an empty value: `SQL_REPORTER_QUERIES_EXCLUDE_COMMANDS=`.
 
 ## Optional
 
@@ -279,6 +313,7 @@ All changes are listed in [CHANGELOG](CHANGELOG.md)
 - It's currently not possible to log slow queries into a separate logfile. I wanted to keep that package simple.
 - Only queries of the default database connection are logged.
 - Logging never breaks your application: if the log file can't be written, or a `QueryLogWritten` listener fails, the error is passed to your exception handler (e.g. logged) and the request, command or job continues. By default, web requests and Artisan commands write to the same log file. If they run as different users (e.g. `www-data` and a deploy user), use a separate console log file with `SQL_REPORTER_CONSOLE_SUFFIX`.
+- If you published the config file of an older version, add the new `log_jobs` and `exclude_commands` options from the [package config file](config/sql-reporter.php) to it, otherwise they are disabled (no commands excluded).
 
 ## TODO
 

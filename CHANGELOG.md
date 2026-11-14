@@ -6,10 +6,12 @@
 - Fix | Queries of Artisan commands were not logged since v1.3.2, because Laravel invoked the deferred logging callback before it was registered. Commands are now logged right away, requests are still logged after the response has been sent.
 - Queue workers no longer collect the queries of all processed jobs in memory: their query log is flushed before and after each job, and the worker command itself is no longer logged (also `queue:work --once` and the workers of `queue:listen`).
 - Only the outermost Artisan command is logged. Commands called with `Artisan::call()` by a command or a queued job are logged as part of it, instead of logging the queries collected so far once more.
+- Feature | New `SQL_REPORTER_QUERIES_EXCLUDE_COMMANDS` option to exclude Artisan commands by name or class name (both with wildcards, class names also match subclasses). The query log is disabled while an excluded command runs. By default, it excludes long-running vendor commands, which would otherwise collect all their queries in memory: `schedule:work`, `horizon`, `horizon:supervisor`, `pulse:check`, `pulse:work` and `reverb:start`.
 - Feature | New `SQL_REPORTER_QUERIES_LOG_JOBS` option (default: `false`) to log the queries of each queued job separately, with a `(job) App\Jobs\Foo` origin and its own `QueryLogWritten` event. Timed out jobs are logged as well. See [Queued jobs](README.md#queued-jobs) for the impacts before enabling it.
-- Feature | New `#[DontLogQueries]` and `#[DontReportQueries]` attributes to exclude Artisan commands and queued jobs (also queued listeners, notifications and mailables) from logging or from the `QueryLogWritten` event. See [Excluding Artisan commands and queued jobs](README.md#excluding-artisan-commands-and-queued-jobs).
+- Feature | New `#[DontLogQueries]` and `#[DontReportQueries]` attributes to exclude Artisan commands and queued jobs (also queued listeners, notifications and mailables) from logging or from the `QueryLogWritten` event. `#[DontLogQueries]` also disables the query log while a command runs. See [Excluding Artisan commands and queued jobs](README.md#excluding-artisan-commands-and-queued-jobs).
 - Logging errors (e.g. an unwritable log file or a failing `QueryLogWritten` listener) are passed to the exception handler, instead of failing the request, command or job. Fixed a race condition when several processes create the log directory at the same time.
 - The default `SQL_REPORTER_QUERIES_REPORT_PATTERN` now also excludes the `sessions`, `jobs`, `bans` and `logins` tables with PostgreSQL / SQLite identifier quoting (`"jobs"`), not only with MySQL backticks.
+- If you published the config file, add the new `log_jobs` and `exclude_commands` options to it.
 - Fix | The logged query could differ from the executed one, as `\n` (e.g. an escaped line break in a JSON value) or placeholders like `[separator]` within the query got replaced by the entry format.
 - Fix | `SQL_REPORTER_QUERIES_MIN_EXEC_TIME` set in `.env` caused a `TypeError` since v1.3.2.
 - Fix | `Writer::shouldReportQuery()` caused a `TypeError` for callables other than closures (e.g. invokable objects) or callbacks returning a non-bool value (e.g. `preg_match()`). `Writer::shouldReportQuery(null)` removes the callback.
@@ -24,7 +26,7 @@
 - CI: Added PHP 8.6 to the matrix, code style and static analysis job, pull requests from forks, Composer download cache, coverage on a single job enforcing 100%. Bumped `actions/checkout` to v7 and `actions/cache` to v6, added Dependabot for GitHub Actions.
 - Added `.gitattributes` to exclude development files from Composer dist archives.
 - PHPUnit configuration: `phpunit.xml` was renamed to `phpunit.xml.dist`, coverage reports are no longer generated on every test run, use `composer test-coverage` instead.
-- README: added requirements, fixed the `vendor:publish` command, documented queued jobs and the new attributes.
+- README: added requirements, fixed the `vendor:publish` command, documented queued jobs, the new attributes and `SQL_REPORTER_QUERIES_EXCLUDE_COMMANDS`.
 
 ## [v1.3.6 (2026-03-19)](https://github.com/onlime/laravel-sql-reporter/compare/v1.3.5...v1.3.6)
 

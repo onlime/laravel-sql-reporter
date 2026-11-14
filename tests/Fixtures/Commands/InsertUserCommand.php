@@ -13,8 +13,15 @@ use Illuminate\Support\Facades\DB;
  */
 abstract class InsertUserCommand extends Command
 {
+    /**
+     * Whether the query log was enabled while the command was running.
+     */
+    public static ?bool $queryLogEnabled = null;
+
     public function handle(): void
     {
+        self::$queryLogEnabled = DB::logging();
+
         DB::table('users')->insert(['name' => (string) $this->getName()]);
 
         if ($command = $this->option('call')) {

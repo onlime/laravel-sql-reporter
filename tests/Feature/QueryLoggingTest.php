@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Schema;
 use Onlime\LaravelSqlReporter\Events\QueryLogWritten;
 use Onlime\LaravelSqlReporter\SqlQuery;
 use Onlime\LaravelSqlReporter\Tests\Fixtures\Commands\InheritedUnloggedCommand;
+use Onlime\LaravelSqlReporter\Tests\Fixtures\Commands\InsertUserCommand;
 use Onlime\LaravelSqlReporter\Tests\Fixtures\Commands\PlainCommand;
 use Onlime\LaravelSqlReporter\Tests\Fixtures\Commands\UnloggedCommand;
 use Onlime\LaravelSqlReporter\Tests\Fixtures\Commands\UnreportedCommand;
@@ -47,6 +48,7 @@ beforeEach(function () {
         DB::table('users')->insert(['name' => 'Alice']);
         DB::table('users')->where('name', 'Alice')->first();
     });
+    InsertUserCommand::$queryLogEnabled = null;
     foreach ([PlainCommand::class, UnloggedCommand::class, InheritedUnloggedCommand::class, UnreportedCommand::class] as $command) {
         $this->app->make(Kernel::class)->registerCommand(new $command);
     }
@@ -163,7 +165,10 @@ it('does not log Artisan commands with the DontLogQueries attribute', function (
 
     expect(DB::table('users')->pluck('name')->all())->toBe([$command])
         ->and($this->logFile)->not->toBeFile()
-        ->and($this->reported)->toBeEmpty();
+        ->and($this->reported)->toBeEmpty()
+        // the query log is disabled while the command runs, so it doesn't collect its queries in memory
+        ->and(InsertUserCommand::$queryLogEnabled)->toBeFalse()
+        ->and(DB::logging())->toBeTrue();
 })->with([
     'attribute on the command' => 'sql-reporter:unlogged',
     'attribute on a parent class' => 'sql-reporter:inherited-unlogged',
@@ -212,6 +217,33 @@ it('applies the attributes of the outermost command to the commands it calls', f
     expect(DB::table('users')->count())->toBe(2)
         ->and($this->logFile)->not->toBeFile()
         ->and($this->reported)->toBeEmpty();
+});
+
+it('does not log Artisan commands excluded by the exclude_commands config option', function (string $pattern) {
+    config(['sql-reporter.queries.exclude_commands' => ['pulse:check', $pattern]]);
+
+    $this->artisan('sql-reporter:plain')->assertSuccessful();
+
+    expect(DB::table('users')->count())->toBe(1)
+        ->and($this->logFile)->not->toBeFile()
+        ->and($this->reported)->toBeEmpty()
+        ->and(InsertUserCommand::$queryLogEnabled)->toBeFalse()
+        ->and(DB::logging())->toBeTrue();
+})->with([
+    'command name' => 'sql-reporter:plain',
+    'command name with wildcard' => 'sql-reporter:pl*',
+    'class name' => PlainCommand::class,
+    'class name with wildcard' => 'Onlime\LaravelSqlReporter\Tests\Fixtures\Commands\Plain*',
+    'parent class name' => InsertUserCommand::class,
+]);
+
+it('logs Artisan commands not matching the exclude_commands config option', function () {
+    config(['sql-reporter.queries.exclude_commands' => ['sql-reporter:unlogged', 'Laravel\Pulse\*']]);
+
+    $this->artisan('sql-reporter:plain')->assertSuccessful();
+
+    expect(file_get_contents($this->logFile))->toContain('insert into "users" ("name") values (\'sql-reporter:plain\');')
+        ->and(InsertUserCommand::$queryLogEnabled)->toBeTrue();
 });
 
 it('reports logging errors instead of failing the command', function () {
