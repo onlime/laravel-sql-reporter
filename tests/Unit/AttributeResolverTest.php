@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 use Illuminate\Console\Application as Artisan;
 use Illuminate\Container\Container;
-use Illuminate\Contracts\Queue\Job;
 use Illuminate\Events\CallQueuedListener;
 use Illuminate\Events\Dispatcher;
 use Onlime\LaravelSqlReporter\Attributes\DontLogQueries;
@@ -53,12 +52,8 @@ it('resolves no command class without Artisan application, name or matching comm
     'unknown command' => [true, 'sql-reporter:unknown'],
 ]);
 
-it('resolves the job class and the class of its display name', function (string $displayName, string $commandName, array $expected) {
-    $job = Mockery::mock(Job::class);
-    $job->shouldReceive('resolveName')->andReturn($displayName);
-    $job->shouldReceive('payload')->andReturn(['data' => ['commandName' => $commandName]]);
-
-    expect($this->resolver->jobClasses($job))->toBe($expected);
+it('resolves the job class and the class of its display name', function (string $displayName, string $jobClass, array $expected) {
+    expect($this->resolver->jobClasses($displayName, $jobClass))->toBe($expected);
 })->with([
     'job' => [InsertUserJob::class, InsertUserJob::class, [InsertUserJob::class]],
     'queued listener' => [UnloggedListener::class, CallQueuedListener::class, [UnloggedListener::class, CallQueuedListener::class]],

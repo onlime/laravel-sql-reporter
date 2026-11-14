@@ -5,8 +5,7 @@ declare(strict_types=1);
 namespace Onlime\LaravelSqlReporter\Support;
 
 use Illuminate\Console\Application as Artisan;
-use Illuminate\Contracts\Queue\Job;
-use ReflectionClass;
+use Illuminate\Support\Reflector;
 use Symfony\Component\Console\Command\LazyCommand;
 use Throwable;
 
@@ -60,16 +59,14 @@ class AttributeResolver
     }
 
     /**
-     * Get the classes of a queued job: the job class, and the class of a queued listener, notification or
-     * mailable, which is the job's display name.
+     * Get the classes of a queued job: its display name, which is the class of the job, queued listener,
+     * notification or mailable, and the queued job class (e.g. CallQueuedListener).
      *
      * @return list<class-string>
      */
-    public function jobClasses(Job $job): array
+    public function jobClasses(string $displayName, string $jobClass): array
     {
-        $names = [$job->resolveName(), $job->payload()['data']['commandName'] ?? null];
-
-        return array_values(array_unique(array_filter($names, fn ($name) => is_string($name) && class_exists($name))));
+        return array_values(array_unique(array_filter([$displayName, $jobClass], class_exists(...))));
     }
 
     /**
@@ -81,22 +78,7 @@ class AttributeResolver
     public function has(array $classes, string $attribute): bool
     {
         foreach ($classes as $class) {
-            if ($this->cache[$class.'@'.$attribute] ??= $this->classHas($class, $attribute)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * @param  class-string  $class
-     * @param  class-string  $attribute
-     */
-    private function classHas(string $class, string $attribute): bool
-    {
-        for ($reflection = new ReflectionClass($class); $reflection; $reflection = $reflection->getParentClass()) {
-            if ($reflection->getAttributes($attribute) !== []) {
+            if ($this->cache[$class.'@'.$attribute] ??= Reflector::getClassAttribute($class, $attribute, ascend: true) !== null) {
                 return true;
             }
         }

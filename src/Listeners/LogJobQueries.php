@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Onlime\LaravelSqlReporter\Listeners;
 
+use Illuminate\Contracts\Queue\Job;
 use Illuminate\Queue\Events\JobAttempted;
 use Illuminate\Queue\Events\JobProcessing;
 use Illuminate\Queue\Events\Looping;
@@ -40,17 +41,27 @@ readonly class LogJobQueries
         }
 
         if ($event instanceof JobAttempted && $this->config->queriesLogJobs()) {
-            $classes = $this->attributes->jobClasses($event->job);
-            if (! $this->attributes->has($classes, DontLogQueries::class)) {
-                $this->logger->log(
-                    origin: '(job) '.$event->job->resolveName(),
-                    report: ! $this->attributes->has($classes, DontReportQueries::class),
-                );
-            }
+            $this->logJob($event->job);
         }
 
         // Start each job with an empty query log, and don't collect the queries of the worker itself
         // (e.g. polling a database queue), neither between jobs nor when it stops.
         DB::flushQueryLog();
+    }
+
+    /**
+     * Log the queries of a job, unless it is excluded by the DontLogQueries attribute.
+     */
+    private function logJob(Job $job): void
+    {
+        $name = $job->resolveName();
+        $classes = $this->attributes->jobClasses($name, $job->resolveQueuedJobClass());
+
+        if (! $this->attributes->has($classes, DontLogQueries::class)) {
+            $this->logger->log(
+                origin: '(job) '.$name,
+                report: ! $this->attributes->has($classes, DontReportQueries::class),
+            );
+        }
     }
 }
