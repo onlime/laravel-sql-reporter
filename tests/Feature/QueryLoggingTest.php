@@ -1,0 +1,147 @@
+<?php
+
+declare(strict_types=1);
+
+use Illuminate\Contracts\Console\Kernel;
+use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Filesystem\Filesystem;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Schema;
+use Onlime\LaravelSqlReporter\Events\QueryLogWritten;
+use Onlime\LaravelSqlReporter\SqlQuery;
+use Onlime\LaravelSqlReporter\Writer;
+
+/*
+ * End-to-end tests: real queries on an in-memory SQLite database, logged into a real log file
+ * by the package's CommandFinished / RequestHandled listener.
+ */
+
+beforeEach(function () {
+    // run the deferred logging immediately
+    $this->withoutDefer();
+    // Laravel only dispatches CommandFinished outside of unit tests
+    $this->app->make(Kernel::class)->rerouteSymfonyCommandEvents();
+
+    $this->directory = sys_get_temp_dir().'/laravel-sql-reporter-tests/'.uniqid('', true);
+    $this->logFile = $this->directory.'/query-log.sql';
+    config([
+        'sql-reporter.general.directory' => $this->directory,
+        'sql-reporter.queries.file_name' => 'query-log',
+    ]);
+
+    Schema::create('users', function (Blueprint $table) {
+        $table->id();
+        $table->string('name');
+    });
+    DB::flushQueryLog();
+
+    Artisan::command('sql-reporter:test', function () {
+        DB::table('users')->insert(['name' => 'Alice']);
+        DB::table('users')->where('name', 'Alice')->first();
+    });
+});
+
+afterEach(function () {
+    (new Filesystem)->deleteDirectory($this->directory);
+});
+
+/**
+ * Let the application behave as if it was serving an HTTP request instead of running in console.
+ */
+function serveHttpRequests(Application $app): void
+{
+    (function () {
+        $this->isRunningInConsole = false;
+    })->call($app);
+}
+
+it('logs the queries of an Artisan command', function () {
+    $this->artisan('sql-reporter:test')->assertSuccessful();
+
+    expect($this->logFile)->toBeFile()
+        ->and(file_get_contents($this->logFile))
+        ->toStartWith('-- --------------------------------------------------'.PHP_EOL.'-- Datetime: ')
+        ->toContain('-- Origin:   (console) ')
+        ->toContain('-- Status:   Executed 2 queries in ')
+        ->toContain('-- Env:      testing')
+        ->toMatch('/^-- Query 1 \[[\d.]+ms\]\ninsert into "users" \("name"\) values \(\'Alice\'\);$/m')
+        ->toMatch('/^-- Query 2 \[[\d.]+ms\]\nselect \* from "users" where "name" = \'Alice\' limit 1;$/m');
+});
+
+it('logs the queries of an HTTP request', function () {
+    serveHttpRequests($this->app);
+    Route::get('/users', fn () => DB::table('users')->get());
+
+    $this->get('/users?page=2', ['User-Agent' => 'Pest', 'Referer' => 'https://example.com/'])->assertOk();
+
+    expect(file_get_contents($this->logFile))
+        ->toContain('-- Origin:   (request) GET http://localhost/users?page=2')
+        ->toContain('-- Status:   Executed 1 queries in ')
+        ->toContain('-- Agent:    Pest')
+        ->toContain('-- Ip:       127.0.0.1')
+        ->toContain('-- Referer:  https://example.com/')
+        ->toMatch('/^-- Query 1 \[[\d.]+ms\]\nselect \* from "users";$/m');
+});
+
+it('logs an Artisan command called during an HTTP request only once', function () {
+    serveHttpRequests($this->app);
+    Route::get('/call', function () {
+        Artisan::call('sql-reporter:test');
+
+        return 'ok';
+    });
+
+    $this->get('/call')->assertOk();
+
+    $log = file_get_contents($this->logFile);
+    expect(substr_count($log, '-- Origin:'))->toBe(1)
+        ->and($log)->toContain('-- Origin:   (request) GET http://localhost/call');
+});
+
+it('logs Artisan commands to a separate file if a console suffix is configured', function () {
+    config(['sql-reporter.general.console_log_suffix' => '-artisan']);
+
+    $this->artisan('sql-reporter:test')->assertSuccessful();
+
+    expect($this->directory.'/query-log-artisan.sql')->toBeFile()
+        ->and($this->logFile)->not->toBeFile();
+});
+
+it('dispatches the QueryLogWritten event with the queries to report', function () {
+    $events = [];
+    Event::listen(QueryLogWritten::class, function (QueryLogWritten $event) use (&$events) {
+        $events[] = $event;
+    });
+
+    $this->artisan('sql-reporter:test')->assertSuccessful();
+
+    expect($events)->toHaveCount(1)
+        ->and($events[0]->loggedQueryCount)->toBe(2)
+        ->and($events[0]->reportHeader)->toContain('-- Origin:   (console) ')
+        // the select query is excluded by the default report pattern
+        ->and($events[0]->reportQueries)->toHaveCount(1)
+        ->and($events[0]->reportQueries[0])->toMatch('/^-- Query 1 \[[\d.]+ms\]\ninsert into "users" \("name"\) values \(\'Alice\'\);$/');
+});
+
+it('passes the query with its bindings to the report callback', function () {
+    $queries = [];
+    Writer::shouldReportQuery(function (SqlQuery $query) use (&$queries) {
+        $queries[] = $query;
+
+        return true;
+    });
+
+    $this->artisan('sql-reporter:test')->assertSuccessful();
+
+    // the callback is only called for queries matching the report pattern
+    expect($queries)->toHaveCount(1)
+        ->and($queries[0]->number)->toBe(1)
+        ->and($queries[0]->query)->toBe('insert into "users" ("name") values (?)')
+        ->and($queries[0]->bindings)->toBe(['Alice'])
+        ->and($queries[0]->rawQuery)->toBe('insert into "users" ("name") values (\'Alice\')')
+        ->and($queries[0]->time)->toBeFloat();
+});

@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 use Illuminate\Console\Events\CommandFinished;
 use Illuminate\Foundation\Http\Events\RequestHandled;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Onlime\LaravelSqlReporter\Listeners\LogSqlQuery;
+use Onlime\LaravelSqlReporter\Providers\SqlReporterServiceProvider;
 
 it('registers event listeners', function (string $eventName) {
     $listeners = Event::getRawListeners()[$eventName] ?? [];
@@ -16,6 +18,25 @@ it('registers event listeners', function (string $eventName) {
     CommandFinished::class,
     RequestHandled::class,
 ]);
+
+it('enables the query log', function () {
+    expect(DB::logging())->toBeTrue();
+});
+
+it('neither registers the listener nor enables the query log if queries are disabled', function () {
+    config(['sql-reporter.queries.enabled' => false]);
+    Event::forget(CommandFinished::class);
+    Event::forget(RequestHandled::class);
+    DB::disableQueryLog();
+
+    $provider = new SqlReporterServiceProvider($this->app);
+    $provider->register();
+    $provider->boot();
+
+    expect(Event::hasListeners(CommandFinished::class))->toBeFalse()
+        ->and(Event::hasListeners(RequestHandled::class))->toBeFalse()
+        ->and(DB::logging())->toBeFalse();
+});
 
 it('merges the default config', function () {
     $config = config('sql-reporter');

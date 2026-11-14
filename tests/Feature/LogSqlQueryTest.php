@@ -28,3 +28,15 @@ it('can handle the request handled event', function () {
 
     $this->logger->shouldHaveReceived('log')->once();
 });
+
+it('ignores the event of the other context to prevent duplicate logging', function (bool $runningInConsole, string $event) {
+    App::shouldReceive('runningInConsole')->andReturn($runningInConsole);
+
+    $listener = new LogSqlQuery($this->logger);
+    $listener->handle(Mockery::mock($event));
+
+    $this->logger->shouldNotHaveReceived('log');
+})->with([
+    'request handled while running in console' => [true, RequestHandled::class],
+    'command finished while serving a request (e.g. Artisan::call())' => [false, CommandFinished::class],
+]);

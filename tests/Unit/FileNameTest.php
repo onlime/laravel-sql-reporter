@@ -37,3 +37,13 @@ it('returns valid file name for queries when running in console', function () {
     $result = $this->filename->getLogfile();
     expect($result)->toBe('sample2015-test-03-abc-07-artisan-suffix.extension');
 });
+
+it('returns the file name as is if it contains no date placeholders', function () {
+    $this->app->shouldReceive('runningInConsole')->once()->withNoArgs()
+        ->andReturn(false);
+    $this->config->shouldReceive('queriesFileName')->once()->withNoArgs()
+        ->andReturn('query-log');
+    $this->config->shouldReceive('fileExtension')->once()->withNoArgs()
+        ->andReturn('.sql');
+    expect($this->filename->getLogfile())->toBe('query-log.sql');
+});

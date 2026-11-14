@@ -29,7 +29,8 @@
         "laravel/pint": "^1.32",
         "mockery/mockery": "^1.6.13",
         "orchestra/testbench": "^10.0 || ^11.0",
-        "pestphp/pest": "^4.7 || ^5.3"
+        "pestphp/pest": "^4.7 || ^5.3",
+        "stevebauman/location": "^7.8"
     },
     "suggest": {
         "stevebauman/location": "GeoIP country detection for the client IP in log headers"

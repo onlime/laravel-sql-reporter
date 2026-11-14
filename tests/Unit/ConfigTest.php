@@ -104,3 +104,25 @@ it('casts the slow log time to float', function () {
         ->andReturn('100');
     expect($this->config->queriesMinExecTime())->toBe(100.0);
 });
+
+it('returns valid value for queries report pattern', function () {
+    $this->repository->shouldReceive('get')->once()->with('sql-reporter.queries.report_pattern')
+        ->andReturn('/^DELETE/i');
+    expect($this->config->queriesReportPattern())->toBe('/^DELETE/i');
+
+    $this->repository->shouldReceive('get')->once()->with('sql-reporter.queries.report_pattern')
+        ->andReturn(null);
+    expect($this->config->queriesReportPattern())->toBe('');
+});
+
+it('returns valid value for header fields', function () {
+    $this->repository->shouldReceive('get')->once()->with('sql-reporter.formatting.header_fields')
+        ->andReturn(['datetime', 'origin']);
+    expect($this->config->headerFields())->toBe(['datetime', 'origin']);
+});
+
+it('returns valid value for header datetime format', function () {
+    $this->repository->shouldReceive('get')->once()->with('sql-reporter.formatting.header_datetime_format')
+        ->andReturn('Y-m-d H:i:s P');
+    expect($this->config->headerDatetimeFormat())->toBe('Y-m-d H:i:s P');
+});
