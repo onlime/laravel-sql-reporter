@@ -275,6 +275,7 @@ All changes are listed in [CHANGELOG](CHANGELOG.md)
 - If your application crashes, this package will not log any queries, as logging is only triggered at the end of the request cycle. As alternative, you could use [mnabialek/laravel-sql-logger](https://github.com/mnabialek/laravel-sql-logger) which triggers sql logging on each query execution.
 - It's currently not possible to log slow queries into a separate logfile. I wanted to keep that package simple.
 - Only queries of the default database connection are logged.
+- Logging never breaks your application: if the log file can't be written, or a `QueryLogWritten` listener fails, the error is passed to your exception handler (e.g. logged) and the request, command or job continues. By default, web requests and Artisan commands write to the same log file. If they run as different users (e.g. `www-data` and a deploy user), use a separate console log file with `SQL_REPORTER_CONSOLE_SUFFIX`.
 
 ## TODO
 

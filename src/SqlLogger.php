@@ -6,6 +6,7 @@ namespace Onlime\LaravelSqlReporter;
 
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 class SqlLogger
 {
@@ -24,28 +25,34 @@ class SqlLogger
      */
     public function log(?string $origin = null, bool $report = true): void
     {
-        if ($origin !== null) {
-            $this->writer->setOrigin($origin);
-        }
+        try {
+            if ($origin !== null) {
+                $this->writer->setOrigin($origin);
+            }
 
-        $queryLog = DB::getQueryLog();
+            $queryLog = DB::getQueryLog();
 
-        // getQueryLog() and getRawQueryLog() have the same keys
-        // see \Illuminate\Database\Connection::getRawQueryLog()
-        Collection::make(DB::getRawQueryLog())
-            ->map(fn (array $query, int $key) => new SqlQuery(
-                $key + 1,
-                $query['raw_query'],
-                $query['time'],
-                $queryLog[$key]['query'],
-                $queryLog[$key]['bindings']
-            ))
-            ->each(function (SqlQuery $query) {
-                $this->writer->writeQuery($query);
-            });
+            // getQueryLog() and getRawQueryLog() have the same keys
+            // see \Illuminate\Database\Connection::getRawQueryLog()
+            Collection::make(DB::getRawQueryLog())
+                ->map(fn (array $query, int $key) => new SqlQuery(
+                    $key + 1,
+                    $query['raw_query'],
+                    $query['time'],
+                    $queryLog[$key]['query'],
+                    $queryLog[$key]['bindings']
+                ))
+                ->each(function (SqlQuery $query) {
+                    $this->writer->writeQuery($query);
+                });
 
-        if ($report) {
-            $this->writer->report();
+            if ($report) {
+                $this->writer->report();
+            }
+        } catch (Throwable $e) {
+            // Logging must never break the request, command or job, e.g. if the log file is not writable
+            // or a QueryLogWritten listener fails. Report the error instead.
+            report($e);
         }
     }
 }

@@ -9,6 +9,7 @@ use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Onlime\LaravelSqlReporter\Events\QueryLogWritten;
@@ -191,4 +192,31 @@ it('ignores the attributes of an Artisan command called during an HTTP request',
         ->toContain('-- Origin:   (request) GET http://localhost/call')
         ->toContain('insert into "users" ("name") values (\'sql-reporter:unlogged\');')
         ->and($this->reported)->toHaveCount(1);
+});
+
+it('reports logging errors instead of failing the command', function () {
+    Exceptions::fake();
+    // a directory below a file can't be created
+    $file = tempnam(sys_get_temp_dir(), 'sql-reporter');
+    config(['sql-reporter.general.directory' => $file.'/sql']);
+
+    try {
+        $this->artisan('sql-reporter:test')->assertSuccessful();
+    } finally {
+        unlink($file);
+    }
+
+    Exceptions::assertReported(ErrorException::class);
+});
+
+it('reports a failing QueryLogWritten listener instead of failing the command', function () {
+    Exceptions::fake();
+    Event::listen(QueryLogWritten::class, function () {
+        throw new RuntimeException('Listener failed');
+    });
+
+    $this->artisan('sql-reporter:test')->assertSuccessful();
+
+    Exceptions::assertReported(fn (RuntimeException $e) => $e->getMessage() === 'Listener failed');
+    expect($this->logFile)->toBeFile();
 });
