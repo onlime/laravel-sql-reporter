@@ -11,6 +11,9 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Schema;
 use Onlime\LaravelSqlReporter\Events\QueryLogWritten;
 use Onlime\LaravelSqlReporter\Tests\Fixtures\InsertUserJob;
+use Onlime\LaravelSqlReporter\Tests\Fixtures\UnloggedJob;
+use Onlime\LaravelSqlReporter\Tests\Fixtures\UnloggedListener;
+use Onlime\LaravelSqlReporter\Tests\Fixtures\UnreportedJob;
 
 /*
  * End-to-end tests of a queue worker processing a database queue on the in-memory SQLite database.
@@ -125,4 +128,42 @@ it('logs jobs on a sync queue as part of the dispatching command', function () {
         ->and($log)->toContain('-- Origin:   (console) ')
         ->toMatch('/^-- Query 1 \[[\d.]+ms\]\ninsert into "users" \("name"\) values \(\'Alice\'\);$/m')
         ->toMatch('/^-- Query 2 \[[\d.]+ms\]\ninsert into "users" \("name"\) values \(\'Bob\'\);$/m');
+});
+
+it('does not log queued jobs and listeners with the DontLogQueries attribute', function () {
+    config(['sql-reporter.queries.log_jobs' => true]);
+    Event::listen('sql-reporter.user', UnloggedListener::class);
+    UnloggedJob::dispatch('Alice');
+    InsertUserJob::dispatch('Bob');
+    event('sql-reporter.user', ['Carol']);
+
+    $this->artisan('queue:work', ['--stop-when-empty' => true, '--sleep' => 0])->assertSuccessful();
+
+    $log = file_get_contents($this->logFile);
+    // the query log of the excluded jobs is still flushed
+    expect(DB::getQueryLog())->toBe([])
+        ->and(substr_count($log, '-- Origin:'))->toBe(1)
+        ->and($log)->toContain('-- Origin:   (job) '.InsertUserJob::class.PHP_EOL)
+        ->toContain('insert into "users" ("name") values (\'Bob\');')
+        ->not->toContain('Alice')
+        ->not->toContain('Carol')
+        ->and(DB::table('users')->pluck('name')->all())->toBe(['Alice', 'Bob', 'Carol']);
+});
+
+it('logs, but does not report queued jobs with the DontReportQueries attribute', function () {
+    config(['sql-reporter.queries.log_jobs' => true]);
+    $events = [];
+    Event::listen(QueryLogWritten::class, function (QueryLogWritten $event) use (&$events) {
+        $events[] = $event;
+    });
+    UnreportedJob::dispatch('Alice');
+    InsertUserJob::dispatch('Bob');
+
+    $this->artisan('queue:work', ['--stop-when-empty' => true, '--sleep' => 0])->assertSuccessful();
+
+    expect(file_get_contents($this->logFile))
+        ->toContain('-- Origin:   (job) '.UnreportedJob::class.PHP_EOL)
+        ->toContain('insert into "users" ("name") values (\'Alice\');')
+        ->and($events)->toHaveCount(1)
+        ->and($events[0]->reportHeader)->toContain('-- Origin:   (job) '.InsertUserJob::class.PHP_EOL);
 });

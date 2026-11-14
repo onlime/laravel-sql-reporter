@@ -10,8 +10,11 @@ use Illuminate\Queue\Events\Looping;
 use Illuminate\Queue\Events\WorkerStopping;
 use Illuminate\Queue\Jobs\SyncJob;
 use Illuminate\Support\Facades\DB;
+use Onlime\LaravelSqlReporter\Attributes\DontLogQueries;
+use Onlime\LaravelSqlReporter\Attributes\DontReportQueries;
 use Onlime\LaravelSqlReporter\Config;
 use Onlime\LaravelSqlReporter\SqlLogger;
+use Onlime\LaravelSqlReporter\Support\AttributeResolver;
 
 /**
  * Handles the query log of long-running queue workers, which would otherwise collect the queries of all processed
@@ -22,6 +25,7 @@ readonly class LogJobQueries
     public function __construct(
         private Config $config,
         private SqlLogger $logger,
+        private AttributeResolver $attributes,
     ) {}
 
     /**
@@ -36,7 +40,13 @@ readonly class LogJobQueries
         }
 
         if ($event instanceof JobAttempted && $this->config->queriesLogJobs()) {
-            $this->logger->log('(job) '.$event->job->resolveName());
+            $classes = $this->attributes->jobClasses($event->job);
+            if (! $this->attributes->has($classes, DontLogQueries::class)) {
+                $this->logger->log(
+                    origin: '(job) '.$event->job->resolveName(),
+                    report: ! $this->attributes->has($classes, DontReportQueries::class),
+                );
+            }
         }
 
         // Start each job with an empty query log, and don't collect the queries of the worker itself

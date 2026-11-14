@@ -7,7 +7,10 @@ namespace Onlime\LaravelSqlReporter\Listeners;
 use Illuminate\Console\Events\CommandFinished;
 use Illuminate\Foundation\Http\Events\RequestHandled;
 use Illuminate\Support\Facades\App;
+use Onlime\LaravelSqlReporter\Attributes\DontLogQueries;
+use Onlime\LaravelSqlReporter\Attributes\DontReportQueries;
 use Onlime\LaravelSqlReporter\SqlLogger;
+use Onlime\LaravelSqlReporter\Support\AttributeResolver;
 
 readonly class LogSqlQuery
 {
@@ -16,6 +19,7 @@ readonly class LogSqlQuery
      */
     public function __construct(
         private SqlLogger $logger,
+        private AttributeResolver $attributes,
     ) {}
 
     /**
@@ -30,9 +34,14 @@ readonly class LogSqlQuery
         }
 
         if ($event instanceof CommandFinished) {
+            $classes = $this->attributes->commandClasses($event->command);
+            if ($this->attributes->has($classes, DontLogQueries::class)) {
+                return;
+            }
+
             // Log right away, as there is no response to be sent first. A deferred callback would never run, because
             // Laravel invokes deferred callbacks in its own CommandFinished listener, which runs before this one.
-            $this->logger->log();
+            $this->logger->log(report: ! $this->attributes->has($classes, DontReportQueries::class));
 
             return;
         }

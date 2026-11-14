@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Onlime\LaravelSqlReporter\Providers;
 
+use Illuminate\Console\Application as Artisan;
 use Illuminate\Console\Events\CommandFinished;
 use Illuminate\Foundation\Http\Events\RequestHandled;
 use Illuminate\Queue\Events\JobAttempted;
@@ -16,6 +17,7 @@ use Illuminate\Support\ServiceProvider;
 use Onlime\LaravelSqlReporter\Config;
 use Onlime\LaravelSqlReporter\Listeners\LogJobQueries;
 use Onlime\LaravelSqlReporter\Listeners\LogSqlQuery;
+use Onlime\LaravelSqlReporter\Support\AttributeResolver;
 
 class SqlReporterServiceProvider extends ServiceProvider
 {
@@ -30,7 +32,12 @@ class SqlReporterServiceProvider extends ServiceProvider
 
         $this->mergeConfigFrom($this->configFileLocation(), 'sql-reporter');
 
+        $this->app->singleton(AttributeResolver::class);
+
         if ($this->config->queriesEnabled()) {
+            // CommandFinished only provides the command name, so keep the Artisan application to look up the command
+            Artisan::starting(fn (Artisan $artisan) => $this->app->make(AttributeResolver::class)->setArtisan($artisan));
+
             Event::listen([CommandFinished::class, RequestHandled::class], LogSqlQuery::class);
             Event::listen([Looping::class, JobProcessing::class, JobAttempted::class, WorkerStopping::class], LogJobQueries::class);
         }

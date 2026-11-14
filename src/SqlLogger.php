@@ -20,8 +20,9 @@ class SqlLogger
      * Log queries
      *
      * @param  string|null  $origin  shown in the log header instead of the request or console command, e.g. a queued job
+     * @param  bool  $report  whether to dispatch the QueryLogWritten event for the queries to report
      */
-    public function log(?string $origin = null): void
+    public function log(?string $origin = null, bool $report = true): void
     {
         if ($origin !== null) {
             $this->writer->setOrigin($origin);
@@ -43,6 +44,8 @@ class SqlLogger
                 $this->writer->writeQuery($query);
             });
 
-        $this->writer->report();
+        if ($report) {
+            $this->writer->report();
+        }
     }
 }

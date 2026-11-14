@@ -13,6 +13,9 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Onlime\LaravelSqlReporter\Events\QueryLogWritten;
 use Onlime\LaravelSqlReporter\SqlQuery;
+use Onlime\LaravelSqlReporter\Tests\Fixtures\Commands\InheritedUnloggedCommand;
+use Onlime\LaravelSqlReporter\Tests\Fixtures\Commands\UnloggedCommand;
+use Onlime\LaravelSqlReporter\Tests\Fixtures\Commands\UnreportedCommand;
 use Onlime\LaravelSqlReporter\Writer;
 
 /*
@@ -41,6 +44,14 @@ beforeEach(function () {
     Artisan::command('sql-reporter:test', function () {
         DB::table('users')->insert(['name' => 'Alice']);
         DB::table('users')->where('name', 'Alice')->first();
+    });
+    foreach ([UnloggedCommand::class, InheritedUnloggedCommand::class, UnreportedCommand::class] as $command) {
+        $this->app->make(Kernel::class)->registerCommand(new $command);
+    }
+
+    $this->reported = [];
+    Event::listen(QueryLogWritten::class, function (QueryLogWritten $event) {
+        $this->reported[] = $event;
     });
 });
 
@@ -143,4 +154,41 @@ it('passes the query with its bindings to the report callback', function () {
         ->and($queries[0]->bindings)->toBe(['Alice'])
         ->and($queries[0]->rawQuery)->toBe('insert into "users" ("name") values (\'Alice\')')
         ->and($queries[0]->time)->toBeFloat();
+});
+
+it('does not log Artisan commands with the DontLogQueries attribute', function (string $command) {
+    $this->artisan($command)->assertSuccessful();
+
+    expect(DB::table('users')->pluck('name')->all())->toBe([$command])
+        ->and($this->logFile)->not->toBeFile()
+        ->and($this->reported)->toBeEmpty();
+})->with([
+    'attribute on the command' => 'sql-reporter:unlogged',
+    'attribute on a parent class' => 'sql-reporter:inherited-unlogged',
+]);
+
+it('logs, but does not report Artisan commands with the DontReportQueries attribute', function () {
+    $this->artisan('sql-reporter:unreported')->assertSuccessful();
+
+    expect(file_get_contents($this->logFile))
+        ->toContain('-- Origin:   (console) ')
+        ->toContain('insert into "users" ("name") values (\'sql-reporter:unreported\');')
+        ->and($this->reported)->toBeEmpty();
+});
+
+it('ignores the attributes of an Artisan command called during an HTTP request', function () {
+    serveHttpRequests($this->app);
+    Route::get('/call', function () {
+        Artisan::call('sql-reporter:unlogged');
+
+        return 'ok';
+    });
+
+    $this->get('/call')->assertOk();
+
+    // the request is the unit being logged
+    expect(file_get_contents($this->logFile))
+        ->toContain('-- Origin:   (request) GET http://localhost/call')
+        ->toContain('insert into "users" ("name") values (\'sql-reporter:unlogged\');')
+        ->and($this->reported)->toHaveCount(1);
 });

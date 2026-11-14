@@ -116,11 +116,54 @@ Before enabling it, be aware of these impacts:
 
 - **Logging time per job:** Jobs are logged synchronously by the worker, right after each job attempt, not deferred like requests. This adds the time to resolve the header fields and to write the log file to every job, slowing down the processing of your queue a bit. In a worker, the `host` header field is the reverse DNS lookup of `127.0.0.1`, so you may remove it from `SQL_REPORTER_FORMAT_HEADER_FIELDS` for busy queues.
 - **Log file size:** Every job running queries adds a log entry with a full header. On a busy queue, the log file grows much faster than with requests only. Use a daily file name like `SQL_REPORTER_QUERIES_FILE_NAME="[Y-m-d]-log"`, a separate console log file (`SQL_REPORTER_CONSOLE_SUFFIX`), logrotate, or limit the logged queries with `SQL_REPORTER_QUERIES_INCLUDE_PATTERN` / `SQL_REPORTER_QUERIES_EXCLUDE_PATTERN`.
-- **`QueryLogWritten` event per job:** Your listeners run for every job that ran queries matching the report pattern, inside the worker. If they send notifications (e.g. a report by email), you may get many more of them than before. Exclude noisy jobs with `SQL_REPORTER_QUERIES_REPORT_PATTERN`, `Writer::shouldReportQuery()` or by checking the `-- Origin:` header line in your listener.
-- **Feedback loops:** If your `QueryLogWritten` listener queues a job (e.g. a queued listener or notification) which runs queries to report itself, each of these jobs dispatches another `QueryLogWritten` event, and so on. Make sure such jobs are not reported.
+- **`QueryLogWritten` event per job:** Your listeners run for every job that ran queries matching the report pattern, inside the worker. If they send notifications (e.g. a report by email), you may get many more of them than before. Exclude noisy jobs with the [`#[DontReportQueries]` attribute](#excluding-artisan-commands-and-queued-jobs), `SQL_REPORTER_QUERIES_REPORT_PATTERN` or `Writer::shouldReportQuery()`.
+- **Feedback loops:** If your `QueryLogWritten` listener queues a job (e.g. a queued listener or notification) which runs queries to report itself, each of these jobs dispatches another `QueryLogWritten` event, and so on. Make sure such jobs are not reported, e.g. with `#[DontReportQueries]` on the queued listener or notification class.
 - **Retries:** Each job attempt is logged separately, so a retried job shows up several times. Failed attempts are logged as well, with the queries up to the exception.
 
 The query log of a single job is still kept in memory until the job has finished, like for a request or an Artisan command. Jobs running a huge number of queries (e.g. imports) therefore still need the memory for all of them, no matter if `SQL_REPORTER_QUERIES_LOG_JOBS` is enabled.
+
+## Excluding Artisan commands and queued jobs
+
+The include, exclude and report patterns filter single queries. To exclude a whole Artisan command or queued job, add one of these attributes to its class:
+
+```php
+use Illuminate\Console\Command;
+use Onlime\LaravelSqlReporter\Attributes\DontLogQueries;
+use Onlime\LaravelSqlReporter\Attributes\DontReportQueries;
+
+#[DontLogQueries]
+class SyncLastLogins extends Command
+{
+    // runs every minute, so its queries would only clutter the log file
+}
+
+#[DontReportQueries]
+class PruneStaleRecords extends Command
+{
+    // its deletes are expected, so they should not show up in your query reports
+}
+```
+
+| Attribute | Written to the log file | `QueryLogWritten` event |
+|---|---|---|
+| none | yes | yes, if there are queries to report |
+| `#[DontReportQueries]` | yes | no |
+| `#[DontLogQueries]` | no | no |
+
+- **`#[DontLogQueries]`**: The queries are neither written to the log file nor reported. Use it for frequent or noisy commands and jobs whose queries you never need to see.
+- **`#[DontReportQueries]`**: The queries are logged as usual, but no [`QueryLogWritten` event](#querylogwritten-event) is dispatched. Use it for commands and jobs whose modifying queries are expected, so they don't trigger your reports or notifications. This is easier to maintain than checking the `-- Origin:` header line in your `QueryLogWritten` listener, and keeps working if a command is renamed.
+
+The attributes work on:
+
+- Artisan command classes.
+- Queued job classes, queued event listeners, queued notifications and queued mailables, if [`SQL_REPORTER_QUERIES_LOG_JOBS`](#sql_reporter_queries_log_jobs) is enabled. Add the attribute to the listener, notification or mailable class itself. Without `SQL_REPORTER_QUERIES_LOG_JOBS`, jobs are not logged anyway.
+- Subclasses: an attribute on a parent class (e.g. a base command or job class) applies to all its subclasses.
+
+Good to know:
+
+- The attributes apply to the request, command or job that is logged as a whole. A command called with `Artisan::call()` during a request, or a job dispatched on a `sync` or `deferred` queue, is logged as part of that request or command, so its attributes are ignored.
+- Closure commands (`Artisan::command()` in `routes/console.php`) can't carry attributes. Use a command class if you need to exclude one.
+- The query log of an excluded job is still flushed after the job, so excluded jobs don't make the queue worker's memory grow.
 
 ## Optional
 
@@ -139,7 +182,7 @@ It will be auto-detected, no configuration needed for this. If you wish to use a
 
 This package fires a `QueryLogWritten` event after the log file has been written for a request, an Artisan command or (with `SQL_REPORTER_QUERIES_LOG_JOBS` enabled) a queued job. You may use this event to further debug or analyze the logged queries in your application. It provides the number of logged queries (`$loggedQueryCount`), the formatted header (`$reportHeader`) and the formatted queries to report (`$reportQueries`).
 
-The queries to report are filtered by the `SQL_REPORTER_QUERIES_REPORT_PATTERN` setting, which comes with a sensible default to exclude `SELECT` queries and some default tables like `sessions`, `jobs`, `bans`, `logins`. If you don't want to filter any queries, you may leave this setting empty. The event is only fired if there are queries to report.
+The queries to report are filtered by the `SQL_REPORTER_QUERIES_REPORT_PATTERN` setting, which comes with a sensible default to exclude `SELECT` queries and some default tables like `sessions`, `jobs`, `bans`, `logins`. If you don't want to filter any queries, you may leave this setting empty. The event is only fired if there are queries to report. To exclude whole Artisan commands or queued jobs from reporting, use the [`#[DontReportQueries]` attribute](#excluding-artisan-commands-and-queued-jobs).
 
 In addition to the pattern, you may also configure a callback to define your own custom filtering logic, for example, in your `AppServiceProvider`:
 
