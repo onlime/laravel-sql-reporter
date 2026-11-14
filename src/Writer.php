@@ -105,8 +105,9 @@ class Writer
      */
     protected function createDirectoryIfNotExists(int $queryNumber): bool
     {
-        if ($queryNumber == 1 && ! file_exists($directory = $this->directory())) {
-            return mkdir($directory, 0777, true);
+        if ($queryNumber === 1 && ! is_dir($directory = $this->directory())) {
+            // another process (e.g. a queue worker) might create the directory at the same time
+            return @mkdir($directory, 0777, true) || is_dir($directory);
         }
         return false;
     }
