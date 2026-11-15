@@ -7,7 +7,6 @@ use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Event;
 use Onlime\LaravelSqlReporter\Config;
 use Onlime\LaravelSqlReporter\Events\QueryLogWritten;
-use Onlime\LaravelSqlReporter\FileName;
 use Onlime\LaravelSqlReporter\Formatter;
 use Onlime\LaravelSqlReporter\SqlQuery;
 use Onlime\LaravelSqlReporter\Writer;
@@ -17,8 +16,7 @@ beforeEach(function () {
     Carbon::setTestNow($this->now);
     $this->formatter = Mockery::mock(Formatter::class);
     $this->config = app(Config::class);
-    $this->filename = Mockery::mock(FileName::class);
-    $this->writer = new Writer($this->formatter, $this->config, $this->filename);
+    $this->writer = new Writer($this->formatter, $this->config);
     $this->directory = sys_get_temp_dir().'/laravel-sql-reporter-tests/'.uniqid('', true);
     config(['sql-reporter.general.directory' => $this->directory]);
     $this->filesystem = new Filesystem;
@@ -32,7 +30,7 @@ it('writes the log entry only when flushing it, and only once', function () {
     $query = SqlQuery::make(1, 'test', 5.41);
     $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('-- header');
     $this->formatter->shouldReceive('getLine')->once()->with($query)->andReturn('Sample log line');
-    $this->filename->shouldReceive('getLogfile')->once()->withNoArgs()->andReturn('query-log.sql');
+    config(['sql-reporter.queries.file_name' => 'query-log']);
 
     $this->writer->writeQuery($query);
     expect($this->directory)->not->toBeDirectory();
@@ -42,6 +40,34 @@ it('writes the log entry only when flushing it, and only once', function () {
     expect($this->filesystem->allFiles($this->directory))->toHaveCount(1)
         ->and(file_get_contents($this->directory.'/query-log.sql'))->toBe("-- header\nSample log line\n");
 });
+
+it('names the log file by its options', function (string $fileName, string $suffix, string $extension, bool $console, string $expected) {
+    config([
+        'sql-reporter.queries.file_name' => $fileName,
+        'sql-reporter.general.console_log_suffix' => $suffix,
+        'sql-reporter.general.extension' => $extension,
+    ]);
+    (function () use ($console) {
+        $this->isRunningInConsole = $console;
+    })->call($this->app);
+    $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('-- header');
+    $this->formatter->shouldReceive('getLine')->once()->andReturn('Sample log line');
+
+    $this->writer->writeQuery(SqlQuery::make(1, 'test', 5.41));
+    $this->writer->flush();
+
+    expect($this->filesystem->allFiles($this->directory))->toHaveCount(1)
+        ->and($this->directory.'/'.$expected)->toBeFile();
+})->with([
+    // [file name, console suffix, extension, running in console, expected file name], now is 2015-02-03
+    'default (monthly)' => ['[Y-m]-log', '', '.sql', true, '2015-02-log.sql'],
+    'daily' => ['[Y-m-d]-log', '', '.sql', true, '2015-02-03-log.sql'],
+    'several date formats, the text between them stays as is' => ['sample[Y]-test-[m]-abc-[d]', '', '.sql', false, 'sample2015-test-02-abc-03.sql'],
+    'without date formats, although its letters are date format characters' => ['query-log', '', '.sql', true, 'query-log.sql'],
+    'with the console suffix in console' => ['[Y-m]-log', '-artisan', '.sql', true, '2015-02-log-artisan.sql'],
+    'without the console suffix outside of console' => ['[Y-m]-log', '-artisan', '.sql', false, '2015-02-log.sql'],
+    'other extension' => ['query-log', '', '.log', true, 'query-log.log'],
+]);
 
 it('does not write anything if no query is logged', function () {
     config(['sql-reporter.queries.enabled' => false]);
@@ -63,7 +89,6 @@ it('creates log file', function () {
 
     config(['sql-reporter.queries.include_pattern' => '#.*#i']);
 
-    $this->filename->shouldReceive('getLogfile')->once()->withNoArgs()->andReturn($expectedFileName);
     $this->writer->writeQuery($query);
     $this->writer->flush();
     expect($this->directory)->toBeDirectory()
@@ -85,7 +110,6 @@ it('appends to existing log file', function () {
     $this->formatter->shouldReceive('getLine')->once()->with($query)->andReturn($lineContent);
     $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('-- header');
     config(['sql-reporter.queries.include_pattern' => '#.*#i']);
-    $this->filename->shouldReceive('getLogfile')->once()->withNoArgs()->andReturn($expectedFileName);
     expect($this->directory.'/'.$expectedFileName)->toBeFile();
     $this->writer->writeQuery($query);
     $this->writer->flush();
@@ -111,7 +135,6 @@ it('replaces current file content with the log entry when overriding is turned o
         'sql-reporter.queries.include_pattern' => '#.*#i',
         'sql-reporter.queries.override_log' => true,
     ]);
-    $this->filename->shouldReceive('getLogfile')->once()->withNoArgs()->andReturn($expectedFileName);
     expect($this->directory.'/'.$expectedFileName)->toBeFile();
     $this->writer->writeQuery($query1);
     $this->writer->writeQuery($query2);
@@ -130,7 +153,6 @@ it('saves select query to file when pattern set to select queries', function () 
     $this->formatter->shouldReceive('getLine')->once()->with($query)->andReturn($lineContent);
     $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('');
     config(['sql-reporter.queries.include_pattern' => '#^SELECT .*$#i']);
-    $this->filename->shouldReceive('getLogfile')->once()->withNoArgs()->andReturn($expectedFileName);
     $this->writer->writeQuery($query);
     $this->writer->flush();
     expect($this->directory)->toBeDirectory()
@@ -156,7 +178,6 @@ it('saves insert query to file when pattern set to insert or update queries', fu
     $this->formatter->shouldReceive('getLine')->once()->with($query)->andReturn($lineContent);
     $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('');
     config(['sql-reporter.queries.include_pattern' => '#^(?:UPDATE|INSERT) .*$#i']);
-    $this->filename->shouldReceive('getLogfile')->once()->withNoArgs()->andReturn($expectedFileName);
     $this->writer->writeQuery($query);
     $this->writer->flush();
     expect($this->directory)->toBeDirectory()
@@ -174,7 +195,6 @@ it('uses raw query without bindings when using query pattern', function () {
     $this->formatter->shouldReceive('getLine')->once()->with($query)->andReturn($lineContent);
     $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('');
     config(['sql-reporter.queries.include_pattern' => '#^(?:UPDATE test SET x = \d |INSERT ).*$#i']);
-    $this->filename->shouldReceive('getLogfile')->once()->withNoArgs()->andReturn($expectedFileName);
     $this->writer->writeQuery($query);
     $this->writer->flush();
     expect($this->directory)->toBeDirectory()

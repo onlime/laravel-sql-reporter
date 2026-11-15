@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Onlime\LaravelSqlReporter;
 
+use Carbon\Carbon;
 use Closure;
+use Illuminate\Support\Facades\App;
+use Illuminate\Support\Str;
 use Onlime\LaravelSqlReporter\Events\QueryLogWritten;
 
 class Writer
@@ -47,7 +50,6 @@ class Writer
     public function __construct(
         private readonly Formatter $formatter,
         private readonly Config $config,
-        private readonly FileName $fileName
     ) {}
 
     /**
@@ -132,7 +134,7 @@ class Writer
         }
 
         file_put_contents(
-            $directory.DIRECTORY_SEPARATOR.$this->fileName->getLogfile(),
+            $directory.DIRECTORY_SEPARATOR.$this->logFile(),
             $content,
             LOCK_EX | ($this->config->queriesOverrideLog() ? 0 : FILE_APPEND)
         );
@@ -150,6 +152,19 @@ class Writer
         }
 
         return self::$shouldReportQuery === null || (self::$shouldReportQuery)($query);
+    }
+
+    /**
+     * Get the name of the log file: the file_name option with its date formats, the console suffix (when running in
+     * console) and the extension, e.g. 2026-11-log-artisan.sql for [Y-m]-log.
+     */
+    private function logFile(): string
+    {
+        return Str::of($this->config->queriesFileName())
+            // date formats in brackets, e.g. [Y-m]
+            ->replaceMatches('/\[(.*?)\]/', fn (array $matches) => Carbon::now()->format($matches[1]))
+            ->append(App::runningInConsole() ? $this->config->consoleSuffix() : '', $this->config->fileExtension())
+            ->toString();
     }
 
     /**
