@@ -111,7 +111,7 @@ class Formatter
      */
     protected function statusLine(): string
     {
-        $queryLog = DB::getRawQueryLog();
+        $queryLog = DB::getQueryLog();
 
         return sprintf(
             'Executed %s queries in %s',

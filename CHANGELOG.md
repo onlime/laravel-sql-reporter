@@ -1,6 +1,8 @@
 # CHANGELOG
 
-## [v1.4.x (Unreleased)](https://github.com/onlime/laravel-sql-reporter/compare/v1.4.0...main)
+## [v1.5.0 (Unreleased)](https://github.com/onlime/laravel-sql-reporter/compare/v1.4.0...main)
+
+- Security | A single query value that can't be escaped as a string (one with a null byte or invalid UTF-8, e.g. binary data) made logging fail for the whole request, command or job. A client could keep its queries from being logged and reported (`QueryLogWritten` event), simply by sending such a value in any parameter. Each query is now built separately, and these values are logged as hex literals (e.g. `x'00ff'`). Queries logged without execution time (`Connection::logQuery()`) no longer make logging fail either.
 
 ## [v1.4.0 (2026-11-15)](https://github.com/onlime/laravel-sql-reporter/compare/v1.3.6...v1.4.0)
 

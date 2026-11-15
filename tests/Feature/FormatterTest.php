@@ -39,9 +39,9 @@ it('formats header in valid way when running via http', function () {
     $now = '2015-03-04 08:12:07 +00:00';
     Carbon::setTestNow($now);
 
-    DB::shouldReceive('getRawQueryLog')->once()->withNoArgs()->andReturn([
-        ['raw_query' => 'foo', 'time' => 1.23],
-        ['raw_query' => 'bar', 'time' => 4.56],
+    DB::shouldReceive('getQueryLog')->once()->withNoArgs()->andReturn([
+        ['query' => 'foo', 'bindings' => [], 'time' => 1.23],
+        ['query' => 'bar', 'bindings' => [], 'time' => 4.56],
     ]);
     Auth::shouldReceive('check')->never(); // guard is not configured, so it doesn't get resolved
     Auth::shouldReceive('user')->once()->withNoArgs()->andReturn(null);
@@ -85,7 +85,7 @@ it('formats header in valid way when running in console', function () {
     $now = '2015-03-04 08:12:07 +00:00';
     Carbon::setTestNow($now);
 
-    DB::shouldReceive('getRawQueryLog')->once()->withNoArgs()->andReturn([]);
+    DB::shouldReceive('getQueryLog')->once()->withNoArgs()->andReturn([]);
     Auth::shouldReceive('check')->never(); // guard is not configured, so it doesn't get resolved
     Auth::shouldReceive('user')->once()->withNoArgs()->andReturn(null);
 
@@ -274,9 +274,9 @@ it('formats the total execution time in seconds', function () {
         'sql-reporter.general.use_seconds' => true,
         'sql-reporter.formatting.header_fields' => ['status'],
     ]);
-    DB::shouldReceive('getRawQueryLog')->once()->withNoArgs()->andReturn([
-        ['raw_query' => 'foo', 'time' => 1.5],
-        ['raw_query' => 'bar', 'time' => 2.5],
+    DB::shouldReceive('getQueryLog')->once()->withNoArgs()->andReturn([
+        ['query' => 'foo', 'bindings' => [], 'time' => 1.5],
+        ['query' => 'bar', 'bindings' => [], 'time' => 2.5],
     ]);
 
     expect(app(Formatter::class)->getHeader())->toContain("-- Status: Executed 2 queries in 0.004s\n");

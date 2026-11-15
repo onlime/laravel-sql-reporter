@@ -101,6 +101,30 @@ it('logs the queries of an HTTP request', function () {
         ->toMatch('/^-- Query 1 \[[\d.]+ms\]\nselect \* from "users";$/m');
 });
 
+it('logs and reports a request with values that cannot be escaped as a string', function (string $search, string $literal) {
+    // Such a value used to make the whole log of the request fail, so a client could keep its queries from being
+    // logged and reported, simply by sending a null byte or invalid UTF-8 in any parameter.
+    Exceptions::fake();
+    serveHttpRequests($this->app);
+    Route::get('/search', function () {
+        DB::table('users')->insert(['name' => 'Mallory']);
+
+        return DB::table('users')->where('name', request('q'))->get();
+    });
+
+    $this->get('/search?q='.rawurlencode($search))->assertOk();
+
+    expect(file_get_contents($this->logFile))
+        ->toContain('-- Status:   Executed 2 queries in ')
+        ->toContain('insert into "users" ("name") values (\'Mallory\');')
+        ->toContain("select * from \"users\" where \"name\" = {$literal};")
+        ->and($this->reported)->toHaveCount(1);
+    Exceptions::assertNothingReported();
+})->with([
+    'null byte' => ["a\0b", "x'610062'"],
+    'invalid UTF-8' => ["\xff\xfe", "x'fffe'"],
+]);
+
 it('logs an Artisan command called during an HTTP request only once', function () {
     serveHttpRequests($this->app);
     Route::get('/call', function () {
