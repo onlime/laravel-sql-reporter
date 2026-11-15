@@ -8,6 +8,7 @@
 - Security | Line breaks in header values, e.g. in a username or an Artisan argument, are replaced by spaces. A header value could otherwise end its `-- ` comment line in the `.sql` log file, and add lines that look like queries or other log entries.
 - Fix | Each log entry (its header and queries) is written to the log file at once, with an exclusive lock, so the log entries of requests, commands or jobs logged at the same time no longer get mixed up. The log directory is only created when a log entry is written. The README explains where the log files go and how their directory is created, see [Log files](README.md#log-files).
 - If you published the config file, or rely on query values in your `QueryLogWritten` listeners, see [Upgrading](README.md#v160).
+- README: Clarified the use in production. Logging is enabled wherever the package is installed, so install it with `--dev` or set `SQL_REPORTER_QUERIES_ENABLED=false` to keep it out of production.
 
 ## [v1.5.0 (2026-11-15)](https://github.com/onlime/laravel-sql-reporter/compare/v1.4.0...v1.5.0)
 

@@ -24,7 +24,7 @@ It reports a lot of metadata like total query count, total execution time, origi
    ```bash
    $ composer require onlime/laravel-sql-reporter --dev
    ```
-   in console to install this module (Notice `--dev` flag - it's recommended to use this package only for development).
+   in console to install this module. The `--dev` flag installs it for development only, see step 5 for using it in production.
 
    Laravel uses package auto-discovery, and it will automatically load this service provider, so you don't need to add anything into the `providers` section of `config/app.php`.
 
@@ -76,7 +76,13 @@ It reports a lot of metadata like total query count, total execution time, origi
 
 4. Make sure directory specified in `.env` file exists in storage path, and you have valid permissions to create and modify files in this directory (If it does not exist this package will automatically create it when needed, but it's recommended to create it manually with restrictive file permissions, see [Log files](#log-files))
 
-5. Make sure on live server you will set logging SQL queries to false in your `.env` file: `SQL_REPORTER_QUERIES_ENABLED=false`. This package is recommended to be used only for development to not impact production application performance.
+5. Logging is enabled right away, wherever this package is installed. You can easily disable it, e.g. on a server where you don't need it, in your `.env` file (and re-run `php artisan config:cache`, if you cache your config):
+
+    ```ini
+    SQL_REPORTER_QUERIES_ENABLED=false
+    ```
+
+    To keep the package out of production altogether, install it with `--dev` and deploy with `composer install --no-dev`. To use it in production, install it without `--dev`, and mind the [sensitive data](#sensitive-data) in the log: protect the log files, and limit what is logged and reported. It adds little overhead, as requests are logged after the response has been sent.
 
 ## Queued jobs
 
