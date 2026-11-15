@@ -7,8 +7,8 @@
 - Security | The `host` header field is no longer enabled by default. Its reverse DNS lookup blocks the PHP process until the DNS server of the client IP answers, which a client controlling it could abuse to tie up PHP workers. Add it to `SQL_REPORTER_FORMAT_HEADER_FIELDS` if you still need it.
 - Security | The GeoIP lookup of the client IP is no longer enabled automatically if `stevebauman/location` is installed, as its default driver sends the client IP to ip-api.com over plain HTTP. Enable it with the new `SQL_REPORTER_FORMAT_GEOIP=true` option.
 - Feature | New `route` header field with the name of the request's route, if it has one, right after the `origin`. Enabled by default.
-- If you published the config file, add the new `redact_url_parameters` and `geoip` options to it, add `route` to its `header_fields`, and remove `host` unless you need it. The same applies to `SQL_REPORTER_FORMAT_HEADER_FIELDS`, if you set it in `.env`.
-- README: New [Sensitive data](README.md#sensitive-data) section.
+- If you published the config file, set `SQL_REPORTER_FORMAT_HEADER_FIELDS` in `.env` or use `stevebauman/location`, see [Upgrading](README.md#v150).
+- README: New [Sensitive data](README.md#sensitive-data) section, and an [Upgrading](README.md#upgrading) section listing the changes to apply to a published config file for each version.
 
 ## [v1.4.0 (2026-11-15)](https://github.com/onlime/laravel-sql-reporter/compare/v1.3.6...v1.4.0)
 

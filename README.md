@@ -34,7 +34,7 @@ It reports a lot of metadata like total query count, total execution time, origi
     $ php artisan vendor:publish --tag=sql-reporter
     ```
 
-    By default, you should not edit published file because all the settings are loaded from `.env` file by default.
+    By default, you should not edit published file because all the settings are loaded from `.env` file by default. When upgrading to a new version, see [Upgrading](#upgrading).
 
 3. In your `.env` file add the following entries:
 
@@ -327,12 +327,38 @@ select * from `users` where `id` = 1 limit 1;
 update `users` set `last_visit` = '2021-05-20 21:00:08' where `id` = 1;
 ```
 
-## Authors
+## Upgrading
 
-Author of this awesome package is **[Philip Iezzi (Onlime GmbH)](https://www.onlime.ch/)**.
+Most settings come from your `.env` file. But if you published the config file (`config/sql-reporter.php`), it doesn't get the new options and defaults of a new version. Either publish it again, and re-apply your own changes to it:
 
-Large parts of this package were ported from the original [mnabialek/laravel-sql-logger](https://github.com/mnabialek/laravel-sql-logger). Credits go to **[Marcin Nabiałek](http://marcin.nabialek.org/en/)**.
-Please star his great package on GitHub! You may use `composer thanks` for this.
+```bash
+$ php artisan vendor:publish --tag=sql-reporter --force
+```
+
+or apply the changes listed below by hand, for each version you're upgrading across. Only the versions with changes to the config file (or other changes you need to act on) are listed.
+
+### v1.5.0
+
+- `formatting.header_fields`: the default is now `datetime,origin,route,status,user,guard,env,agent,ip,referer`. Add the new `route` field after `origin`, and remove `host`, unless you want the reverse DNS lookup of the client IP. Do the same in `SQL_REPORTER_FORMAT_HEADER_FIELDS`, if you set it in `.env`.
+- `formatting.redact_url_parameters`: new option, see [Sensitive data](#sensitive-data). Without it, the default parameters are redacted anyway.
+- `formatting.geoip`: new option. Without it, there is no GeoIP lookup.
+- Also without a published config file: GeoIP is no longer enabled just because `stevebauman/location` is installed. To keep the country of the client IP in the log header, add `SQL_REPORTER_FORMAT_GEOIP=true` to your `.env`.
+
+### v1.4.0
+
+- `queries.log_jobs`: new option. Without it, queued jobs are not logged, which is the default anyway.
+- `queries.exclude_commands`: new option. Without it, no commands are excluded, so long-running vendor commands like `horizon` or `pulse:check` collect all their queries in memory.
+- `queries.report_pattern`: the default now also excludes the framework tables with PostgreSQL / SQLite identifier quoting (`"jobs"`), not only with MySQL backticks.
+
+### v1.2.3
+
+- `formatting.header_datetime_format`: new option. Without it, logging fails if the `datetime` header field is enabled.
+- `formatting.header_fields`: the default now starts with `datetime`, followed by `origin`.
+
+### v1.2.0
+
+- `queries.report_pattern`: new option. Without it, all logged queries are reported (`QueryLogWritten` event), including `SELECT` queries.
+- `formatting.header_fields`: new `guard` field, after `user`.
 
 ## Changes
 
@@ -344,13 +370,19 @@ All changes are listed in [CHANGELOG](CHANGELOG.md)
 - It's currently not possible to log slow queries into a separate logfile. I wanted to keep that package simple.
 - Only queries of the default database connection are logged.
 - Logging never breaks your application: if the log file can't be written, or a `QueryLogWritten` listener fails, the error is passed to your exception handler (e.g. logged) and the request, command or job continues. By default, web requests and Artisan commands write to the same log file. If they run as different users (e.g. `www-data` and a deploy user), use a separate console log file with `SQL_REPORTER_CONSOLE_SUFFIX`.
-- If you published the config file of an older version, add the new `log_jobs`, `exclude_commands`, `redact_url_parameters` and `geoip` options from the [package config file](config/sql-reporter.php) to it, otherwise they are disabled (no commands excluded, no GeoIP lookup). Without `redact_url_parameters`, the default parameters are redacted. Also add `route` to its `header_fields`, and remove `host` unless you want the reverse DNS lookup.
 - Values that can't be embedded as a string, e.g. binary data, are logged as hex literals (`x'00ff'` for MySQL and SQLite).
 
 ## TODO
 
 - [ ] Integrate Coveralls.io and add test coverage status badge to README
 - [ ] Add browser type information to log headers, maybe using [hisorange/browser-detect](https://github.com/hisorange/browser-detect)
+
+## Authors
+
+Author of this awesome package is **[Philip Iezzi (Onlime GmbH)](https://www.onlime.ch/)**.
+
+Large parts of this package were ported from the original [mnabialek/laravel-sql-logger](https://github.com/mnabialek/laravel-sql-logger). Credits go to **[Marcin Nabiałek](http://marcin.nabialek.org/en/)**.
+Please star his great package on GitHub! You may use `composer thanks` for this.
 
 ## License
 
