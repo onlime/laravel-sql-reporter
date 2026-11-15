@@ -11,6 +11,7 @@ use Illuminate\Queue\Events\JobTimedOut;
 use Illuminate\Queue\Events\Looping;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
+use Onlime\LaravelSqlReporter\Config;
 use Onlime\LaravelSqlReporter\Listeners\LogJobQueries;
 use Onlime\LaravelSqlReporter\Listeners\LogSqlQuery;
 use Onlime\LaravelSqlReporter\Providers\SqlReporterServiceProvider;
@@ -72,6 +73,13 @@ it('merges the default config', function () {
     expect($config)->toBeArray()
         ->and($config)->toHaveKey('queries')
         ->and($config)->toHaveKey('general');
+});
+
+it('neither resolves the client hostname nor its country by default, and redacts sensitive URL parameters', function () {
+    expect(config('sql-reporter.formatting.header_fields'))
+        ->toBe(['datetime', 'origin', 'route', 'status', 'user', 'guard', 'env', 'agent', 'ip', 'referer'])
+        ->and(config('sql-reporter.formatting.geoip'))->toBeFalse()
+        ->and(config('sql-reporter.formatting.redact_url_parameters'))->toBe(Config::DEFAULT_REDACT_URL_PARAMETERS);
 });
 
 it('can publish the config file', function () {

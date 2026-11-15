@@ -7,6 +7,8 @@ namespace Onlime\LaravelSqlReporter;
 use Carbon\Carbon;
 use Closure;
 use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Http\Request;
+use Illuminate\Routing\Route;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -15,6 +17,11 @@ use Stevebauman\Location\Facades\Location;
 
 class Formatter
 {
+    /**
+     * Replacement for the values of redacted URL parameters.
+     */
+    private const REDACTED = '[redacted]';
+
     /**
      * Origin shown in the header instead of the request or console command, e.g. a queued job.
      */
@@ -68,6 +75,7 @@ class Formatter
         $resolvers = [
             'datetime' => fn () => Carbon::now()->format($this->config->headerDatetimeFormat()),
             'origin'   => fn () => $this->originLine(),
+            'route'    => fn () => $this->routeName($request),
             'status'   => fn () => $this->statusLine(),
             'user'     => fn () => $this->username(),
             'guard'    => fn () => Auth::check() ? Auth::getDefaultDriver() : '',
@@ -75,7 +83,7 @@ class Formatter
             'agent'    => fn () => $request->userAgent() ?? PHP_SAPI,
             'ip'       => fn () => $this->ipLine($ip),
             'host'     => fn () => $ip !== null ? gethostbyaddr($ip) : '',
-            'referer'  => fn () => $request->header('referer'),
+            'referer'  => fn () => $this->redactUrl((string) $request->header('referer')),
         ];
         $headers = array_map(
             fn (Closure $resolve) => $resolve(),
@@ -111,7 +119,7 @@ class Formatter
      */
     protected function statusLine(): string
     {
-        $queryLog = DB::getRawQueryLog();
+        $queryLog = DB::getQueryLog();
 
         return sprintf(
             'Executed %s queries in %s',
@@ -136,11 +144,11 @@ class Formatter
     }
 
     /**
-     * Get client IP, with country information appended if stevebauman/location is installed (optional GeoIP lookup).
+     * Get client IP, with country information appended if enabled (optional GeoIP lookup with stevebauman/location).
      */
     protected function ipLine(?string $ip): string
     {
-        if ($ip === null || $ip === '127.0.0.1' || ! class_exists(Location::class)) {
+        if ($ip === null || $ip === '127.0.0.1' || ! $this->config->geoIp() || ! class_exists(Location::class)) {
             return (string) $ip;
         }
 
@@ -187,13 +195,112 @@ class Formatter
     }
 
     /**
-     * Get request line.
+     * Get the name of the request's route, if it has one. When caching routes, Laravel names unnamed routes with a
+     * random generated::… name, which is omitted.
+     */
+    protected function routeName(Request $request): string
+    {
+        $route = $request->route();
+        $name = $route instanceof Route ? $route->getName() : null;
+
+        return $name === null || str_starts_with($name, 'generated::') ? '' : $name;
+    }
+
+    /**
+     * Get request line, with the values of sensitive route and query string parameters redacted.
      */
     protected function getRequestLine(): string
     {
         $request = $this->app->make('request');
+        $query = $request->getQueryString();
 
-        return $request->method().' '.$request->fullUrl();
+        return $request->method().' '.$this->redactUrl(
+            $request->root().'/'.ltrim($this->requestPath($request), '/').($query !== null ? '?'.$query : '')
+        );
+    }
+
+    /**
+     * Get the path of a request, with the values of sensitive route parameters (e.g. a password reset token) redacted.
+     */
+    private function requestPath(Request $request): string
+    {
+        $route = $request->route();
+        if (! $route instanceof Route) {
+            return $request->path();
+        }
+
+        $patterns = $this->redactionPatterns();
+        $redacted = array_filter(
+            $route->parameterNames(),
+            fn (string $name): bool => $this->isRedacted($name, $patterns)
+        );
+        if ($redacted === []) {
+            return $request->path();
+        }
+
+        // The value of a route parameter can't be reliably located in the path (it might also show up in another
+        // segment, or span several segments), so build the path from the route URI, e.g. /reset-password/{token}.
+        $path = preg_replace_callback('/\{(\w+)\??\}/', function (array $matches) use ($route, $redacted): string {
+            $value = $route->originalParameter($matches[1]);
+
+            return match (true) {
+                $value === null => '', // a missing optional parameter
+                in_array($matches[1], $redacted, true) => self::REDACTED,
+                default => str_replace('%2F', '/', rawurlencode($value)),
+            };
+        }, $route->uri());
+
+        return rtrim($path ?? $route->uri(), '/');
+    }
+
+    /**
+     * Redact the values of sensitive query string parameters in a URL, e.g. tokens or signatures of signed URLs.
+     */
+    protected function redactUrl(string $url): string
+    {
+        if (! str_contains($url, '?')) {
+            return $url;
+        }
+
+        $patterns = $this->redactionPatterns();
+        [$base, $query] = explode('?', $url, 2);
+
+        $parameters = array_map(function (string $parameter) use ($patterns): string {
+            $name = Str::before($parameter, '=');
+
+            return $name !== $parameter && $this->isRedacted($name, $patterns) ? $name.'='.self::REDACTED : $parameter;
+        }, explode('&', $query));
+
+        return $base.'?'.implode('&', $parameters);
+    }
+
+    /**
+     * Get the patterns of the URL parameters to redact, lowercase for case-insensitive matching.
+     *
+     * @return array<int, string>
+     */
+    private function redactionPatterns(): array
+    {
+        return array_map(Str::lower(...), $this->config->redactUrlParameters());
+    }
+
+    /**
+     * Whether the value of a route or query string parameter is to be redacted. A nested query string parameter like
+     * filter[token] is, if any of its names matches.
+     *
+     * @param  array<int, string>  $patterns  lowercase, with wildcards
+     */
+    private function isRedacted(string $name, array $patterns): bool
+    {
+        $names = preg_split('/[\[\]]+/', Str::lower(urldecode($name)), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+        foreach ($names as $part) {
+            if (Str::is($patterns, $part)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

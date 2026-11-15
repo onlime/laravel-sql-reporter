@@ -30,22 +30,41 @@ return [
          * Header fields, comma-separated. Available options:
          *
          * - datetime: date and time when the first query was executed
-         * - origin: where this query coming from - method/request or artisan command
+         * - origin: where this query coming from - method and URL of a request (with sensitive parameters redacted,
+         *   see 'redact_url_parameters'), Artisan command or queued job
+         * - route: (request-only) name of the route, if it has one
          * - status: total query count and execution time for all queries
          * - user: username of authenticated user
          * - guard: name of the auth guard (defaults to 'web' if not logged in)
          * - env: application environment
          * - agent: user agent
-         * - ip: (request-only) remote user IP
-         * - host: (request-only) remote user hostname (resolved IP)
+         * - ip: (request-only) remote user IP, see 'geoip'
+         * - host: (request-only) remote user hostname (resolved IP), not enabled by default: the reverse DNS lookup
+         *   blocks the PHP process until the DNS server answers, which is up to the owner of the client IP
          * - referer: (request-only) browser referer
          *
-         * It does not harm to keep all fields enabled. The request-only fields would simply report some standard/empty
-         * data if origin is an Artisan command.
+         * The request-only fields would simply report some standard/empty data if origin is an Artisan command.
          */
         'header_fields' => array_filter(explode(',', (string) env('SQL_REPORTER_FORMAT_HEADER_FIELDS',
-            'datetime,origin,status,user,guard,env,agent,ip,host,referer'
+            'datetime,origin,route,status,user,guard,env,agent,ip,referer'
         ))),
+
+        /*
+         * URL parameters whose values are replaced by [redacted] in the log header, as they might carry secrets like
+         * tokens, signatures of signed URLs or OAuth authorization codes: route parameters (e.g. {token}) and query
+         * string parameters in the 'origin' header field, query string parameters in the 'referer' header field.
+         * Case-insensitive, with * wildcards. A nested query string parameter like filter[token] matches 'token' too.
+         * In .env, separate them by commas. Set it to an empty value to redact no parameters at all.
+         */
+        'redact_url_parameters' => env('SQL_REPORTER_FORMAT_REDACT_URL_PARAMETERS', [
+            '*token*', '*password*', '*secret*', '*signature*', '*key', 'code', 'state', 'sig',
+        ]),
+
+        /*
+         * Whether to append the country to the client IP ('ip' header field), using stevebauman/location, which needs
+         * to be installed. Be aware that its default driver sends the client IP to ip-api.com over plain HTTP.
+         */
+        'geoip' => env('SQL_REPORTER_FORMAT_GEOIP', false),
 
         /*
          * Header datetime format.

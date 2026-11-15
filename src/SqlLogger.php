@@ -6,6 +6,7 @@ namespace Onlime\LaravelSqlReporter;
 
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Onlime\LaravelSqlReporter\Support\RawQuery;
 use Throwable;
 
 class SqlLogger
@@ -30,17 +31,18 @@ class SqlLogger
                 $this->writer->setOrigin($origin);
             }
 
-            $queryLog = DB::getQueryLog();
+            $connection = DB::connection();
+            $rawQuery = new RawQuery($connection);
 
-            // getQueryLog() and getRawQueryLog() have the same keys
-            // see \Illuminate\Database\Connection::getRawQueryLog()
-            Collection::make(DB::getRawQueryLog())
+            // Not using getRawQueryLog(), which fails as a whole if a single value can't be escaped
+            Collection::make($connection->getQueryLog())
                 ->map(fn (array $query, int $key) => new SqlQuery(
                     $key + 1,
-                    $query['raw_query'],
-                    $query['time'],
-                    $queryLog[$key]['query'],
-                    $queryLog[$key]['bindings']
+                    $rawQuery->build($query['query'], $query['bindings']),
+                    // the time is optional for queries logged with Connection::logQuery()
+                    $query['time'] ?? 0.0,
+                    $query['query'],
+                    $query['bindings']
                 ))
                 ->each(function (SqlQuery $query) {
                     $this->writer->writeQuery($query);

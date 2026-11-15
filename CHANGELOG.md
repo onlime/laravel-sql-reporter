@@ -1,6 +1,16 @@
 # CHANGELOG
 
-## [v1.4.x (Unreleased)](https://github.com/onlime/laravel-sql-reporter/compare/v1.4.0...main)
+## [v1.5.x (Unreleased)](https://github.com/onlime/laravel-sql-reporter/compare/v1.5.0...main)
+
+## [v1.5.0 (2026-11-15)](https://github.com/onlime/laravel-sql-reporter/compare/v1.4.0...v1.5.0)
+
+- Security | A single query value that can't be escaped as a string (one with a null byte or invalid UTF-8, e.g. binary data) made logging fail for the whole request, command or job. A client could keep its queries from being logged and reported (`QueryLogWritten` event), simply by sending such a value in any parameter. Each query is now built separately, and these values are logged as hex literals (e.g. `x'00ff'`). Queries logged without execution time (`Connection::logQuery()`) no longer make logging fail either.
+- Security | New `SQL_REPORTER_FORMAT_REDACT_URL_PARAMETERS` option: the values of sensitive route parameters and query string parameters are replaced by `[redacted]` in the `origin` header field, e.g. `GET https://example.com/reset-password/[redacted]?email=alice%40example.com&signature=[redacted]`. Secrets like the token of a password reset link, API tokens (`?api_token=`), signatures of signed URLs and OAuth authorization codes are no longer logged and reported. In the `referer` header field, its query string parameters are redacted. Defaults to `*token*,*password*,*secret*,*signature*,*key,code,state,sig` (case-insensitive, with wildcards), also if your published config file doesn't have this option yet. See [Sensitive data](README.md#sensitive-data).
+- Security | The `host` header field is no longer enabled by default. Its reverse DNS lookup blocks the PHP process until the DNS server of the client IP answers, which a client controlling it could abuse to tie up PHP workers. Add it to `SQL_REPORTER_FORMAT_HEADER_FIELDS` if you still need it.
+- Security | The GeoIP lookup of the client IP is no longer enabled automatically if `stevebauman/location` is installed, as its default driver sends the client IP to ip-api.com over plain HTTP. Enable it with the new `SQL_REPORTER_FORMAT_GEOIP=true` option.
+- Feature | New `route` header field with the name of the request's route, if it has one, right after the `origin`. Enabled by default.
+- If you published the config file, set `SQL_REPORTER_FORMAT_HEADER_FIELDS` in `.env` or use `stevebauman/location`, see [Upgrading](README.md#v150).
+- README: New [Sensitive data](README.md#sensitive-data) section, and an [Upgrading](README.md#upgrading) section listing the changes to apply to a published config file for each version.
 
 ## [v1.4.0 (2026-11-15)](https://github.com/onlime/laravel-sql-reporter/compare/v1.3.6...v1.4.0)
 
