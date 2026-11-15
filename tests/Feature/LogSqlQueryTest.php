@@ -7,9 +7,9 @@ use Illuminate\Console\Events\CommandStarting;
 use Illuminate\Foundation\Http\Events\RequestHandled;
 use Illuminate\Support\Defer\DeferredCallbackCollection;
 use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\Artisan;
 use Onlime\LaravelSqlReporter\Listeners\LogSqlQuery;
 use Onlime\LaravelSqlReporter\SqlLogger;
-use Onlime\LaravelSqlReporter\Support\ConsoleState;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\NullOutput;
 
@@ -79,7 +79,8 @@ it('only logs the outermost command, including the commands it calls', function 
 });
 
 it('does not log the command of a queue worker, which logs each job separately', function () {
-    app(ConsoleState::class)->markQueueWorker();
+    // creates the Artisan application, which is needed to look up the command class
+    Artisan::all();
 
     $this->listener->handle(commandStarting('queue:work'));
     $this->listener->handle(commandFinished('queue:work'));

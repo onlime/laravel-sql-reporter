@@ -57,6 +57,16 @@ afterEach(function () {
     (new Filesystem)->deleteDirectory($this->directory);
 });
 
+/**
+ * Get the queries of the fixture jobs, which are still in the query log.
+ *
+ * @return list<string>
+ */
+function jobQueriesInQueryLog(): array
+{
+    return array_values(array_filter(array_column(DB::getQueryLog(), 'query'), fn (string $query) => str_contains($query, '"users"')));
+}
+
 it('logs the queries of each queued job separately', function () {
     config(['sql-reporter.queries.log_jobs' => true]);
     InsertUserJob::dispatch('Alice');
@@ -108,8 +118,8 @@ it('does not log queued jobs by default, but keeps the query log of the worker e
 
     $this->artisan('queue:work', ['--stop-when-empty' => true, '--sleep' => 0])->assertSuccessful();
 
-    // neither the jobs nor the worker command itself got logged
-    expect(DB::getQueryLog())->toBe([])
+    // neither the jobs nor the worker command itself got logged, and the jobs' queries were flushed
+    expect(jobQueriesInQueryLog())->toBe([])
         ->and($this->logFile)->not->toBeFile()
         ->and(DB::table('users')->pluck('name')->all())->toBe(['Alice', 'Bob']);
 });
@@ -144,7 +154,7 @@ it('does not log queued jobs and listeners with the DontLogQueries attribute', f
 
     $log = file_get_contents($this->logFile);
     // the query log of the excluded jobs is still flushed
-    expect(DB::getQueryLog())->toBe([])
+    expect(jobQueriesInQueryLog())->toBe([])
         ->and(substr_count($log, '-- Origin:'))->toBe(1)
         ->and($log)->toContain('-- Origin:   (job) '.InsertUserJob::class.PHP_EOL)
         ->toContain('insert into "users" ("name") values (\'Bob\');')

@@ -7,6 +7,7 @@ namespace Onlime\LaravelSqlReporter\Listeners;
 use Illuminate\Console\Events\CommandFinished;
 use Illuminate\Console\Events\CommandStarting;
 use Illuminate\Foundation\Http\Events\RequestHandled;
+use Illuminate\Queue\Console\WorkCommand;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -74,8 +75,8 @@ readonly class LogSqlQuery
             return;
         }
 
-        // A queue worker logs the queries of each job separately, but not its own (e.g. polling a database queue)
-        if ($this->state->isQueueWorker()) {
+        // A queue worker (also Horizon's) logs the queries of each job separately, but not its own (e.g. polling a database queue)
+        if ($class !== null && is_a($class, WorkCommand::class, true)) {
             return;
         }
 

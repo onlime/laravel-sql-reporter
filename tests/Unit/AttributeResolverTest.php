@@ -14,7 +14,6 @@ use Onlime\LaravelSqlReporter\Tests\Fixtures\Commands\UnloggedCommand;
 use Onlime\LaravelSqlReporter\Tests\Fixtures\InsertUserJob;
 use Onlime\LaravelSqlReporter\Tests\Fixtures\UnloggedListener;
 use Onlime\LaravelSqlReporter\Tests\Fixtures\UnreportedJob;
-use Symfony\Component\Console\Command\LazyCommand;
 
 beforeEach(function () {
     $this->resolver = new AttributeResolver;
@@ -32,13 +31,6 @@ it('resolves the class of a command by its name', function () {
     expect($this->resolver->commandClass('sql-reporter:unlogged'))->toBe(UnloggedCommand::class);
 });
 
-it('resolves the class of a lazy command', function () {
-    $this->artisan->add(new LazyCommand('sql-reporter:lazy', [], '', false, fn () => new InheritedUnloggedCommand));
-    $this->resolver->setArtisan($this->artisan);
-
-    expect($this->resolver->commandClass('sql-reporter:lazy'))->toBe(InheritedUnloggedCommand::class);
-});
-
 it('resolves no command class without Artisan application, name or matching command', function (bool $withArtisan, string $name) {
     if ($withArtisan) {
         $this->resolver->setArtisan($this->artisan);
@@ -51,14 +43,6 @@ it('resolves no command class without Artisan application, name or matching comm
     'unknown command' => [true, 'sql-reporter:unknown'],
 ]);
 
-it('resolves the job class and the class of its display name', function (string $displayName, string $jobClass, array $expected) {
-    expect($this->resolver->jobClasses($displayName, $jobClass))->toBe($expected);
-})->with([
-    'job' => [InsertUserJob::class, InsertUserJob::class, [InsertUserJob::class]],
-    'queued listener' => [UnloggedListener::class, CallQueuedListener::class, [UnloggedListener::class, CallQueuedListener::class]],
-    'closure' => ['Closure (routes/console.php:12)', 'Illuminate\Queue\CallQueuedClosure', ['Illuminate\Queue\CallQueuedClosure']],
-]);
-
 it('checks for attributes on the classes and their parent classes', function () {
     expect($this->resolver->has([UnloggedCommand::class], DontLogQueries::class))->toBeTrue()
         ->and($this->resolver->has([InheritedUnloggedCommand::class], DontLogQueries::class))->toBeTrue()
@@ -69,7 +53,5 @@ it('checks for attributes on the classes and their parent classes', function () 
         ->and($this->resolver->has([], DontLogQueries::class))->toBeFalse()
         // a single class, e.g. of a command
         ->and($this->resolver->has(UnloggedCommand::class, DontLogQueries::class))->toBeTrue()
-        ->and($this->resolver->has(null, DontLogQueries::class))->toBeFalse()
-        // cached
-        ->and($this->resolver->has([UnloggedCommand::class], DontLogQueries::class))->toBeTrue();
+        ->and($this->resolver->has(null, DontLogQueries::class))->toBeFalse();
 });

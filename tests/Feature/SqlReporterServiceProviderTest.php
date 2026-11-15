@@ -6,11 +6,9 @@ use Illuminate\Console\Events\CommandFinished;
 use Illuminate\Console\Events\CommandStarting;
 use Illuminate\Foundation\Http\Events\RequestHandled;
 use Illuminate\Queue\Events\JobAttempted;
-use Illuminate\Queue\Events\JobPopping;
 use Illuminate\Queue\Events\JobProcessing;
 use Illuminate\Queue\Events\JobTimedOut;
 use Illuminate\Queue\Events\Looping;
-use Illuminate\Queue\Events\WorkerStopping;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Onlime\LaravelSqlReporter\Listeners\LogJobQueries;
@@ -27,11 +25,9 @@ function listenedEvents(): array
         CommandFinished::class => LogSqlQuery::class,
         RequestHandled::class => LogSqlQuery::class,
         Looping::class => LogJobQueries::class,
-        JobPopping::class => LogJobQueries::class,
         JobProcessing::class => LogJobQueries::class,
         JobAttempted::class => LogJobQueries::class,
         JobTimedOut::class => LogJobQueries::class,
-        WorkerStopping::class => LogJobQueries::class,
     ];
 }
 

@@ -79,7 +79,7 @@ It reports a lot of metadata like total query count, total execution time, origi
 
 A queue worker (`queue:work`, `horizon:work`) is a long-running Artisan command, processing many jobs before it stops. This package handles its query log as follows, no matter how `SQL_REPORTER_QUERIES_LOG_JOBS` is set:
 
-- The query log of a queue worker is flushed before and after each job, while the worker is waiting for jobs, and when it stops. So the query log no longer grows with the number of processed jobs, and the worker command itself is never logged, also not for `queue:work --once` or the workers started by `queue:listen`.
+- The query log of a queue worker is flushed before and after each job, and while the worker is waiting for jobs. So the query log no longer grows with the number of processed jobs. The worker command itself (`Illuminate\Queue\Console\WorkCommand` or a subclass, like Horizon's `horizon:work`) is never logged, also not for `queue:work --once` or the workers started by `queue:listen`.
 - Jobs on a `sync` or `deferred` queue don't run in a worker, but within the request or Artisan command that dispatched them. Their queries are logged as part of that request or command. Jobs on a `background` queue run in a separate Artisan process, which is logged like any other Artisan command.
 
 ### `SQL_REPORTER_QUERIES_LOG_JOBS`
