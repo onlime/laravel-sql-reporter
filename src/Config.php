@@ -68,7 +68,14 @@ class Config
     public function queriesExcludeCommands(): array
     {
         // a published config file of an older version doesn't have this option yet
-        return (array) $this->repository->get('sql-reporter.queries.exclude_commands', []);
+        $commands = $this->repository->get('sql-reporter.queries.exclude_commands', []);
+
+        // comma-separated if set in .env
+        if (is_string($commands)) {
+            $commands = array_filter(array_map(trim(...), explode(',', $commands)));
+        }
+
+        return array_values((array) $commands);
     }
 
     /**

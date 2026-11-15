@@ -29,25 +29,24 @@ afterEach(function () {
 it('resolves the class of a command by its name', function () {
     $this->resolver->setArtisan($this->artisan);
 
-    expect($this->resolver->commandClasses('sql-reporter:unlogged'))->toBe([UnloggedCommand::class]);
+    expect($this->resolver->commandClass('sql-reporter:unlogged'))->toBe(UnloggedCommand::class);
 });
 
 it('resolves the class of a lazy command', function () {
     $this->artisan->add(new LazyCommand('sql-reporter:lazy', [], '', false, fn () => new InheritedUnloggedCommand));
     $this->resolver->setArtisan($this->artisan);
 
-    expect($this->resolver->commandClasses('sql-reporter:lazy'))->toBe([InheritedUnloggedCommand::class]);
+    expect($this->resolver->commandClass('sql-reporter:lazy'))->toBe(InheritedUnloggedCommand::class);
 });
 
-it('resolves no command class without Artisan application, name or matching command', function (bool $withArtisan, ?string $name) {
+it('resolves no command class without Artisan application, name or matching command', function (bool $withArtisan, string $name) {
     if ($withArtisan) {
         $this->resolver->setArtisan($this->artisan);
     }
 
-    expect($this->resolver->commandClasses($name))->toBe([]);
+    expect($this->resolver->commandClass($name))->toBeNull();
 })->with([
     'no Artisan application' => [false, 'sql-reporter:unlogged'],
-    'no name' => [true, null],
     'empty name' => [true, ''],
     'unknown command' => [true, 'sql-reporter:unknown'],
 ]);
@@ -68,6 +67,9 @@ it('checks for attributes on the classes and their parent classes', function () 
         ->and($this->resolver->has([InsertUserJob::class, UnreportedJob::class], DontReportQueries::class))->toBeTrue()
         ->and($this->resolver->has([InsertUserJob::class], DontReportQueries::class))->toBeFalse()
         ->and($this->resolver->has([], DontLogQueries::class))->toBeFalse()
+        // a single class, e.g. of a command
+        ->and($this->resolver->has(UnloggedCommand::class, DontLogQueries::class))->toBeTrue()
+        ->and($this->resolver->has(null, DontLogQueries::class))->toBeFalse()
         // cached
         ->and($this->resolver->has([UnloggedCommand::class], DontLogQueries::class))->toBeTrue();
 });

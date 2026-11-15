@@ -55,8 +55,8 @@ readonly class LogSqlQuery
             return;
         }
 
-        $classes = $this->attributes->commandClasses($event->command);
-        $excluded = $this->isExcluded($event->command, $classes);
+        $class = $this->attributes->commandClass($event->command);
+        $excluded = $this->isExcluded($event->command, $class);
 
         if ($event instanceof CommandStarting) {
             if ($excluded) {
@@ -81,32 +81,29 @@ readonly class LogSqlQuery
 
         // Log right away, as there is no response to be sent first. A deferred callback would never run, because
         // Laravel invokes deferred callbacks in its own CommandFinished listener, which runs before this one.
-        $this->logger->log(report: ! $this->attributes->has($classes, DontReportQueries::class));
+        $this->logger->log(report: ! $this->attributes->has($class, DontReportQueries::class));
     }
 
     /**
      * Whether the command is excluded by the DontLogQueries attribute or the exclude_commands config option.
      *
-     * @param  list<class-string>  $classes
+     * @param  class-string|null  $class
      */
-    private function isExcluded(?string $name, array $classes): bool
+    private function isExcluded(string $name, ?string $class): bool
     {
-        if ($this->attributes->has($classes, DontLogQueries::class)) {
+        if ($this->attributes->has($class, DontLogQueries::class)) {
             return true;
         }
 
-        // command names or class names, both with wildcards, and parent classes
-        foreach ($this->config->queriesExcludeCommands() as $pattern) {
-            if (Str::is($pattern, $name ?? '')) {
-                return true;
-            }
-            foreach ($classes as $class) {
-                if (Str::is($pattern, $class) || is_a($class, $pattern, true)) {
-                    return true;
-                }
-            }
+        $patterns = $this->config->queriesExcludeCommands();
+
+        // the command name, with wildcards
+        if (Str::is($patterns, $name)) {
+            return true;
         }
 
-        return false;
+        // the class name, with wildcards, or the name of a parent class
+        return $class !== null
+            && (Str::is($patterns, $class) || array_intersect($patterns, class_parents($class)) !== []);
     }
 }

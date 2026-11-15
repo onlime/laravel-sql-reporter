@@ -36,26 +36,26 @@ class AttributeResolver
     /**
      * Get the class of an Artisan command by its name.
      *
-     * @return list<class-string>
+     * @return class-string|null
      */
-    public function commandClasses(?string $name): array
+    public function commandClass(string $name): ?string
     {
-        if ($this->artisan === null || ! $name) {
-            return [];
+        if ($this->artisan === null || $name === '') {
+            return null;
         }
 
         try {
             // only resolves this command, unlike Artisan::all() which would instantiate all commands
             $command = $this->artisan->get($name);
         } catch (Throwable) {
-            return [];
+            return null;
         }
 
         if ($command instanceof LazyCommand) {
             $command = $command->getCommand();
         }
 
-        return [$command::class];
+        return $command::class;
     }
 
     /**
@@ -72,12 +72,12 @@ class AttributeResolver
     /**
      * Whether one of the classes (or one of their parent classes) carries the attribute.
      *
-     * @param  list<class-string>  $classes
+     * @param  class-string|list<class-string>|null  $classes
      * @param  class-string  $attribute
      */
-    public function has(array $classes, string $attribute): bool
+    public function has(string|array|null $classes, string $attribute): bool
     {
-        foreach ($classes as $class) {
+        foreach ((array) $classes as $class) {
             if ($this->cache[$class.'@'.$attribute] ??= Reflector::getClassAttribute($class, $attribute, ascend: true) !== null) {
                 return true;
             }

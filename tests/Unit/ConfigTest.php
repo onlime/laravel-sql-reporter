@@ -136,3 +136,14 @@ it('returns valid values for queries log jobs', function () {
         ->andReturn(null);
     expect($this->config->queriesLogJobs())->toBeFalse();
 });
+
+it('returns valid values for queries exclude commands', function (mixed $value, array $expected) {
+    $this->repository->shouldReceive('get')->once()->with('sql-reporter.queries.exclude_commands', [])
+        ->andReturn($value);
+    expect($this->config->queriesExcludeCommands())->toBe($expected);
+})->with([
+    'array (default)' => [['pulse:check', 'Laravel\\Horizon\\Console\\HorizonCommand'], ['pulse:check', 'Laravel\\Horizon\\Console\\HorizonCommand']],
+    'comma-separated (.env)' => ['pulse:check, Laravel\\Horizon\\Console\\HorizonCommand,,', ['pulse:check', 'Laravel\\Horizon\\Console\\HorizonCommand']],
+    'empty (.env)' => ['', []],
+    'missing in a published config file' => [null, []],
+]);
