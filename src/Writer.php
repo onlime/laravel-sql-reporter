@@ -16,6 +16,13 @@ class Writer
     private int $loggedQueryCount = 0;
 
     /**
+     * Lines of the log entry (its header and queries), written at once by flush().
+     *
+     * @var list<string>
+     */
+    private array $lines = [];
+
+    /**
      * Stores query log header for later processing.
      */
     private string $reportHeader = '';
@@ -84,24 +91,18 @@ class Writer
     }
 
     /**
-     * Write a query to log.
+     * Add a query to the log entry, which flush() writes to the log file.
      *
-     * @return bool true if query was written to log, false if skipped
+     * @return bool true if query was added to the log entry, false if skipped
      */
     public function writeQuery(SqlQuery $query): bool
     {
-        $this->createDirectoryIfNotExists($query->number);
-
         if ($this->shouldLogQuery($query)) {
             if ($this->loggedQueryCount === 0) {
                 // only write header information on first query to be logged
-                $this->writeLine(
-                    $this->reportHeader = $this->formatter->getHeader(),
-                    $this->config->queriesOverrideLog(),
-                );
+                $this->lines[] = $this->reportHeader = $this->formatter->getHeader();
             }
-            $logLine = $this->formatter->getLine($query);
-            $this->writeLine($logLine);
+            $this->lines[] = $logLine = $this->formatter->getLine($query);
             if ($this->shouldReportSqlQuery($query)) {
                 $this->reportQueries[] = $logLine;
             }
@@ -109,6 +110,32 @@ class Writer
             return true;
         }
         return false;
+    }
+
+    /**
+     * Write the log entry to the log file, at once and with an exclusive lock, so the log entries of requests,
+     * commands or jobs logged at the same time don't get mixed up.
+     */
+    public function flush(): void
+    {
+        if ($this->lines === []) {
+            return;
+        }
+
+        $content = implode(PHP_EOL, $this->lines).PHP_EOL;
+        $this->lines = [];
+
+        // another process (e.g. a queue worker) might create the directory at the same time
+        $directory = $this->config->logDirectory();
+        if (! is_dir($directory)) {
+            @mkdir($directory, 0777, true);
+        }
+
+        file_put_contents(
+            $directory.DIRECTORY_SEPARATOR.$this->fileName->getLogfile(),
+            $content,
+            LOCK_EX | ($this->config->queriesOverrideLog() ? 0 : FILE_APPEND)
+        );
     }
 
     /**
@@ -126,28 +153,6 @@ class Writer
     }
 
     /**
-     * Create directory if it does not exist yet.
-     *
-     * @return bool true on successful directory creation
-     */
-    protected function createDirectoryIfNotExists(int $queryNumber): bool
-    {
-        if ($queryNumber === 1 && ! is_dir($directory = $this->directory())) {
-            // another process (e.g. a queue worker) might create the directory at the same time
-            return @mkdir($directory, 0777, true) || is_dir($directory);
-        }
-        return false;
-    }
-
-    /**
-     * Get directory where file should be located.
-     */
-    protected function directory(): string
-    {
-        return rtrim($this->config->logDirectory(), '\\/');
-    }
-
-    /**
      * Verify whether query should be logged.
      */
     protected function shouldLogQuery(SqlQuery $query): bool
@@ -156,20 +161,6 @@ class Writer
             $query->time >= $this->config->queriesMinExecTime() &&
             preg_match($this->config->queriesIncludePattern(), $query->rawQuery) &&
             ! preg_match($this->config->queriesExcludePattern(), $query->rawQuery);
-    }
-
-    /**
-     * Write data to log file.
-     *
-     * @return int|false the number of bytes that were written to the file, or false on failure.
-     */
-    protected function writeLine(string $line, bool $override = false): int|false
-    {
-        return file_put_contents(
-            $this->directory().DIRECTORY_SEPARATOR.$this->fileName->getLogfile(),
-            $line.PHP_EOL,
-            $override ? 0 : FILE_APPEND
-        );
     }
 
     /**

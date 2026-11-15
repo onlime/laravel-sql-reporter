@@ -6,6 +6,7 @@
 - The default `SQL_REPORTER_QUERIES_REPORT_PATTERN` now also excludes the modifications of the framework tables `cache`, `cache_locks`, `job_batches`, `failed_jobs` and `password_reset_tokens`, also with a schema (`"public"."jobs"`) and for `insert ignore into` / `insert or ignore into`, e.g. the `database` cache store's writes. With a table prefix (`DB_PREFIX`), add it to the table names in the pattern.
 - Security | The values of sensitive long options of Artisan commands are replaced by `[redacted]` in the `origin` header field, e.g. `--password=[redacted]` or `--api-token [redacted]`, with the names of `SQL_REPORTER_FORMAT_REDACT_URL_PARAMETERS`. See [Log header](README.md#log-header).
 - Security | Line breaks in header values, e.g. in a username or an Artisan argument, are replaced by spaces. A header value could otherwise end its `-- ` comment line in the `.sql` log file, and add lines that look like queries or other log entries.
+- Fix | Each log entry (its header and queries) is written to the log file at once, with an exclusive lock, so the log entries of requests, commands or jobs logged at the same time no longer get mixed up. The log directory is only created when a log entry is written. The README explains where the log files go and how their directory is created, see [Log files](README.md#log-files).
 - If you published the config file, or rely on query values in your `QueryLogWritten` listeners, see [Upgrading](README.md#v160).
 
 ## [v1.5.0 (2026-11-15)](https://github.com/onlime/laravel-sql-reporter/compare/v1.4.0...v1.5.0)

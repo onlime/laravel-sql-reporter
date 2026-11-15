@@ -4,7 +4,8 @@ return [
 
     'general' => [
         /*
-         * Directory where log files will be saved
+         * Directory where log files will be saved, relative to the storage directory (storage_path()). Absolute paths
+         * aren't supported in .env: for a directory outside of the storage directory, set its absolute path here.
          */
         'directory' => storage_path((string) env('SQL_REPORTER_DIRECTORY', 'logs/sql')),
 

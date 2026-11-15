@@ -49,6 +49,7 @@ class SqlLogger
                 ->each(function (SqlQuery $query) {
                     $this->writer->writeQuery($query);
                 });
+            $this->writer->flush();
 
             if ($report) {
                 $this->writer->report();

@@ -33,11 +33,11 @@ class Config
     ) {}
 
     /**
-     * Get directory where log files should be saved.
+     * Get directory where log files should be saved, without trailing slash.
      */
     public function logDirectory(): string
     {
-        return $this->repository->get('sql-reporter.general.directory');
+        return rtrim($this->repository->get('sql-reporter.general.directory'), '\\/');
     }
 
     /**

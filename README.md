@@ -70,11 +70,11 @@ It reports a lot of metadata like total query count, total execution time, origi
     SQL_REPORTER_QUERIES_EXCLUDE_PATTERN="/^UPDATE.*(last_visit|remember_token)/i"
     ```
 
-    If you have also `.env.example` it's recommended to add those entries also in `.env.example` file just to make sure everyone knows about those env variables. Be aware that `SQL_REPORTER_DIRECTORY` is directory inside storage directory.
+    If you have also `.env.example` it's recommended to add those entries also in `.env.example` file just to make sure everyone knows about those env variables. Be aware that `SQL_REPORTER_DIRECTORY` is relative to the storage directory, see [Log files](#log-files).
 
     To find out more about those setting please take a look at [Configuration file](config/sql-reporter.php)
 
-4. Make sure directory specified in `.env` file exists in storage path, and you have valid permissions to create and modify files in this directory (If it does not exist this package will automatically create it when needed, but it's recommended to create it manually with valid file permissions)
+4. Make sure directory specified in `.env` file exists in storage path, and you have valid permissions to create and modify files in this directory (If it does not exist this package will automatically create it when needed, but it's recommended to create it manually with restrictive file permissions, see [Log files](#log-files))
 
 5. Make sure on live server you will set logging SQL queries to false in your `.env` file: `SQL_REPORTER_QUERIES_ENABLED=false`. This package is recommended to be used only for development to not impact production application performance.
 
@@ -208,6 +208,12 @@ To exclude no command at all, set it to an empty value: `SQL_REPORTER_QUERIES_EX
 ## Sensitive data
 
 The log contains the values of all logged queries, e.g. personal data. Protect the log files accordingly, and keep this in mind for your `QueryLogWritten` reports, e.g. if you send them by email. Limit what is logged with `SQL_REPORTER_QUERIES_EXCLUDE_PATTERN`, and what is reported with `SQL_REPORTER_QUERIES_REPORT_PATTERN` or `Writer::shouldReportQuery()`.
+
+### Log files
+
+The log files are written to `SQL_REPORTER_DIRECTORY`, which is relative to Laravel's storage directory (`storage_path()`): the default `logs/sql` is `storage/logs/sql`, and `logs` writes them next to `laravel.log`. Absolute paths aren't supported, `/var/log/sql` would end up in `storage/var/log/sql`. For a directory outside of the storage directory, publish the config file and set `general.directory` to its absolute path.
+
+This package never changes the permissions of an existing directory. A missing directory is created like Laravel creates the one of its own log files, with mode `0777` reduced by the umask of the PHP process, e.g. to `0755` with the usual umask `022`. The log files are created with mode `0666` reduced by the umask, e.g. to `0644`. To keep the logs to yourself, create the directory with restrictive permissions, e.g. `0700`, which protects the log files in it as well.
 
 ### Query values
 

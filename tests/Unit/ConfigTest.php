@@ -37,12 +37,15 @@ it('returns valid values for queries override log', function () {
     expect($this->config->queriesOverrideLog())->toBeFalse();
 });
 
-it('returns valid value for log directory', function () {
-    $value = 'sample directory';
+it('returns valid value for log directory, without trailing slash', function (string $value, string $expected) {
     $this->repository->shouldReceive('get')->once()->with('sql-reporter.general.directory')
         ->andReturn($value);
-    expect($this->config->logDirectory())->toBe($value);
-});
+    expect($this->config->logDirectory())->toBe($expected);
+})->with([
+    'without trailing slash' => ['/var/www/storage/logs/sql', '/var/www/storage/logs/sql'],
+    'trailing slash' => ['/var/www/storage/logs/sql/', '/var/www/storage/logs/sql'],
+    'trailing backslash (Windows)' => ['C:\\www\\storage\\logs\\', 'C:\\www\\storage\\logs'],
+]);
 
 it('returns valid values for use seconds', function () {
     $this->repository->shouldReceive('get')->once()->with('sql-reporter.general.use_seconds')
