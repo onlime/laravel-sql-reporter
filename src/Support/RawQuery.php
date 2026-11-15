@@ -11,12 +11,14 @@ use Throwable;
 /**
  * Builds the raw SQL of a logged query with its bindings embedded, like Connection::getRawQueryLog(). Unlike it, a
  * value that can't be escaped as a string (e.g. binary data, or any value with a null byte or invalid UTF-8) doesn't
- * make it fail, which would otherwise prevent the whole request, command or job from being logged.
+ * make it fail, which would otherwise prevent the whole request, command or job from being logged. Secrets among the
+ * values are redacted, if a Redactor is given.
  */
 class RawQuery
 {
     public function __construct(
-        private readonly Connection $connection
+        private readonly Connection $connection,
+        private readonly ?Redactor $redactor = null,
     ) {}
 
     /**
@@ -28,6 +30,14 @@ class RawQuery
     {
         $bindings = $this->connection->prepareBindings($bindings);
         $grammar = $this->connection->getQueryGrammar();
+
+        // A redacted value is a plain string (e.g. [redacted]), which the grammar escapes like any other
+        if ($this->redactor !== null) {
+            $bindings = array_replace(
+                $bindings,
+                $this->redactor->redact($query, $bindings, $this->connection->getTablePrefix())
+            );
+        }
 
         try {
             return $grammar->substituteBindingsIntoRawSql($query, $bindings);

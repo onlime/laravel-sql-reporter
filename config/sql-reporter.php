@@ -4,7 +4,8 @@ return [
 
     'general' => [
         /*
-         * Directory where log files will be saved
+         * Directory where log files will be saved, relative to the storage directory (storage_path()). Absolute paths
+         * aren't supported in .env: for a directory outside of the storage directory, set its absolute path here.
          */
         'directory' => storage_path((string) env('SQL_REPORTER_DIRECTORY', 'logs/sql')),
 
@@ -13,6 +14,18 @@ return [
          * (by default it's in milliseconds)
          */
         'use_seconds' => env('SQL_REPORTER_USE_SECONDS', false),
+
+        /*
+         * Log file name without extension - elements between [ and ] characters will be parsed
+         * according to format used by https://www.php.net/manual/en/function.date.php
+         * SQL_REPORTER_QUERIES_FILE_NAME of older versions still works, if SQL_REPORTER_LOG_FILE_NAME isn't set.
+         *
+         * examples:
+         * '[Y-m]-log' (default) results in YYYY-MM-log.sql logfile (monthly rotations)
+         * '[Y-m-d]-log' results in YYYY-MM-DD-log.sql logfile (daily rotations)
+         * 'query-log' results in query-log.sql (you should use logrotate for rotation)
+         */
+        'log_file_name' => env('SQL_REPORTER_LOG_FILE_NAME', env('SQL_REPORTER_QUERIES_FILE_NAME', '[Y-m]-log')),
 
         /*
          * Suffix for Artisan queries logs (if it's empty same logfile will be used for Artisan)
@@ -53,6 +66,7 @@ return [
          * URL parameters whose values are replaced by [redacted] in the log header, as they might carry secrets like
          * tokens, signatures of signed URLs or OAuth authorization codes: route parameters (e.g. {token}) and query
          * string parameters in the 'origin' header field, query string parameters in the 'referer' header field.
+         * Long options of Artisan commands with these names are redacted as well, e.g. --password=[redacted].
          * Case-insensitive, with * wildcards. A nested query string parameter like filter[token] matches 'token' too.
          * In .env, separate them by commas. Set it to an empty value to redact no parameters at all.
          */
@@ -146,28 +160,35 @@ return [
         /*
          * Pattern which is used to detect DML queries to report (QueryLogWritten event).
          * (Data Manipulation Language - INSERT, UPDATE, DELETE, etc.)
-         * By default, it excludes SELECT queries, transactions, and modifications of some framework tables,
-         * with any identifier quoting (MySQL `jobs`, PostgreSQL / SQLite "jobs").
+         * By default, it excludes:
+         * - SELECT queries and transactions
+         * - inserts (also insert ignore / insert or ignore), updates and deletes of the framework tables sessions,
+         *   cache, cache_locks, jobs, job_batches, failed_jobs and password_reset_tokens, and of bans and logins,
+         *   with any identifier quoting (MySQL `jobs`, PostgreSQL / SQLite "jobs") and an optional schema
+         *   ("public"."jobs"). With a table prefix (DB_PREFIX), add it to the table names.
          */
         'report_pattern' => env(
             'SQL_REPORTER_QUERIES_REPORT_PATTERN',
-            '/^(?!select\s|start transaction|commit|(insert into|update|delete from) [`"]?(sessions|jobs|bans|logins)\b).*/i'
+            // not: a select or transaction, or a modification of one of these tables (with an optional schema)
+            '/^(?!select\s|start transaction|commit|'
+                .'(?:insert(?: (?:or )?ignore)? into|update|delete from) (?:[`"]?\w+[`"]?\.)?[`"]?'
+                .'(?:sessions|cache|cache_locks|jobs|job_batches|failed_jobs|password_reset_tokens|bans|logins)\b)/i'
         ),
+
+        /*
+         * Columns whose values are replaced by [redacted] in logged and reported queries, as they hold secrets like
+         * passwords, tokens or session payloads. Column names (e.g. 'smtp_password') or table.column
+         * (e.g. 'sessions.id'), case-insensitive, with * wildcards. The table prefix is ignored. In .env, separate
+         * them by commas. Set it to an empty value to redact no columns at all. Independent of this option, password
+         * hashes are always redacted except for their algorithm identifier, e.g. '$2y$[redacted]'.
+         */
+        'redact_columns' => env('SQL_REPORTER_QUERIES_REDACT_COLUMNS', [
+            '*password', '*token', '*secret*', 'two_factor_*', 'payload', 'sessions.id', 'cache.value',
+        ]),
 
         /*
          * Only log queries with slow execution time (in milliseconds)
          */
         'min_exec_time' => env('SQL_REPORTER_QUERIES_MIN_EXEC_TIME', 0),
-
-        /*
-         * Log file name without extension - elements between [ and ] characters will be parsed
-         * according to format used by https://www.php.net/manual/en/function.date.php
-         *
-         * examples:
-         * '[Y-m]-log' (default) results in YYYY-MM-log.sql logfile (monthly rotations)
-         * '[Y-m-d]-log' results in YYYY-MM-DD-log.sql logfile (daily rotations)
-         * 'query-log' results in query-log.sql (you should use logrotate for rotation)
-         */
-        'file_name' => env('SQL_REPORTER_QUERIES_FILE_NAME', '[Y-m]-log'),
     ],
 ];

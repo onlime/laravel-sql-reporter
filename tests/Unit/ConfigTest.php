@@ -37,12 +37,15 @@ it('returns valid values for queries override log', function () {
     expect($this->config->queriesOverrideLog())->toBeFalse();
 });
 
-it('returns valid value for log directory', function () {
-    $value = 'sample directory';
+it('returns valid value for log directory, without trailing slash', function (string $value, string $expected) {
     $this->repository->shouldReceive('get')->once()->with('sql-reporter.general.directory')
         ->andReturn($value);
-    expect($this->config->logDirectory())->toBe($value);
-});
+    expect($this->config->logDirectory())->toBe($expected);
+})->with([
+    'without trailing slash' => ['/var/www/storage/logs/sql', '/var/www/storage/logs/sql'],
+    'trailing slash' => ['/var/www/storage/logs/sql/', '/var/www/storage/logs/sql'],
+    'trailing backslash (Windows)' => ['C:\\www\\storage\\logs\\', 'C:\\www\\storage\\logs'],
+]);
 
 it('returns valid values for use seconds', function () {
     $this->repository->shouldReceive('get')->once()->with('sql-reporter.general.use_seconds')
@@ -85,12 +88,14 @@ it('returns valid file extension', function () {
     expect($this->config->fileExtension())->toBe($value);
 });
 
-it('returns valid queries file name', function () {
-    $value = '[Y-m-d]-sample';
-    $this->repository->shouldReceive('get')->once()->with('sql-reporter.queries.file_name')
-        ->andReturn($value);
-    expect($this->config->queriesFileName())->toBe($value);
-});
+it('returns valid log file name', function (?string $general, ?string $queries, string $expected) {
+    $this->repository->shouldReceive('get')->with('sql-reporter.general.log_file_name')->andReturn($general);
+    $this->repository->shouldReceive('get')->with('sql-reporter.queries.file_name')->andReturn($queries);
+    expect($this->config->logFileName())->toBe($expected);
+})->with([
+    'general section' => ['[Y-m-d]-sample', null, '[Y-m-d]-sample'],
+    'queries section of a published config file of an older version' => [null, 'query-log', 'query-log'],
+]);
 
 it('returns valid value for entry format', function () {
     $this->repository->shouldReceive('get')->once()->with('sql-reporter.formatting.entry_format')
@@ -157,6 +162,18 @@ it('returns valid values for redact url parameters', function (mixed $value, arr
 })->with([
     'array (default)' => [['*token*', 'code'], ['*token*', 'code']],
     'comma-separated (.env)' => ['*token*, code,,', ['*token*', 'code']],
+    'empty (.env)' => ['', []],
+]);
+
+it('returns valid values for redact columns', function (mixed $value, array $expected) {
+    // a published config file of an older version doesn't have this option yet, so it falls back to the defaults
+    $this->repository->shouldReceive('get')->once()
+        ->with('sql-reporter.queries.redact_columns', Config::DEFAULT_REDACT_COLUMNS)
+        ->andReturn($value);
+    expect($this->config->redactColumns())->toBe($expected);
+})->with([
+    'array (default)' => [['password', 'sessions.id'], ['password', 'sessions.id']],
+    'comma-separated (.env)' => ['password, sessions.id,,', ['password', 'sessions.id']],
     'empty (.env)' => ['', []],
 ]);
 

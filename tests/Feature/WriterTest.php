@@ -7,7 +7,6 @@ use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Event;
 use Onlime\LaravelSqlReporter\Config;
 use Onlime\LaravelSqlReporter\Events\QueryLogWritten;
-use Onlime\LaravelSqlReporter\FileName;
 use Onlime\LaravelSqlReporter\Formatter;
 use Onlime\LaravelSqlReporter\SqlQuery;
 use Onlime\LaravelSqlReporter\Writer;
@@ -17,8 +16,7 @@ beforeEach(function () {
     Carbon::setTestNow($this->now);
     $this->formatter = Mockery::mock(Formatter::class);
     $this->config = app(Config::class);
-    $this->filename = Mockery::mock(FileName::class);
-    $this->writer = new Writer($this->formatter, $this->config, $this->filename);
+    $this->writer = new Writer($this->formatter, $this->config);
     $this->directory = sys_get_temp_dir().'/laravel-sql-reporter-tests/'.uniqid('', true);
     config(['sql-reporter.general.directory' => $this->directory]);
     $this->filesystem = new Filesystem;
@@ -28,20 +26,55 @@ afterEach(function () {
     $this->filesystem->deleteDirectory($this->directory);
 });
 
-it('creates directory if it does not exist for 1st query', function () {
+it('writes the log entry only when flushing it, and only once', function () {
     $query = SqlQuery::make(1, 'test', 5.41);
-    config(['sql-reporter.queries.enabled' => false]);
-    expect($this->directory)->not->toBeDirectory();
+    $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('-- header');
+    $this->formatter->shouldReceive('getLine')->once()->with($query)->andReturn('Sample log line');
+    config(['sql-reporter.general.log_file_name' => 'query-log']);
+
     $this->writer->writeQuery($query);
-    expect($this->directory)->toBeDirectory()
-        ->and($this->filesystem->allFiles($this->directory))->toBeEmpty();
+    expect($this->directory)->not->toBeDirectory();
+
+    $this->writer->flush();
+    $this->writer->flush();
+    expect($this->filesystem->allFiles($this->directory))->toHaveCount(1)
+        ->and(file_get_contents($this->directory.'/query-log.sql'))->toBe("-- header\nSample log line\n");
 });
 
-it('does not create directory if it does not exist for 2nd query', function () {
-    $query = SqlQuery::make(2, 'test', 5.41);
+it('names the log file by its options', function (string $fileName, string $suffix, string $extension, bool $console, string $expected) {
+    config([
+        'sql-reporter.general.log_file_name' => $fileName,
+        'sql-reporter.general.console_log_suffix' => $suffix,
+        'sql-reporter.general.extension' => $extension,
+    ]);
+    (function () use ($console) {
+        $this->isRunningInConsole = $console;
+    })->call($this->app);
+    $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('-- header');
+    $this->formatter->shouldReceive('getLine')->once()->andReturn('Sample log line');
+
+    $this->writer->writeQuery(SqlQuery::make(1, 'test', 5.41));
+    $this->writer->flush();
+
+    expect($this->filesystem->allFiles($this->directory))->toHaveCount(1)
+        ->and($this->directory.'/'.$expected)->toBeFile();
+})->with([
+    // [file name, console suffix, extension, running in console, expected file name], now is 2015-02-03
+    'default (monthly)' => ['[Y-m]-log', '', '.sql', true, '2015-02-log.sql'],
+    'daily' => ['[Y-m-d]-log', '', '.sql', true, '2015-02-03-log.sql'],
+    'several date formats, the text between them stays as is' => ['sample[Y]-test-[m]-abc-[d]', '', '.sql', false, 'sample2015-test-02-abc-03.sql'],
+    'without date formats, although its letters are date format characters' => ['query-log', '', '.sql', true, 'query-log.sql'],
+    'with the console suffix in console' => ['[Y-m]-log', '-artisan', '.sql', true, '2015-02-log-artisan.sql'],
+    'without the console suffix outside of console' => ['[Y-m]-log', '-artisan', '.sql', false, '2015-02-log.sql'],
+    'other extension' => ['query-log', '', '.log', true, 'query-log.log'],
+]);
+
+it('does not write anything if no query is logged', function () {
     config(['sql-reporter.queries.enabled' => false]);
-    expect($this->directory)->not->toBeDirectory();
-    $this->writer->writeQuery($query);
+
+    $this->writer->writeQuery(SqlQuery::make(1, 'test', 5.41));
+    $this->writer->flush();
+
     expect($this->directory)->not->toBeDirectory();
 });
 
@@ -56,8 +89,8 @@ it('creates log file', function () {
 
     config(['sql-reporter.queries.include_pattern' => '#.*#i']);
 
-    $this->filename->shouldReceive('getLogfile')->times(2)->withNoArgs()->andReturn($expectedFileName);
     $this->writer->writeQuery($query);
+    $this->writer->flush();
     expect($this->directory)->toBeDirectory()
         ->and($this->filesystem->allFiles($this->directory))->toHaveCount(1)
         ->and($this->directory.'/'.$expectedFileName)->toBeFile()
@@ -77,39 +110,15 @@ it('appends to existing log file', function () {
     $this->formatter->shouldReceive('getLine')->once()->with($query)->andReturn($lineContent);
     $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('-- header');
     config(['sql-reporter.queries.include_pattern' => '#.*#i']);
-    $this->filename->shouldReceive('getLogfile')->times(2)->withNoArgs()->andReturn($expectedFileName);
     expect($this->directory.'/'.$expectedFileName)->toBeFile();
     $this->writer->writeQuery($query);
+    $this->writer->flush();
     expect($this->filesystem->allFiles($this->directory))->toHaveCount(1)
         ->and($this->directory.'/'.$expectedFileName)->toBeFile()
         ->and(file_get_contents($this->directory.'/'.$expectedFileName))->toBe($expectedContent);
 });
 
-it('replaces current file content for 1st query when overriding is turned on', function () {
-    $expectedFileName = $this->now->format('Y-m').'-log.sql';
-    mkdir($this->directory, 0777, true);
-    $initialContent = "Initial file content\n";
-    file_put_contents($this->directory.'/'.$expectedFileName, $initialContent);
-
-    $lineContent = 'Sample log line';
-    $expectedContent = "-- header\nSample log line\n";
-
-    $query = SqlQuery::make(1, 'test', 5.41);
-    $this->formatter->shouldReceive('getLine')->once()->with($query)->andReturn($lineContent);
-    $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('-- header');
-    config([
-        'sql-reporter.queries.include_pattern' => '#.*#i',
-        'sql-reporter.queries.override_log' => true,
-    ]);
-    $this->filename->shouldReceive('getLogfile')->times(2)->withNoArgs()->andReturn($expectedFileName);
-    expect($this->directory.'/'.$expectedFileName)->toBeFile();
-    $this->writer->writeQuery($query);
-    expect($this->filesystem->allFiles($this->directory))->toHaveCount(1)
-        ->and($this->directory.'/'.$expectedFileName)->toBeFile()
-        ->and(file_get_contents($this->directory.'/'.$expectedFileName))->toBe($expectedContent);
-});
-
-it('appends to current file content for 2nd query when overriding is turned on', function () {
+it('replaces current file content with the log entry when overriding is turned on', function () {
     $expectedFileName = $this->now->format('Y-m').'-log.sql';
     mkdir($this->directory, 0777, true);
     $initialContent = "Initial file content\n";
@@ -126,10 +135,10 @@ it('appends to current file content for 2nd query when overriding is turned on',
         'sql-reporter.queries.include_pattern' => '#.*#i',
         'sql-reporter.queries.override_log' => true,
     ]);
-    $this->filename->shouldReceive('getLogfile')->times(3)->withNoArgs()->andReturn($expectedFileName);
     expect($this->directory.'/'.$expectedFileName)->toBeFile();
     $this->writer->writeQuery($query1);
     $this->writer->writeQuery($query2);
+    $this->writer->flush();
     expect($this->filesystem->allFiles($this->directory))->toHaveCount(1)
         ->and($this->directory.'/'.$expectedFileName)->toBeFile()
         ->and(file_get_contents($this->directory.'/'.$expectedFileName))->toBe($expectedContent);
@@ -144,8 +153,8 @@ it('saves select query to file when pattern set to select queries', function () 
     $this->formatter->shouldReceive('getLine')->once()->with($query)->andReturn($lineContent);
     $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('');
     config(['sql-reporter.queries.include_pattern' => '#^SELECT .*$#i']);
-    $this->filename->shouldReceive('getLogfile')->twice()->withNoArgs()->andReturn($expectedFileName);
     $this->writer->writeQuery($query);
+    $this->writer->flush();
     expect($this->directory)->toBeDirectory()
         ->and($this->filesystem->allFiles($this->directory))->toHaveCount(1)
         ->and($this->directory.'/'.$expectedFileName)->toBeFile()
@@ -156,8 +165,8 @@ it('doesnt save select query to file when pattern set to insert or update querie
     $query = SqlQuery::make(1, 'select * FROM test', 5.41);
     config(['sql-reporter.queries.include_pattern' => '#^(?:UPDATE|INSERT) .*$#i']);
     $this->writer->writeQuery($query);
-    expect($this->directory)->toBeDirectory()
-        ->and($this->filesystem->allFiles($this->directory))->toHaveCount(0);
+    $this->writer->flush();
+    expect($this->directory)->not->toBeDirectory();
 });
 
 it('saves insert query to file when pattern set to insert or update queries', function () {
@@ -169,8 +178,8 @@ it('saves insert query to file when pattern set to insert or update queries', fu
     $this->formatter->shouldReceive('getLine')->once()->with($query)->andReturn($lineContent);
     $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('');
     config(['sql-reporter.queries.include_pattern' => '#^(?:UPDATE|INSERT) .*$#i']);
-    $this->filename->shouldReceive('getLogfile')->twice()->withNoArgs()->andReturn($expectedFileName);
     $this->writer->writeQuery($query);
+    $this->writer->flush();
     expect($this->directory)->toBeDirectory()
         ->and($this->filesystem->allFiles($this->directory))->toHaveCount(1)
         ->and($this->directory.'/'.$expectedFileName)->toBeFile()
@@ -186,8 +195,8 @@ it('uses raw query without bindings when using query pattern', function () {
     $this->formatter->shouldReceive('getLine')->once()->with($query)->andReturn($lineContent);
     $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('');
     config(['sql-reporter.queries.include_pattern' => '#^(?:UPDATE test SET x = \d |INSERT ).*$#i']);
-    $this->filename->shouldReceive('getLogfile')->twice()->withNoArgs()->andReturn($expectedFileName);
     $this->writer->writeQuery($query);
+    $this->writer->flush();
     expect($this->directory)->toBeDirectory()
         ->and($this->filesystem->allFiles($this->directory))->toHaveCount(1)
         ->and($this->directory.'/'.$expectedFileName)->toBeFile()
@@ -203,13 +212,8 @@ it('only logs slow queries', function () {
     $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('');
     $this->formatter->shouldReceive('getLine')->once()->with($query2)->andReturn('');
 
-    $writer = Mockery::mock(Writer::class, [$this->formatter, $this->config, $this->filename])
-        ->makePartial()->shouldAllowMockingProtectedMethods();
-    $writer->shouldAllowMockingProtectedMethods();
-    $writer->shouldReceive('writeLine')->twice()->andReturn(false);
-
-    expect($writer->writeQuery($query1))->toBeFalse()
-        ->and($writer->writeQuery($query2))->toBeTrue();
+    expect($this->writer->writeQuery($query1))->toBeFalse()
+        ->and($this->writer->writeQuery($query2))->toBeTrue();
 });
 
 it('respects query patterns', function () {
@@ -225,25 +229,46 @@ it('respects query patterns', function () {
     $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('');
     $this->formatter->shouldReceive('getLine')->once()->with($query2)->andReturn('');
 
-    $writer = Mockery::mock(Writer::class, [$this->formatter, $this->config, $this->filename])
-        ->makePartial()->shouldAllowMockingProtectedMethods();
-    $writer->shouldAllowMockingProtectedMethods();
-    $writer->shouldReceive('writeLine')->twice()->andReturn(false);
-
-    expect($writer->writeQuery($query1))->toBeFalse()
-        ->and($writer->writeQuery($query2))->toBeTrue()
-        ->and($writer->writeQuery($query3))->toBeFalse();
+    expect($this->writer->writeQuery($query1))->toBeFalse()
+        ->and($this->writer->writeQuery($query2))->toBeTrue()
+        ->and($this->writer->writeQuery($query3))->toBeFalse();
 });
 
-it('respects the report pattern from the config to determine if a query should be reported', function (string $query, bool $report) {
-    expect($this->writer->shouldReportSqlQuery(SqlQuery::make(1, $query, 1)))->toBe($report);
+it('does not report selects, transactions and modifications of framework tables by default', function (string $query) {
+    expect($this->writer->shouldReportSqlQuery(SqlQuery::make(1, $query, 1)))->toBeFalse();
 })->with([
-    ['select * from users', false],
-    ['delete from users', true],
-    ['delete from `jobs` where `id` = 1', false],
-    ['delete from "jobs" where "id" = 1', false],
-    ['insert into "sessions" ("id") values (1)', false],
-    ['update "jobs_batches" set "x" = 1', true],
+    'select' => ['select * from users'],
+    'select, uppercase' => ['SELECT * FROM `users`'],
+    'start transaction' => ['start transaction'],
+    'commit' => ['commit'],
+    'MySQL quoting' => ['delete from `jobs` where `id` = 1'],
+    'PostgreSQL / SQLite quoting' => ['delete from "jobs" where "id" = 1'],
+    'unquoted' => ['delete from jobs where id = 1'],
+    'uppercase' => ['UPDATE "sessions" SET "user_id" = 1'],
+    'insert' => ['insert into "sessions" ("id") values (1)'],
+    'insert ignore (MySQL)' => ['insert ignore into `cache` (`key`) values (\'a\')'],
+    'insert or ignore (SQLite)' => ['insert or ignore into "cache" ("key") values (\'a\')'],
+    'upsert (MySQL)' => ['insert into `cache` (`key`) values (\'a\') on duplicate key update `key` = values(`key`)'],
+    'schema (PostgreSQL)' => ['update "public"."sessions" set "user_id" = 1'],
+    'schema (MySQL)' => ['update `app`.`sessions` set `user_id` = 1'],
+    'cache' => ['insert into "cache" ("key") values (\'a\')'],
+    'cache_locks' => ['delete from `cache_locks` where `key` = \'a\''],
+    'job_batches' => ['update "job_batches" set "pending_jobs" = 0'],
+    'failed_jobs' => ['insert into "failed_jobs" ("uuid") values (\'a\')'],
+    'password_reset_tokens' => ['delete from "password_reset_tokens" where "email" = \'a\''],
+    'bans' => ['insert into `bans` (`ip`) values (\'a\')'],
+    'logins' => ['insert into `logins` (`user_id`) values (1)'],
+]);
+
+it('reports other modifications by default', function (string $query) {
+    expect($this->writer->shouldReportSqlQuery(SqlQuery::make(1, $query, 1)))->toBeTrue();
+})->with([
+    'delete' => ['delete from users'],
+    'update' => ['update "users" set "name" = \'a\''],
+    'a table starting like a framework table' => ['update "cache_settings" set "x" = 1'],
+    'another table starting like a framework table' => ['insert into "sessions_archive" ("id") values (1)'],
+    'a table similar to a framework table' => ['update "jobs_batches" set "x" = 1'],
+    'a table prefix, which the default pattern does not know' => ['update "app_sessions" set "user_id" = 1'],
 ]);
 
 it('can provide a callback to the writer to determine if a query should be reported', function (string $query, bool $report) {
@@ -310,14 +335,12 @@ it('dispatches an event when there are queries to report', function () {
     $query1 = SqlQuery::make(1, 'select * from users', 5.41);
     $query2 = SqlQuery::make(2, 'delete from users', 5.41);
 
-    $expectedFileName = $this->now->format('Y-m').'-log.sql';
     $lineContent1 = 'Sample log line 1';
     $lineContent2 = 'Sample log line 2';
 
     $this->formatter->shouldReceive('getLine')->once()->with($query1)->andReturn($lineContent1);
     $this->formatter->shouldReceive('getLine')->once()->with($query2)->andReturn($lineContent2);
     $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('-- header');
-    $this->filename->shouldReceive('getLogfile')->times(3)->withNoArgs()->andReturn($expectedFileName);
 
     $this->writer->writeQuery($query1);
     $this->writer->writeQuery($query2);

@@ -7,6 +7,7 @@ namespace Onlime\LaravelSqlReporter;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Onlime\LaravelSqlReporter\Support\RawQuery;
+use Onlime\LaravelSqlReporter\Support\Redactor;
 use Throwable;
 
 class SqlLogger
@@ -15,7 +16,8 @@ class SqlLogger
      * SqlLogger constructor.
      */
     public function __construct(
-        private Writer $writer
+        private Writer $writer,
+        private Redactor $redactor,
     ) {}
 
     /**
@@ -32,7 +34,7 @@ class SqlLogger
             }
 
             $connection = DB::connection();
-            $rawQuery = new RawQuery($connection);
+            $rawQuery = new RawQuery($connection, $this->redactor);
 
             // Not using getRawQueryLog(), which fails as a whole if a single value can't be escaped
             Collection::make($connection->getQueryLog())
@@ -47,6 +49,7 @@ class SqlLogger
                 ->each(function (SqlQuery $query) {
                     $this->writer->writeQuery($query);
                 });
+            $this->writer->flush();
 
             if ($report) {
                 $this->writer->report();

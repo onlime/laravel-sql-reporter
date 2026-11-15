@@ -24,7 +24,7 @@ It reports a lot of metadata like total query count, total execution time, origi
    ```bash
    $ composer require onlime/laravel-sql-reporter --dev
    ```
-   in console to install this module (Notice `--dev` flag - it's recommended to use this package only for development).
+   in console to install this module. The `--dev` flag installs it for development only, see step 5 for using it in production.
 
    Laravel uses package auto-discovery, and it will automatically load this service provider, so you don't need to add anything into the `providers` section of `config/app.php`.
 
@@ -41,6 +41,7 @@ It reports a lot of metadata like total query count, total execution time, origi
     ```ini
     SQL_REPORTER_DIRECTORY="logs/sql"
     SQL_REPORTER_USE_SECONDS=false
+    SQL_REPORTER_LOG_FILE_NAME="[Y-m]-log"
     SQL_REPORTER_CONSOLE_SUFFIX=
     SQL_REPORTER_LOG_EXTENSION=".sql"
     SQL_REPORTER_QUERIES_ENABLED=true
@@ -49,9 +50,9 @@ It reports a lot of metadata like total query count, total execution time, origi
     SQL_REPORTER_QUERIES_OVERRIDE_LOG=false
     SQL_REPORTER_QUERIES_INCLUDE_PATTERN="/.*/i"
     SQL_REPORTER_QUERIES_EXCLUDE_PATTERN="/^\$/"
-    SQL_REPORTER_QUERIES_REPORT_PATTERN='/^(?!select\s|start transaction|commit|(insert into|update|delete from) [`"]?(sessions|jobs|bans|logins)\b).*/i'
+    SQL_REPORTER_QUERIES_REPORT_PATTERN='/^(?!select\s|start transaction|commit|(?:insert(?: (?:or )?ignore)? into|update|delete from) (?:[`"]?\w+[`"]?\.)?[`"]?(?:sessions|cache|cache_locks|jobs|job_batches|failed_jobs|password_reset_tokens|bans|logins)\b)/i'
+    SQL_REPORTER_QUERIES_REDACT_COLUMNS='*password,*token,*secret*,two_factor_*,payload,sessions.id,cache.value'
     SQL_REPORTER_QUERIES_MIN_EXEC_TIME=0
-    SQL_REPORTER_QUERIES_FILE_NAME="[Y-m]-log"
     SQL_REPORTER_FORMAT_HEADER_FIELDS="datetime,origin,route,status,user,guard,env,agent,ip,referer"
     SQL_REPORTER_FORMAT_HEADER_DATETIME_FORMAT="Y-m-d H:i:s P"
     SQL_REPORTER_FORMAT_ENTRY_FORMAT="-- Query [query_nr] [[query_time]]\\n[query]"
@@ -69,13 +70,19 @@ It reports a lot of metadata like total query count, total execution time, origi
     SQL_REPORTER_QUERIES_EXCLUDE_PATTERN="/^UPDATE.*(last_visit|remember_token)/i"
     ```
 
-    If you have also `.env.example` it's recommended to add those entries also in `.env.example` file just to make sure everyone knows about those env variables. Be aware that `SQL_REPORTER_DIRECTORY` is directory inside storage directory.
+    If you have also `.env.example` it's recommended to add those entries also in `.env.example` file just to make sure everyone knows about those env variables. Be aware that `SQL_REPORTER_DIRECTORY` is relative to the storage directory, see [Log files](#log-files).
 
     To find out more about those setting please take a look at [Configuration file](config/sql-reporter.php)
 
-4. Make sure directory specified in `.env` file exists in storage path, and you have valid permissions to create and modify files in this directory (If it does not exist this package will automatically create it when needed, but it's recommended to create it manually with valid file permissions)
+4. Make sure directory specified in `.env` file exists in storage path, and you have valid permissions to create and modify files in this directory (If it does not exist this package will automatically create it when needed, but it's recommended to create it manually with restrictive file permissions, see [Log files](#log-files))
 
-5. Make sure on live server you will set logging SQL queries to false in your `.env` file: `SQL_REPORTER_QUERIES_ENABLED=false`. This package is recommended to be used only for development to not impact production application performance.
+5. Logging is enabled right away, wherever this package is installed. You can easily disable it, e.g. on a server where you don't need it, in your `.env` file (and re-run `php artisan config:cache`, if you cache your config):
+
+    ```ini
+    SQL_REPORTER_QUERIES_ENABLED=false
+    ```
+
+    To keep the package out of production altogether, install it with `--dev` and deploy with `composer install --no-dev`. To use it in production, install it without `--dev`, and mind the [sensitive data](#sensitive-data) in the log: protect the log files, and limit what is logged and reported. It adds little overhead, as requests are logged after the response has been sent.
 
 ## Queued jobs
 
@@ -121,7 +128,7 @@ All the other options apply to jobs as well, e.g. the include/exclude patterns a
 Before enabling it, be aware of these impacts:
 
 - **Logging time per job:** Jobs are logged synchronously by the worker, right after each job attempt, not deferred like requests. This adds the time to resolve the header fields and to write the log file to every job, slowing down the processing of your queue a bit. If you enabled the `host` header field, it is the reverse DNS lookup of `127.0.0.1` in a worker, so you may remove it from `SQL_REPORTER_FORMAT_HEADER_FIELDS` for busy queues.
-- **Log file size:** Every job running queries adds a log entry with a full header. On a busy queue, the log file grows much faster than with requests only. Use a daily file name like `SQL_REPORTER_QUERIES_FILE_NAME="[Y-m-d]-log"`, a separate console log file (`SQL_REPORTER_CONSOLE_SUFFIX`), logrotate, or limit the logged queries with `SQL_REPORTER_QUERIES_INCLUDE_PATTERN` / `SQL_REPORTER_QUERIES_EXCLUDE_PATTERN`.
+- **Log file size:** Every job running queries adds a log entry with a full header. On a busy queue, the log file grows much faster than with requests only. Use a daily file name like `SQL_REPORTER_LOG_FILE_NAME="[Y-m-d]-log"`, a separate console log file (`SQL_REPORTER_CONSOLE_SUFFIX`), logrotate, or limit the logged queries with `SQL_REPORTER_QUERIES_INCLUDE_PATTERN` / `SQL_REPORTER_QUERIES_EXCLUDE_PATTERN`.
 - **`QueryLogWritten` event per job:** Your listeners run for every job that ran queries matching the report pattern, inside the worker. If they send notifications (e.g. a report by email), you may get many more of them than before. Exclude noisy jobs with the [`#[DontReportQueries]` attribute](#excluding-artisan-commands-and-queued-jobs), `SQL_REPORTER_QUERIES_REPORT_PATTERN` or `Writer::shouldReportQuery()`.
 - **Feedback loops:** If your `QueryLogWritten` listener queues a job (e.g. a queued listener or notification) which runs queries to report itself, each of these jobs dispatches another `QueryLogWritten` event, and so on. Make sure such jobs are not reported, e.g. with `#[DontReportQueries]` on the queued listener or notification class.
 - **Retries:** Each job attempt is logged separately, so a retried job shows up several times. Failed attempts are logged as well, with the queries up to the exception, and so are timed out jobs, right before the worker kills them.
@@ -206,9 +213,49 @@ To exclude no command at all, set it to an empty value: `SQL_REPORTER_QUERIES_EX
 
 ## Sensitive data
 
-The log contains the values of all logged queries, as they were sent to the database: personal data, password hashes, tokens stored in plain text (e.g. `remember_token`), the payloads of the `database` session driver, and so on. Protect the log files accordingly, and keep this in mind for your `QueryLogWritten` reports, e.g. if you send them by email. Limit what is logged with `SQL_REPORTER_QUERIES_EXCLUDE_PATTERN`, and what is reported with `SQL_REPORTER_QUERIES_REPORT_PATTERN` or `Writer::shouldReportQuery()`.
+The log contains the values of all logged queries, e.g. personal data. Protect the log files accordingly, and keep this in mind for your `QueryLogWritten` reports, e.g. if you send them by email. Limit what is logged with `SQL_REPORTER_QUERIES_EXCLUDE_PATTERN`, and what is reported with `SQL_REPORTER_QUERIES_REPORT_PATTERN` or `Writer::shouldReportQuery()`.
 
-The log header keeps secrets in URLs out of the log. In the origin of a request, the values of sensitive route parameters and query string parameters are replaced by `[redacted]`, e.g. for a password reset link of the route `/reset-password/{token}`:
+### Log files
+
+The log files are written to `SQL_REPORTER_DIRECTORY`, which is relative to Laravel's storage directory (`storage_path()`): the default `logs/sql` is `storage/logs/sql`, and `logs` writes them next to `laravel.log`. Absolute paths aren't supported, `/var/log/sql` would end up in `storage/var/log/sql`. For a directory outside of the storage directory, publish the config file and set `general.directory` to its absolute path.
+
+This package never changes the permissions of an existing directory. A missing directory is created like Laravel creates the one of its own log files, with mode `0777` reduced by the umask of the PHP process, e.g. to `0755` with the usual umask `022`. The log files are created with mode `0666` reduced by the umask, e.g. to `0644`. To keep the logs to yourself, create the directory with restrictive permissions, e.g. `0700`, which protects the log files in it as well.
+
+### Query values
+
+Secrets among the values of the queries are replaced by `[redacted]`, in the log file and in the `QueryLogWritten` event:
+
+```sql
+insert into `users` (`name`, `password`, `remember_token`) values ('Alice', '$2y$[redacted]', '[redacted]');
+update `sessions` set `payload` = '[redacted]', `user_id` = 1 where `id` = '[redacted]';
+```
+
+- **Columns:** The values of the columns in `SQL_REPORTER_QUERIES_REDACT_COLUMNS`, which are column names (e.g. `password`) or `table.column` (e.g. `sessions.id`), case-insensitive, with `*` wildcards. The table prefix is ignored. By default: passwords (e.g. `password` or `smtp_password`), tokens (e.g. `remember_token`), secrets, Fortify's two-factor columns, the payloads of the `database` session and queue drivers, session IDs, and the values of the `database` cache store. Setting the option replaces the defaults, so include them if you want to keep them:
+
+  ```ini
+  SQL_REPORTER_QUERIES_REDACT_COLUMNS='*password,*token,*secret*,two_factor_*,payload,sessions.id,cache.value,users.iban'
+  ```
+
+  To redact no columns at all, set it to an empty value: `SQL_REPORTER_QUERIES_REDACT_COLUMNS=`.
+- **Password hashes:** Always redacted except for their algorithm identifier, in any column, e.g. `'$2y$[redacted]'` (bcrypt) or `'$argon2id$[redacted]'`. This works for any hash in the modular crypt format (`$<identifier>$…`), also for legacy ones like `'$6$[redacted]'` (SHA-512-crypt) or `'$P$[redacted]'` (phpass).
+- **Your own rules:** A callback, e.g. in your `AppServiceProvider`. It gets each value (except `null`), its column and table, if known, and the query with its `?` placeholders:
+
+  ```php
+  use Onlime\LaravelSqlReporter\Writer;
+
+  Writer::redactBindingUsing(function (mixed $value, ?string $column, ?string $table, string $query) {
+      // e.g. redact email addresses in any column
+      return is_string($value) && str_contains($value, '@');
+  });
+  ```
+
+The column of a value is found in the query, e.g. `"email" = ?`, `set "email" = ?`, `"id" in (?, ?)` or the columns of an insert. It's unknown for a value in an expression, e.g. `lower("email") = ?`, or among the values of an insert with expressions, e.g. `now()`. Such a value is only redacted if it's a password hash, or if your callback asks for it.
+
+The include, exclude and report patterns match the redacted queries. A `Writer::shouldReportQuery()` callback still gets the original values in `SqlQuery::$bindings`.
+
+### Log header
+
+The log header keeps secrets in URLs and Artisan commands out of the log. In the origin of a request, the values of sensitive route parameters and query string parameters are replaced by `[redacted]`, e.g. for a password reset link of the route `/reset-password/{token}`:
 
 ```
 -- Origin:   (request) GET https://example.com/reset-password/[redacted]?email=alice%40example.com&signature=[redacted]
@@ -224,6 +271,14 @@ SQL_REPORTER_FORMAT_REDACT_URL_PARAMETERS='*token*,*password*,*secret*,*signatur
 ```
 
 To redact no parameters at all, set it to an empty value: `SQL_REPORTER_FORMAT_REDACT_URL_PARAMETERS=`.
+
+The long options of an Artisan command with these names are redacted as well, with their value given after `=` or as the next argument:
+
+```
+-- Origin:   (console) artisan app:create-user alice --password=[redacted] --api-token [redacted]
+```
+
+Line breaks in header values, e.g. in a username or an Artisan argument, are replaced by spaces, so each header field stays on its own `-- ` comment line.
 
 The `host` header field (reverse DNS lookup of the client IP) and the [GeoIP lookup](#geoip-support) are not enabled by default, as they may send the client IP to DNS servers or a third-party service, and wait for the answer.
 
@@ -250,7 +305,7 @@ Every logged request then looks up the country of the client IP. The default dri
 
 This package fires a `QueryLogWritten` event after the log file has been written for a request, an Artisan command or (with `SQL_REPORTER_QUERIES_LOG_JOBS` enabled) a queued job. You may use this event to further debug or analyze the logged queries in your application. It provides the number of logged queries (`$loggedQueryCount`), the formatted header (`$reportHeader`) and the formatted queries to report (`$reportQueries`).
 
-The queries to report are filtered by the `SQL_REPORTER_QUERIES_REPORT_PATTERN` setting, which comes with a sensible default to exclude `SELECT` queries and some default tables like `sessions`, `jobs`, `bans`, `logins`. If you don't want to filter any queries, you may leave this setting empty. The event is only fired if there are queries to report. To exclude whole Artisan commands or queued jobs from reporting, use the [`#[DontReportQueries]` attribute](#excluding-artisan-commands-and-queued-jobs).
+The queries to report are filtered by the `SQL_REPORTER_QUERIES_REPORT_PATTERN` setting, which comes with a sensible default to exclude `SELECT` queries, and the modifications of Laravel's framework tables (`sessions`, `cache`, `cache_locks`, `jobs`, `job_batches`, `failed_jobs`, `password_reset_tokens`) and of `bans` and `logins`. If you use a table prefix (`DB_PREFIX`), add it to the table names in the pattern. If you don't want to filter any queries, you may leave this setting empty. The event is only fired if there are queries to report. To exclude whole Artisan commands or queued jobs from reporting, use the [`#[DontReportQueries]` attribute](#excluding-artisan-commands-and-queued-jobs).
 
 In addition to the pattern, you may also configure a callback to define your own custom filtering logic, for example, in your `AppServiceProvider`:
 
@@ -336,6 +391,14 @@ $ php artisan vendor:publish --tag=sql-reporter --force
 ```
 
 or apply the changes listed below by hand, for each version you're upgrading across. Only the versions with changes to the config file (or other changes you need to act on) are listed.
+
+### v1.6.0
+
+- `general.log_file_name`: renamed from `queries.file_name`, and moved next to the other options of the log file. A published config file with `queries.file_name` still works, so you only need to move it to keep your config file in line with the package's.
+- `SQL_REPORTER_LOG_FILE_NAME`: the new name of `SQL_REPORTER_QUERIES_FILE_NAME`, in line with `SQL_REPORTER_LOG_EXTENSION`. The former name still works if the new one isn't set, so you only need to rename it in your `.env` file to be ready for its removal in a future major version.
+- `queries.redact_columns`: new option, see [Query values](#query-values). Without it, the default columns are redacted anyway.
+- `queries.report_pattern`: the default now also excludes the framework tables `cache`, `cache_locks`, `job_batches`, `failed_jobs` and `password_reset_tokens`, schema-qualified table names (`"public"."jobs"`), and `insert ignore into` / `insert or ignore into`.
+- Also without a published config file: secrets among the query values are now redacted in the log and in the `QueryLogWritten` event. If your listeners or patterns rely on such values, adjust `SQL_REPORTER_QUERIES_REDACT_COLUMNS`, or use the original values in `SqlQuery::$bindings` of a `Writer::shouldReportQuery()` callback.
 
 ### v1.5.0
 

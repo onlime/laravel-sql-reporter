@@ -13,15 +13,11 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Onlime\LaravelSqlReporter\Support\Redactor;
 use Stevebauman\Location\Facades\Location;
 
 class Formatter
 {
-    /**
-     * Replacement for the values of redacted URL parameters.
-     */
-    private const REDACTED = '[redacted]';
-
     /**
      * Origin shown in the header instead of the request or console command, e.g. a queued job.
      */
@@ -99,6 +95,8 @@ class Formatter
         $formatted[]  = $this->separatorLine();
         $maxKeyLength = max(array_map('strlen', array_keys($headers)));
         foreach ($headers as $key => $value) {
+            // a line break would end the -- comment, e.g. in a username or an Artisan argument
+            $value = str_replace(["\r\n", "\r", "\n"], ' ', (string) $value);
             $formatted[] = trim('-- '.Str::padRight(Str::ucfirst($key).':', $maxKeyLength + 2).$value);
         }
         $formatted[] = $this->separatorLine();
@@ -185,13 +183,40 @@ class Formatter
     }
 
     /**
-     * Get Artisan line.
+     * Get Artisan line, with the values of sensitive options redacted, e.g. --password=[redacted].
      */
     protected function getArtisanLine(): string
     {
         $command = $this->app->make('request')->server('argv', []);
+        $arguments = is_array($command) ? $command : explode(' ', (string) $command);
 
-        return is_array($command) ? implode(' ', $command) : (string) $command;
+        return collect($arguments)
+            ->map(function (string $argument, int $index) use ($arguments): string {
+                $option = Str::before($argument, '=');
+
+                // --password=secret
+                if ($option !== $argument && $this->isRedactedOption($option)) {
+                    return $option.'='.Redactor::REDACTED;
+                }
+
+                // --password secret
+                if (! str_starts_with($argument, '-') && $this->isRedactedOption($arguments[$index - 1] ?? '')) {
+                    return Redactor::REDACTED;
+                }
+
+                return $argument;
+            })
+            ->implode(' ');
+    }
+
+    /**
+     * Whether an argument is a long option without value (e.g. --password) whose value is to be redacted, by the
+     * same names as URL parameters.
+     */
+    private function isRedactedOption(string $argument): bool
+    {
+        return str_starts_with($argument, '--') && ! str_contains($argument, '=')
+            && $this->isRedacted(substr($argument, 2), $this->redactionPatterns());
     }
 
     /**
@@ -245,7 +270,7 @@ class Formatter
 
             return match (true) {
                 $value === null => '', // a missing optional parameter
-                in_array($matches[1], $redacted, true) => self::REDACTED,
+                in_array($matches[1], $redacted, true) => Redactor::REDACTED,
                 default => str_replace('%2F', '/', rawurlencode($value)),
             };
         }, $route->uri());
@@ -268,7 +293,9 @@ class Formatter
         $parameters = array_map(function (string $parameter) use ($patterns): string {
             $name = Str::before($parameter, '=');
 
-            return $name !== $parameter && $this->isRedacted($name, $patterns) ? $name.'='.self::REDACTED : $parameter;
+            return $name !== $parameter && $this->isRedacted($name, $patterns)
+                ? $name.'='.Redactor::REDACTED
+                : $parameter;
         }, explode('&', $query));
 
         return $base.'?'.implode('&', $parameters);

@@ -35,7 +35,7 @@ beforeEach(function () {
     $this->logFile = $this->directory.'/query-log.sql';
     config([
         'sql-reporter.general.directory' => $this->directory,
-        'sql-reporter.queries.file_name' => 'query-log',
+        'sql-reporter.general.log_file_name' => 'query-log',
     ]);
 
     Schema::create('users', function (Blueprint $table) {
@@ -132,6 +132,27 @@ it('logs the values of route parameters, unless their names are sensitive', func
     'parameters with slashes' => ['/shares/{token}/{path}', '/shares/SECRET/docs/a%20b.pdf', '/shares/[redacted]/docs/a%20b.pdf'],
     'missing optional parameter' => ['/reset/{token}/{step?}', '/reset/SECRET', '/reset/[redacted]'],
 ]);
+
+it('redacts secrets in logged and reported queries', function () {
+    Schema::table('users', function (Blueprint $table) {
+        $table->string('password')->nullable();
+        $table->string('remember_token')->nullable();
+    });
+    DB::flushQueryLog();
+    serveHttpRequests($this->app);
+    Route::post('/register', fn () => DB::table('users')->insert([
+        'name' => 'Alice',
+        'password' => password_hash('secret', PASSWORD_BCRYPT, ['cost' => 4]),
+        'remember_token' => 'REMEMBER_TOKEN',
+    ]));
+
+    $this->post('/register')->assertOk();
+
+    $query = 'insert into "users" ("name", "password", "remember_token") values (\'Alice\', \'$2y$[redacted]\', \'[redacted]\');';
+    expect(file_get_contents($this->logFile))->toContain($query)
+        ->not->toContain('REMEMBER_TOKEN')
+        ->and($this->reported[0]->reportQueries[0])->toContain($query);
+});
 
 it('logs and reports a request with values that cannot be escaped as a string', function (string $search, string $literal) {
     // Such a value used to make the whole log of the request fail, so a client could keep its queries from being

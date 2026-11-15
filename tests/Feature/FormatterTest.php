@@ -341,3 +341,31 @@ it('returns an empty header if no header fields are configured', function () {
 
     expect(app(Formatter::class)->getHeader())->toBe('');
 });
+
+it('redacts the values of sensitive options in the Artisan line', function (array $argv, string $expected) {
+    config(['sql-reporter.formatting.header_fields' => ['origin']]);
+    $this->app->instance('request', Request::create('/', server: ['argv' => $argv]));
+
+    expect(app(Formatter::class)->getHeader())->toContain("-- Origin: (console) {$expected}\n");
+})->with([
+    'option with value' => [['artisan', 'app:user', '--password=secret'], 'artisan app:user --password=[redacted]'],
+    'option and value' => [['artisan', 'app:user', '--api-token', 'abc'], 'artisan app:user --api-token [redacted]'],
+    'case-insensitive' => [['artisan', 'app:user', '--Password=secret'], 'artisan app:user --Password=[redacted]'],
+    'other options and arguments are kept' => [
+        ['artisan', 'app:user', 'alice', '--name=Alice', '--force', 'bob', '--password=secret', '--queue', 'high'],
+        'artisan app:user alice --name=Alice --force bob --password=[redacted] --queue high',
+    ],
+    'an option after a sensitive option without value' => [['artisan', 'app:user', '--token', '--force'], 'artisan app:user --token --force'],
+    'sensitive name as value' => [['artisan', 'app:user', '--name=password', 'secret'], 'artisan app:user --name=password secret'],
+]);
+
+it('replaces line breaks in header values', function () {
+    config(['sql-reporter.formatting.header_fields' => ['user', 'origin']]);
+    $this->app->instance('request', Request::create('/', server: ['argv' => ['artisan', 'app:note', "--text=a\nselect 1;"]]));
+    $this->actingAs(new GenericUser(['id' => 1, 'email' => "alice@example.com\r\ndelete from users;"]));
+
+    expect(app(Formatter::class)->getHeader())
+        ->toContain("-- User:   alice@example.com delete from users;\n")
+        ->toContain("-- Origin: (console) artisan app:note --text=a select 1;\n")
+        ->not->toMatch('/^(?!-- )/m');
+});

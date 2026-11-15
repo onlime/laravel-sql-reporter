@@ -1,6 +1,17 @@
 # CHANGELOG
 
-## [v1.5.x (Unreleased)](https://github.com/onlime/laravel-sql-reporter/compare/v1.5.0...main)
+## [v1.6.x (Unreleased)](https://github.com/onlime/laravel-sql-reporter/compare/v1.6.0...main)
+
+## [v1.6.0 (2026-11-15)](https://github.com/onlime/laravel-sql-reporter/compare/v1.5.0...v1.6.0)
+
+- Security | Secrets among the values of logged queries are redacted, in the log and in the `QueryLogWritten` event. The values of the columns in the new `SQL_REPORTER_QUERIES_REDACT_COLUMNS` option are replaced by `[redacted]`. It defaults to `*password,*token,*secret*,two_factor_*,payload,sessions.id,cache.value` (column names or `table.column`, case-insensitive, with wildcards), also if your published config file doesn't have this option yet. Password hashes in the modular crypt format are redacted in any column, except for their algorithm identifier, e.g. `'$2y$[redacted]'`. Add your own rules with `Writer::redactBindingUsing()`. See [Query values](README.md#query-values).
+- The default `SQL_REPORTER_QUERIES_REPORT_PATTERN` now also excludes the modifications of the framework tables `cache`, `cache_locks`, `job_batches`, `failed_jobs` and `password_reset_tokens`, also with a schema (`"public"."jobs"`) and for `insert ignore into` / `insert or ignore into`, e.g. the `database` cache store's writes. With a table prefix (`DB_PREFIX`), add it to the table names in the pattern.
+- Security | The values of sensitive long options of Artisan commands are replaced by `[redacted]` in the `origin` header field, e.g. `--password=[redacted]` or `--api-token [redacted]`, with the names of `SQL_REPORTER_FORMAT_REDACT_URL_PARAMETERS`. See [Log header](README.md#log-header).
+- Security | Line breaks in header values, e.g. in a username or an Artisan argument, are replaced by spaces. A header value could otherwise end its `-- ` comment line in the `.sql` log file, and add lines that look like queries or other log entries.
+- Fix | Each log entry (its header and queries) is written to the log file at once, with an exclusive lock, so the log entries of requests, commands or jobs logged at the same time no longer get mixed up. The log directory is only created when a log entry is written. The README explains where the log files go and how their directory is created, see [Log files](README.md#log-files).
+- The `queries.file_name` option is now `general.log_file_name`, next to `extension`, and its `.env` variable `SQL_REPORTER_LOG_FILE_NAME`. The former `SQL_REPORTER_QUERIES_FILE_NAME` and `queries.file_name` in published config files still work.
+- If you published the config file, or rely on query values in your `QueryLogWritten` listeners, see [Upgrading](README.md#v160).
+- README: Clarified the use in production. Logging is enabled wherever the package is installed, so install it with `--dev` or set `SQL_REPORTER_QUERIES_ENABLED=false` to keep it out of production.
 
 ## [v1.5.0 (2026-11-15)](https://github.com/onlime/laravel-sql-reporter/compare/v1.4.0...v1.5.0)
 
