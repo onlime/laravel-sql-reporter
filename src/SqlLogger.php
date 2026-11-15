@@ -6,6 +6,7 @@ namespace Onlime\LaravelSqlReporter;
 
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 class SqlLogger
 {
@@ -18,25 +19,40 @@ class SqlLogger
 
     /**
      * Log queries
+     *
+     * @param  string|null  $origin  shown in the log header instead of the request or console command, e.g. a queued job
+     * @param  bool  $report  whether to dispatch the QueryLogWritten event for the queries to report
      */
-    public function log(): void
+    public function log(?string $origin = null, bool $report = true): void
     {
-        $queryLog = DB::getQueryLog();
+        try {
+            if ($origin !== null) {
+                $this->writer->setOrigin($origin);
+            }
 
-        // getQueryLog() and getRawQueryLog() have the same keys
-        // see \Illuminate\Database\Connection::getRawQueryLog()
-        Collection::make(DB::getRawQueryLog())
-            ->map(fn (array $query, int $key) => new SqlQuery(
-                $key + 1,
-                $query['raw_query'],
-                $query['time'],
-                $queryLog[$key]['query'],
-                $queryLog[$key]['bindings']
-            ))
-            ->each(function (SqlQuery $query) {
-                $this->writer->writeQuery($query);
-            });
+            $queryLog = DB::getQueryLog();
 
-        $this->writer->report();
+            // getQueryLog() and getRawQueryLog() have the same keys
+            // see \Illuminate\Database\Connection::getRawQueryLog()
+            Collection::make(DB::getRawQueryLog())
+                ->map(fn (array $query, int $key) => new SqlQuery(
+                    $key + 1,
+                    $query['raw_query'],
+                    $query['time'],
+                    $queryLog[$key]['query'],
+                    $queryLog[$key]['bindings']
+                ))
+                ->each(function (SqlQuery $query) {
+                    $this->writer->writeQuery($query);
+                });
+
+            if ($report) {
+                $this->writer->report();
+            }
+        } catch (Throwable $e) {
+            // Logging must never break the request, command or job, e.g. if the log file is not writable
+            // or a QueryLogWritten listener fails. Report the error instead.
+            report($e);
+        }
     }
 }

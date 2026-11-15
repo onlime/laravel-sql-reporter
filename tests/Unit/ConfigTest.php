@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Illuminate\Contracts\Config\Repository;
 use Onlime\LaravelSqlReporter\Config;
 
@@ -95,3 +97,53 @@ it('returns valid value for entry format', function () {
         ->andReturn('[sample]/[example]/foo');
     expect($this->config->entryFormat())->toBe('[sample]/[example]/foo');
 });
+
+it('casts the slow log time to float', function () {
+    // values from .env are strings
+    $this->repository->shouldReceive('get')->once()->with('sql-reporter.queries.min_exec_time')
+        ->andReturn('100');
+    expect($this->config->queriesMinExecTime())->toBe(100.0);
+});
+
+it('returns valid value for queries report pattern', function () {
+    $this->repository->shouldReceive('get')->once()->with('sql-reporter.queries.report_pattern')
+        ->andReturn('/^DELETE/i');
+    expect($this->config->queriesReportPattern())->toBe('/^DELETE/i');
+
+    $this->repository->shouldReceive('get')->once()->with('sql-reporter.queries.report_pattern')
+        ->andReturn(null);
+    expect($this->config->queriesReportPattern())->toBe('');
+});
+
+it('returns valid value for header fields', function () {
+    $this->repository->shouldReceive('get')->once()->with('sql-reporter.formatting.header_fields')
+        ->andReturn(['datetime', 'origin']);
+    expect($this->config->headerFields())->toBe(['datetime', 'origin']);
+});
+
+it('returns valid value for header datetime format', function () {
+    $this->repository->shouldReceive('get')->once()->with('sql-reporter.formatting.header_datetime_format')
+        ->andReturn('Y-m-d H:i:s P');
+    expect($this->config->headerDatetimeFormat())->toBe('Y-m-d H:i:s P');
+});
+
+it('returns valid values for queries log jobs', function () {
+    $this->repository->shouldReceive('get')->once()->with('sql-reporter.queries.log_jobs')
+        ->andReturn(1);
+    expect($this->config->queriesLogJobs())->toBeTrue();
+
+    $this->repository->shouldReceive('get')->once()->with('sql-reporter.queries.log_jobs')
+        ->andReturn(null);
+    expect($this->config->queriesLogJobs())->toBeFalse();
+});
+
+it('returns valid values for queries exclude commands', function (mixed $value, array $expected) {
+    $this->repository->shouldReceive('get')->once()->with('sql-reporter.queries.exclude_commands', [])
+        ->andReturn($value);
+    expect($this->config->queriesExcludeCommands())->toBe($expected);
+})->with([
+    'array (default)' => [['pulse:check', 'Laravel\\Horizon\\Console\\HorizonCommand'], ['pulse:check', 'Laravel\\Horizon\\Console\\HorizonCommand']],
+    'comma-separated (.env)' => ['pulse:check, Laravel\\Horizon\\Console\\HorizonCommand,,', ['pulse:check', 'Laravel\\Horizon\\Console\\HorizonCommand']],
+    'empty (.env)' => ['', []],
+    'missing in a published config file' => [null, []],
+]);

@@ -1,13 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 use Carbon\Carbon;
-use Illuminate\Container\Container;
+use Illuminate\Contracts\Foundation\Application;
 use Onlime\LaravelSqlReporter\Config;
 use Onlime\LaravelSqlReporter\FileName;
 
 beforeEach(function () {
     Carbon::setTestNow('2015-03-07 08:16:09');
-    $this->app = Mockery::mock(Container::class);
+    $this->app = Mockery::mock(Application::class);
     $this->config = Mockery::mock(Config::class);
     $this->filename = new FileName($this->app, $this->config);
 });
@@ -34,4 +36,14 @@ it('returns valid file name for queries when running in console', function () {
         ->andReturn('.extension');
     $result = $this->filename->getLogfile();
     expect($result)->toBe('sample2015-test-03-abc-07-artisan-suffix.extension');
+});
+
+it('returns the file name as is if it contains no date placeholders', function () {
+    $this->app->shouldReceive('runningInConsole')->once()->withNoArgs()
+        ->andReturn(false);
+    $this->config->shouldReceive('queriesFileName')->once()->withNoArgs()
+        ->andReturn('query-log');
+    $this->config->shouldReceive('fileExtension')->once()->withNoArgs()
+        ->andReturn('.sql');
+    expect($this->filename->getLogfile())->toBe('query-log.sql');
 });

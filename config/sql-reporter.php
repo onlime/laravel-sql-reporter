@@ -6,7 +6,7 @@ return [
         /*
          * Directory where log files will be saved
          */
-        'directory' => storage_path(env('SQL_REPORTER_DIRECTORY', 'logs/sql')),
+        'directory' => storage_path((string) env('SQL_REPORTER_DIRECTORY', 'logs/sql')),
 
         /*
          * Whether execution time in log file should be displayed in seconds
@@ -43,7 +43,7 @@ return [
          * It does not harm to keep all fields enabled. The request-only fields would simply report some standard/empty
          * data if origin is an Artisan command.
          */
-        'header_fields' => array_filter(explode(',', env('SQL_REPORTER_FORMAT_HEADER_FIELDS',
+        'header_fields' => array_filter(explode(',', (string) env('SQL_REPORTER_FORMAT_HEADER_FIELDS',
             'datetime,origin,status,user,guard,env,agent,ip,host,referer'
         ))),
 
@@ -74,6 +74,29 @@ return [
         'enabled' => env('SQL_REPORTER_QUERIES_ENABLED', true),
 
         /*
+         * Whether queries of queued jobs should be logged, each job separately with its own header ('(job) <name>'
+         * origin) and QueryLogWritten event. Jobs on a sync queue are always logged as part of the request or
+         * command that dispatched them. See README for details and possible impacts before enabling this.
+         */
+        'log_jobs' => env('SQL_REPORTER_QUERIES_LOG_JOBS', false),
+
+        /*
+         * Artisan commands whose queries should not be logged at all, like with the #[DontLogQueries] attribute.
+         * Their query log is disabled while they run, so use it for long-running commands (daemons), which would
+         * otherwise collect all their queries in memory, and for vendor commands. Command names (e.g. 'pulse:check')
+         * or fully-qualified class names, both with * wildcards. A class name also matches its subclasses.
+         * In .env, separate them by commas. Queue workers are handled separately, see 'log_jobs'.
+         */
+        'exclude_commands' => env('SQL_REPORTER_QUERIES_EXCLUDE_COMMANDS', [
+            'Illuminate\Console\Scheduling\ScheduleWorkCommand', // schedule:work
+            'Laravel\Horizon\Console\HorizonCommand', // horizon
+            'Laravel\Horizon\Console\SupervisorCommand', // horizon:supervisor
+            'Laravel\Pulse\Commands\CheckCommand', // pulse:check
+            'Laravel\Pulse\Commands\WorkCommand', // pulse:work
+            'Laravel\Reverb\Servers\Reverb\Console\Commands\StartServer', // reverb:start
+        ]),
+
+        /*
          * Whether log (for all queries, not for slow queries) should be overridden.
          * It might be useful when you test some functionality, and you want to
          * compare your queries (or number of queries) - be aware that when using
@@ -102,13 +125,14 @@ return [
         'exclude_pattern' => env('SQL_REPORTER_QUERIES_EXCLUDE_PATTERN', '/^$/'),
 
         /*
-         * Pattern which is used to detect DML queries.
+         * Pattern which is used to detect DML queries to report (QueryLogWritten event).
          * (Data Manipulation Language - INSERT, UPDATE, DELETE, etc.)
-         * see https://regex101.com/r/vB1QAM/1
+         * By default, it excludes SELECT queries, transactions, and modifications of some framework tables,
+         * with any identifier quoting (MySQL `jobs`, PostgreSQL / SQLite "jobs").
          */
         'report_pattern' => env(
             'SQL_REPORTER_QUERIES_REPORT_PATTERN',
-            '/^(?!select\s|start transaction|commit|(insert into|update|delete from) `(sessions|jobs|bans|logins)`).*/i'
+            '/^(?!select\s|start transaction|commit|(insert into|update|delete from) [`"]?(sessions|jobs|bans|logins)\b).*/i'
         ),
 
         /*

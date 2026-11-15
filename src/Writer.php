@@ -22,6 +22,8 @@ class Writer
 
     /**
      * Stores query log lines that should be reported.
+     *
+     * @var list<string>
      */
     private array $reportQueries = [];
 
@@ -37,11 +39,21 @@ class Writer
     ) {}
 
     /**
-     * Set callback to determine whether query should be reported.
+     * Set callback to determine whether query should be reported, or null to reset it.
+     *
+     * @param  (callable(SqlQuery): bool)|null  $callback
      */
-    public static function shouldReportQuery(callable $callback): void
+    public static function shouldReportQuery(?callable $callback): void
     {
-        self::$shouldReportQuery = $callback;
+        self::$shouldReportQuery = $callback === null ? null : $callback(...);
+    }
+
+    /**
+     * Set the origin shown in the log header instead of the request or console command, e.g. a queued job.
+     */
+    public function setOrigin(?string $origin): void
+    {
+        $this->formatter->setOrigin($origin);
     }
 
     /**
@@ -83,7 +95,7 @@ class Writer
             return false;
         }
 
-        return call_user_func(self::$shouldReportQuery ?? fn () => true, $query);
+        return self::$shouldReportQuery === null || (self::$shouldReportQuery)($query);
     }
 
     /**
@@ -93,8 +105,9 @@ class Writer
      */
     protected function createDirectoryIfNotExists(int $queryNumber): bool
     {
-        if ($queryNumber == 1 && ! file_exists($directory = $this->directory())) {
-            return mkdir($directory, 0777, true);
+        if ($queryNumber === 1 && ! is_dir($directory = $this->directory())) {
+            // another process (e.g. a queue worker) might create the directory at the same time
+            return @mkdir($directory, 0777, true) || is_dir($directory);
         }
         return false;
     }

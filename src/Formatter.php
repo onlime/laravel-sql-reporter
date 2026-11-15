@@ -5,33 +5,48 @@ declare(strict_types=1);
 namespace Onlime\LaravelSqlReporter;
 
 use Carbon\Carbon;
-use Illuminate\Container\Container;
+use Closure;
+use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Stevebauman\Location\Facades\Location;
 
 class Formatter
 {
+    /**
+     * Origin shown in the header instead of the request or console command, e.g. a queued job.
+     */
+    private ?string $origin = null;
+
     public function __construct(
-        private Container $app,
+        private Application $app,
         private Config $config
     ) {}
+
+    /**
+     * Set the origin shown in the header instead of the request or console command, e.g. a queued job.
+     */
+    public function setOrigin(?string $origin): void
+    {
+        $this->origin = $origin;
+    }
 
     /**
      * Get formatted single query line(s).
      */
     public function getLine(SqlQuery $query): string
     {
-        $replace = [
-            '[query_nr]'   => $query->number,
+        // strtr() replaces all placeholders in a single pass, so placeholders or "\n" within the query stay untouched
+        return strtr($this->config->entryFormat(), [
+            '[query_nr]'   => (string) $query->number,
             '[datetime]'   => Carbon::now()->toDateTimeString(),
             '[query_time]' => $this->time($query->time),
             '[query]'      => $this->getQueryLine($query),
             '[separator]'  => $this->separatorLine(),
             '\n'           => PHP_EOL,
-        ];
-        return str_replace(array_keys($replace), array_values($replace), $this->config->entryFormat());
+        ]);
     }
 
     /**
@@ -44,41 +59,31 @@ class Formatter
             return '';
         }
 
-        // Try to resolve username, which is stored in 'email' field by default, but could be mapped by username() method
-        // by some custom trait.
-        $username = ($user = Auth::user())
-            ? (method_exists($user, 'username') ? $user->username() : $user->email)
-            : '';
+        $request = $this->app->make('request');
+        $ip      = $request->ip();
 
-        $queryLog  = DB::getRawQueryLog();
-        $times     = Arr::pluck($queryLog, 'time');
-        $totalTime = $this->time(array_sum($times));
-        $request   = $this->app['request'];
-        $ip        = $request->ip();
-
+        // All supported header fields in output order. Only the configured ones get resolved,
+        // e.g. to avoid a reverse DNS lookup of the client IP if 'host' is not configured.
         // TODO: datetime information should be replaced by lowest query timestamp, see https://github.com/laravel/framework/pull/37514
-        $data = [
-            'datetime' => Carbon::now()->format($this->config->headerDatetimeFormat()),
-            'origin'   => $this->originLine(),
-            'status'   => sprintf('Executed %s queries in %s', count($queryLog), $totalTime),
-            'user'     => $username,
-            'guard'    => Auth::check() ? Auth::getDefaultDriver() : '',
-            'env'      => $this->app->environment(),
-            'agent'    => $request->userAgent() ?? PHP_SAPI,
-            'ip'       => $ip,
-            'host'     => gethostbyaddr($ip),
-            'referer'  => $request->header('referer'),
+        $resolvers = [
+            'datetime' => fn () => Carbon::now()->format($this->config->headerDatetimeFormat()),
+            'origin'   => fn () => $this->originLine(),
+            'status'   => fn () => $this->statusLine(),
+            'user'     => fn () => $this->username(),
+            'guard'    => fn () => Auth::check() ? Auth::getDefaultDriver() : '',
+            'env'      => fn () => $this->app->environment(),
+            'agent'    => fn () => $request->userAgent() ?? PHP_SAPI,
+            'ip'       => fn () => $this->ipLine($ip),
+            'host'     => fn () => $ip !== null ? gethostbyaddr($ip) : '',
+            'referer'  => fn () => $request->header('referer'),
         ];
-        $headers = Arr::only($data, $headerFields);
-
-        // (optional) GeoIP lookup if stevebaumann/location is installed, appending country information to IP
-        if (in_array('ip', $headerFields) && $ip !== '127.0.0.1' && class_exists('Stevebauman\Location\Facades\Location')) {
-            $position = \Stevebauman\Location\Facades\Location::get();
-            $headers['ip'] .= sprintf(
-                ' (%s / %s)',
-                $position->isoCode ?? 'XX',
-                $position->countryName ?? 'Unknown Country'
-            );
+        $headers = array_map(
+            fn (Closure $resolve) => $resolve(),
+            array_intersect_key($resolvers, array_flip($headerFields))
+        );
+        if (empty($headers)) {
+            // none of the configured header fields is supported
+            return '';
         }
 
         // get formatted header lines with padded keys
@@ -102,10 +107,62 @@ class Formatter
     }
 
     /**
+     * Get status line with total query count and execution time.
+     */
+    protected function statusLine(): string
+    {
+        $queryLog = DB::getRawQueryLog();
+
+        return sprintf(
+            'Executed %s queries in %s',
+            count($queryLog),
+            $this->time(array_sum(Arr::pluck($queryLog, 'time')))
+        );
+    }
+
+    /**
+     * Get username of the authenticated user.
+     */
+    protected function username(): string
+    {
+        $user = Auth::user();
+        if ($user === null) {
+            return '';
+        }
+
+        // The username is stored in 'email' field by default, but could be mapped by username() method by some custom
+        // trait. data_get() also works for models that prevent accessing missing attributes.
+        return (string) (method_exists($user, 'username') ? $user->username() : data_get($user, 'email'));
+    }
+
+    /**
+     * Get client IP, with country information appended if stevebauman/location is installed (optional GeoIP lookup).
+     */
+    protected function ipLine(?string $ip): string
+    {
+        if ($ip === null || $ip === '127.0.0.1' || ! class_exists(Location::class)) {
+            return (string) $ip;
+        }
+
+        $position = Location::get($ip);
+
+        return sprintf(
+            '%s (%s / %s)',
+            $ip,
+            $position->isoCode ?? 'XX',
+            $position->countryName ?? 'Unknown Country'
+        );
+    }
+
+    /**
      * Get origin line.
      */
     protected function originLine(): string
     {
+        if ($this->origin !== null) {
+            return $this->origin;
+        }
+
         return $this->app->runningInConsole()
             ? '(console) '.$this->getArtisanLine()
             : '(request) '.$this->getRequestLine();
@@ -124,13 +181,9 @@ class Formatter
      */
     protected function getArtisanLine(): string
     {
-        $command = $this->app['request']->server('argv', []);
+        $command = $this->app->make('request')->server('argv', []);
 
-        if (is_array($command)) {
-            $command = implode(' ', $command);
-        }
-
-        return $command;
+        return is_array($command) ? implode(' ', $command) : (string) $command;
     }
 
     /**
@@ -138,7 +191,9 @@ class Formatter
      */
     protected function getRequestLine(): string
     {
-        return $this->app['request']->method().' '.$this->app['request']->fullUrl();
+        $request = $this->app->make('request');
+
+        return $request->method().' '.$request->fullUrl();
     }
 
     /**

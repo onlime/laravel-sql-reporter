@@ -1,0 +1,230 @@
+<?php
+
+declare(strict_types=1);
+
+use Illuminate\Contracts\Console\Kernel;
+use Illuminate\Contracts\Queue\Job;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Filesystem\Filesystem;
+use Illuminate\Queue\Events\JobTimedOut;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Schema;
+use Onlime\LaravelSqlReporter\Events\QueryLogWritten;
+use Onlime\LaravelSqlReporter\Tests\Fixtures\CallCommandJob;
+use Onlime\LaravelSqlReporter\Tests\Fixtures\InsertUserJob;
+use Onlime\LaravelSqlReporter\Tests\Fixtures\UnloggedJob;
+use Onlime\LaravelSqlReporter\Tests\Fixtures\UnloggedListener;
+use Onlime\LaravelSqlReporter\Tests\Fixtures\UnreportedJob;
+
+/*
+ * End-to-end tests of a queue worker processing a database queue on the in-memory SQLite database.
+ */
+
+beforeEach(function () {
+    // Laravel only dispatches CommandFinished outside of unit tests
+    $this->app->make(Kernel::class)->rerouteSymfonyCommandEvents();
+
+    $this->directory = sys_get_temp_dir().'/laravel-sql-reporter-tests/'.uniqid('', true);
+    $this->logFile = $this->directory.'/query-log.sql';
+    config([
+        'sql-reporter.general.directory' => $this->directory,
+        'sql-reporter.queries.file_name' => 'query-log',
+        'queue.default' => 'database',
+        'queue.connections.database.connection' => null,
+        'queue.failed.driver' => 'null',
+        'logging.default' => 'null',
+    ]);
+
+    Schema::create('jobs', function (Blueprint $table) {
+        $table->id();
+        $table->string('queue')->index();
+        $table->longText('payload');
+        $table->unsignedTinyInteger('attempts');
+        $table->unsignedInteger('reserved_at')->nullable();
+        $table->unsignedInteger('available_at');
+        $table->unsignedInteger('created_at');
+    });
+    Schema::create('users', function (Blueprint $table) {
+        $table->id();
+        $table->string('name');
+    });
+    DB::flushQueryLog();
+});
+
+afterEach(function () {
+    (new Filesystem)->deleteDirectory($this->directory);
+});
+
+/**
+ * Get the queries of the fixture jobs, which are still in the query log.
+ *
+ * @return list<string>
+ */
+function jobQueriesInQueryLog(): array
+{
+    return array_values(array_filter(array_column(DB::getQueryLog(), 'query'), fn (string $query) => str_contains($query, '"users"')));
+}
+
+it('logs the queries of each queued job separately', function () {
+    config(['sql-reporter.queries.log_jobs' => true]);
+    InsertUserJob::dispatch('Alice');
+    InsertUserJob::dispatch('Bob');
+
+    $this->artisan('queue:work', ['--stop-when-empty' => true, '--sleep' => 0])->assertSuccessful();
+
+    $log = file_get_contents($this->logFile);
+    [, $alice, $bob] = explode('-- Origin:   (job) '.InsertUserJob::class.PHP_EOL, $log);
+
+    expect(substr_count($log, '-- Origin:'))->toBe(2)
+        // each job starts with an empty query log, so its first query is not the worker reserving the job
+        ->and($alice)->toMatch('/^-- Query 1 \[[\d.]+ms\]\ninsert into "users" \("name"\) values \(\'Alice\'\);$/m')
+        ->and($bob)->toMatch('/^-- Query 1 \[[\d.]+ms\]\ninsert into "users" \("name"\) values \(\'Bob\'\);$/m')
+        ->and($alice)->not->toContain('Bob');
+});
+
+it('dispatches a QueryLogWritten event per job', function () {
+    config(['sql-reporter.queries.log_jobs' => true]);
+    $events = [];
+    Event::listen(QueryLogWritten::class, function (QueryLogWritten $event) use (&$events) {
+        $events[] = $event;
+    });
+    InsertUserJob::dispatch('Alice');
+    InsertUserJob::dispatch('Bob');
+
+    $this->artisan('queue:work', ['--stop-when-empty' => true, '--sleep' => 0])->assertSuccessful();
+
+    expect($events)->toHaveCount(2)
+        ->and($events[0]->reportHeader)->toContain('-- Origin:   (job) '.InsertUserJob::class.PHP_EOL)
+        ->and($events[0]->reportQueries[0])->toContain('insert into "users" ("name") values (\'Alice\');')
+        ->and($events[1]->reportQueries[0])->toContain('insert into "users" ("name") values (\'Bob\');');
+});
+
+it('logs failed job attempts', function () {
+    config(['sql-reporter.queries.log_jobs' => true]);
+    InsertUserJob::dispatch('Alice', fail: true);
+
+    $this->artisan('queue:work', ['--stop-when-empty' => true, '--sleep' => 0, '--tries' => 1])->assertSuccessful();
+
+    expect(file_get_contents($this->logFile))
+        ->toContain('-- Origin:   (job) '.InsertUserJob::class.PHP_EOL)
+        ->toContain('insert into "users" ("name") values (\'Alice\');');
+});
+
+it('does not log queued jobs by default, but keeps the query log of the worker empty', function () {
+    InsertUserJob::dispatch('Alice');
+    InsertUserJob::dispatch('Bob');
+
+    $this->artisan('queue:work', ['--stop-when-empty' => true, '--sleep' => 0])->assertSuccessful();
+
+    // neither the jobs nor the worker command itself got logged, and the jobs' queries were flushed
+    expect(jobQueriesInQueryLog())->toBe([])
+        ->and($this->logFile)->not->toBeFile()
+        ->and(DB::table('users')->pluck('name')->all())->toBe(['Alice', 'Bob']);
+});
+
+it('logs jobs on a sync queue as part of the dispatching command', function () {
+    config([
+        'sql-reporter.queries.log_jobs' => true,
+        'queue.default' => 'sync',
+    ]);
+    Artisan::command('sql-reporter:dispatch', function () {
+        InsertUserJob::dispatch('Alice');
+        DB::table('users')->insert(['name' => 'Bob']);
+    });
+
+    $this->artisan('sql-reporter:dispatch')->assertSuccessful();
+
+    $log = file_get_contents($this->logFile);
+    expect(substr_count($log, '-- Origin:'))->toBe(1)
+        ->and($log)->toContain('-- Origin:   (console) ')
+        ->toMatch('/^-- Query 1 \[[\d.]+ms\]\ninsert into "users" \("name"\) values \(\'Alice\'\);$/m')
+        ->toMatch('/^-- Query 2 \[[\d.]+ms\]\ninsert into "users" \("name"\) values \(\'Bob\'\);$/m');
+});
+
+it('does not log queued jobs and listeners with the DontLogQueries attribute', function () {
+    config(['sql-reporter.queries.log_jobs' => true]);
+    Event::listen('sql-reporter.user', UnloggedListener::class);
+    UnloggedJob::dispatch('Alice');
+    InsertUserJob::dispatch('Bob');
+    event('sql-reporter.user', ['Carol']);
+
+    $this->artisan('queue:work', ['--stop-when-empty' => true, '--sleep' => 0])->assertSuccessful();
+
+    $log = file_get_contents($this->logFile);
+    // the query log of the excluded jobs is still flushed
+    expect(jobQueriesInQueryLog())->toBe([])
+        ->and(substr_count($log, '-- Origin:'))->toBe(1)
+        ->and($log)->toContain('-- Origin:   (job) '.InsertUserJob::class.PHP_EOL)
+        ->toContain('insert into "users" ("name") values (\'Bob\');')
+        ->not->toContain('Alice')
+        ->not->toContain('Carol')
+        ->and(DB::table('users')->pluck('name')->all())->toBe(['Alice', 'Bob', 'Carol']);
+});
+
+it('logs, but does not report queued jobs with the DontReportQueries attribute', function () {
+    config(['sql-reporter.queries.log_jobs' => true]);
+    $events = [];
+    Event::listen(QueryLogWritten::class, function (QueryLogWritten $event) use (&$events) {
+        $events[] = $event;
+    });
+    UnreportedJob::dispatch('Alice');
+    InsertUserJob::dispatch('Bob');
+
+    $this->artisan('queue:work', ['--stop-when-empty' => true, '--sleep' => 0])->assertSuccessful();
+
+    expect(file_get_contents($this->logFile))
+        ->toContain('-- Origin:   (job) '.UnreportedJob::class.PHP_EOL)
+        ->toContain('insert into "users" ("name") values (\'Alice\');')
+        ->and($events)->toHaveCount(1)
+        ->and($events[0]->reportHeader)->toContain('-- Origin:   (job) '.InsertUserJob::class.PHP_EOL);
+});
+
+it('logs an Artisan command called by a queued job as part of the job', function () {
+    config(['sql-reporter.queries.log_jobs' => true]);
+    Artisan::command('sql-reporter:insert', function () {
+        DB::table('users')->insert(['name' => 'Dave']);
+    });
+    CallCommandJob::dispatch('sql-reporter:insert');
+
+    $this->artisan('queue:work', ['--stop-when-empty' => true, '--sleep' => 0])->assertSuccessful();
+
+    $log = file_get_contents($this->logFile);
+    expect(substr_count($log, '-- Origin:'))->toBe(1)
+        ->and($log)->toContain('-- Origin:   (job) '.CallCommandJob::class.PHP_EOL)
+        ->toContain('insert into "users" ("name") values (\'Dave\');');
+});
+
+it('does not log an Artisan command called by a queued job by default', function () {
+    Artisan::command('sql-reporter:insert', function () {
+        DB::table('users')->insert(['name' => 'Dave']);
+    });
+    CallCommandJob::dispatch('sql-reporter:insert');
+
+    $this->artisan('queue:work', ['--stop-when-empty' => true, '--sleep' => 0])->assertSuccessful();
+
+    expect(DB::table('users')->pluck('name')->all())->toBe(['Dave'])
+        ->and($this->logFile)->not->toBeFile();
+});
+
+it('does not log the worker polling an empty queue with queue:work --once', function () {
+    $this->artisan('queue:work', ['--once' => true, '--sleep' => 0])->assertSuccessful();
+
+    expect($this->logFile)->not->toBeFile();
+});
+
+it('logs timed out jobs, which are killed without a JobAttempted event', function () {
+    config(['sql-reporter.queries.log_jobs' => true]);
+    $job = Mockery::mock(Job::class);
+    $job->shouldReceive('resolveName')->andReturn(InsertUserJob::class);
+    $job->shouldReceive('resolveQueuedJobClass')->andReturn(InsertUserJob::class);
+    DB::table('users')->insert(['name' => 'Eve']);
+
+    event(new JobTimedOut('database', $job));
+
+    expect(file_get_contents($this->logFile))
+        ->toContain('-- Origin:   (job) '.InsertUserJob::class.PHP_EOL)
+        ->toContain('insert into "users" ("name") values (\'Eve\');')
+        ->and(DB::getQueryLog())->toBe([]);
+});

@@ -53,11 +53,38 @@ class Config
     }
 
     /**
+     * Whether queries of queued jobs should be logged.
+     */
+    public function queriesLogJobs(): bool
+    {
+        return (bool) $this->repository->get('sql-reporter.queries.log_jobs');
+    }
+
+    /**
+     * Get the Artisan commands (names or class names, with wildcards) whose queries should not be logged.
+     *
+     * @return array<int, string>
+     */
+    public function queriesExcludeCommands(): array
+    {
+        // a published config file of an older version doesn't have this option yet
+        $commands = $this->repository->get('sql-reporter.queries.exclude_commands', []);
+
+        // comma-separated if set in .env
+        if (is_string($commands)) {
+            $commands = array_filter(array_map(trim(...), explode(',', $commands)));
+        }
+
+        return array_values((array) $commands);
+    }
+
+    /**
      * Minimum execution time (in milliseconds) for queries to be logged.
      */
     public function queriesMinExecTime(): float
     {
-        return $this->repository->get('sql-reporter.queries.min_exec_time');
+        // values from .env are strings
+        return (float) $this->repository->get('sql-reporter.queries.min_exec_time');
     }
 
     /**
@@ -102,6 +129,8 @@ class Config
 
     /**
      * Get header fields that should be printed in header before query loglines.
+     *
+     * @return array<int, string>
      */
     public function headerFields(): array
     {
