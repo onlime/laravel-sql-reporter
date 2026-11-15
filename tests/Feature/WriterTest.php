@@ -235,15 +235,41 @@ it('respects query patterns', function () {
         ->and($writer->writeQuery($query3))->toBeFalse();
 });
 
-it('respects the report pattern from the config to determine if a query should be reported', function (string $query, bool $report) {
-    expect($this->writer->shouldReportSqlQuery(SqlQuery::make(1, $query, 1)))->toBe($report);
+it('does not report selects, transactions and modifications of framework tables by default', function (string $query) {
+    expect($this->writer->shouldReportSqlQuery(SqlQuery::make(1, $query, 1)))->toBeFalse();
 })->with([
-    ['select * from users', false],
-    ['delete from users', true],
-    ['delete from `jobs` where `id` = 1', false],
-    ['delete from "jobs" where "id" = 1', false],
-    ['insert into "sessions" ("id") values (1)', false],
-    ['update "jobs_batches" set "x" = 1', true],
+    'select' => ['select * from users'],
+    'select, uppercase' => ['SELECT * FROM `users`'],
+    'start transaction' => ['start transaction'],
+    'commit' => ['commit'],
+    'MySQL quoting' => ['delete from `jobs` where `id` = 1'],
+    'PostgreSQL / SQLite quoting' => ['delete from "jobs" where "id" = 1'],
+    'unquoted' => ['delete from jobs where id = 1'],
+    'uppercase' => ['UPDATE "sessions" SET "user_id" = 1'],
+    'insert' => ['insert into "sessions" ("id") values (1)'],
+    'insert ignore (MySQL)' => ['insert ignore into `cache` (`key`) values (\'a\')'],
+    'insert or ignore (SQLite)' => ['insert or ignore into "cache" ("key") values (\'a\')'],
+    'upsert (MySQL)' => ['insert into `cache` (`key`) values (\'a\') on duplicate key update `key` = values(`key`)'],
+    'schema (PostgreSQL)' => ['update "public"."sessions" set "user_id" = 1'],
+    'schema (MySQL)' => ['update `app`.`sessions` set `user_id` = 1'],
+    'cache' => ['insert into "cache" ("key") values (\'a\')'],
+    'cache_locks' => ['delete from `cache_locks` where `key` = \'a\''],
+    'job_batches' => ['update "job_batches" set "pending_jobs" = 0'],
+    'failed_jobs' => ['insert into "failed_jobs" ("uuid") values (\'a\')'],
+    'password_reset_tokens' => ['delete from "password_reset_tokens" where "email" = \'a\''],
+    'bans' => ['insert into `bans` (`ip`) values (\'a\')'],
+    'logins' => ['insert into `logins` (`user_id`) values (1)'],
+]);
+
+it('reports other modifications by default', function (string $query) {
+    expect($this->writer->shouldReportSqlQuery(SqlQuery::make(1, $query, 1)))->toBeTrue();
+})->with([
+    'delete' => ['delete from users'],
+    'update' => ['update "users" set "name" = \'a\''],
+    'a table starting like a framework table' => ['update "cache_settings" set "x" = 1'],
+    'another table starting like a framework table' => ['insert into "sessions_archive" ("id") values (1)'],
+    'a table similar to a framework table' => ['update "jobs_batches" set "x" = 1'],
+    'a table prefix, which the default pattern does not know' => ['update "app_sessions" set "user_id" = 1'],
 ]);
 
 it('can provide a callback to the writer to determine if a query should be reported', function (string $query, bool $report) {

@@ -49,7 +49,7 @@ It reports a lot of metadata like total query count, total execution time, origi
     SQL_REPORTER_QUERIES_OVERRIDE_LOG=false
     SQL_REPORTER_QUERIES_INCLUDE_PATTERN="/.*/i"
     SQL_REPORTER_QUERIES_EXCLUDE_PATTERN="/^\$/"
-    SQL_REPORTER_QUERIES_REPORT_PATTERN='/^(?!select\s|start transaction|commit|(insert into|update|delete from) [`"]?(sessions|jobs|bans|logins)\b).*/i'
+    SQL_REPORTER_QUERIES_REPORT_PATTERN='/^(?!select\s|start transaction|commit|(?:insert(?: (?:or )?ignore)? into|update|delete from) (?:[`"]?\w+[`"]?\.)?[`"]?(?:sessions|cache|cache_locks|jobs|job_batches|failed_jobs|password_reset_tokens|bans|logins)\b)/i'
     SQL_REPORTER_QUERIES_REDACT_COLUMNS='*password,*token,*secret*,two_factor_*,payload,sessions.id,cache.value'
     SQL_REPORTER_QUERIES_MIN_EXEC_TIME=0
     SQL_REPORTER_QUERIES_FILE_NAME="[Y-m]-log"
@@ -285,7 +285,7 @@ Every logged request then looks up the country of the client IP. The default dri
 
 This package fires a `QueryLogWritten` event after the log file has been written for a request, an Artisan command or (with `SQL_REPORTER_QUERIES_LOG_JOBS` enabled) a queued job. You may use this event to further debug or analyze the logged queries in your application. It provides the number of logged queries (`$loggedQueryCount`), the formatted header (`$reportHeader`) and the formatted queries to report (`$reportQueries`).
 
-The queries to report are filtered by the `SQL_REPORTER_QUERIES_REPORT_PATTERN` setting, which comes with a sensible default to exclude `SELECT` queries and some default tables like `sessions`, `jobs`, `bans`, `logins`. If you don't want to filter any queries, you may leave this setting empty. The event is only fired if there are queries to report. To exclude whole Artisan commands or queued jobs from reporting, use the [`#[DontReportQueries]` attribute](#excluding-artisan-commands-and-queued-jobs).
+The queries to report are filtered by the `SQL_REPORTER_QUERIES_REPORT_PATTERN` setting, which comes with a sensible default to exclude `SELECT` queries, and the modifications of Laravel's framework tables (`sessions`, `cache`, `cache_locks`, `jobs`, `job_batches`, `failed_jobs`, `password_reset_tokens`) and of `bans` and `logins`. If you use a table prefix (`DB_PREFIX`), add it to the table names in the pattern. If you don't want to filter any queries, you may leave this setting empty. The event is only fired if there are queries to report. To exclude whole Artisan commands or queued jobs from reporting, use the [`#[DontReportQueries]` attribute](#excluding-artisan-commands-and-queued-jobs).
 
 In addition to the pattern, you may also configure a callback to define your own custom filtering logic, for example, in your `AppServiceProvider`:
 
@@ -375,6 +375,7 @@ or apply the changes listed below by hand, for each version you're upgrading acr
 ### v1.6.0
 
 - `queries.redact_columns`: new option, see [Query values](#query-values). Without it, the default columns are redacted anyway.
+- `queries.report_pattern`: the default now also excludes the framework tables `cache`, `cache_locks`, `job_batches`, `failed_jobs` and `password_reset_tokens`, schema-qualified table names (`"public"."jobs"`), and `insert ignore into` / `insert or ignore into`.
 - Also without a published config file: secrets among the query values are now redacted in the log and in the `QueryLogWritten` event. If your listeners or patterns rely on such values, adjust `SQL_REPORTER_QUERIES_REDACT_COLUMNS`, or use the original values in `SqlQuery::$bindings` of a `Writer::shouldReportQuery()` callback.
 
 ### v1.5.0

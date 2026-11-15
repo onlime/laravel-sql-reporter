@@ -146,12 +146,19 @@ return [
         /*
          * Pattern which is used to detect DML queries to report (QueryLogWritten event).
          * (Data Manipulation Language - INSERT, UPDATE, DELETE, etc.)
-         * By default, it excludes SELECT queries, transactions, and modifications of some framework tables,
-         * with any identifier quoting (MySQL `jobs`, PostgreSQL / SQLite "jobs").
+         * By default, it excludes:
+         * - SELECT queries and transactions
+         * - inserts (also insert ignore / insert or ignore), updates and deletes of the framework tables sessions,
+         *   cache, cache_locks, jobs, job_batches, failed_jobs and password_reset_tokens, and of bans and logins,
+         *   with any identifier quoting (MySQL `jobs`, PostgreSQL / SQLite "jobs") and an optional schema
+         *   ("public"."jobs"). With a table prefix (DB_PREFIX), add it to the table names.
          */
         'report_pattern' => env(
             'SQL_REPORTER_QUERIES_REPORT_PATTERN',
-            '/^(?!select\s|start transaction|commit|(insert into|update|delete from) [`"]?(sessions|jobs|bans|logins)\b).*/i'
+            // not: a select or transaction, or a modification of one of these tables (with an optional schema)
+            '/^(?!select\s|start transaction|commit|'
+                .'(?:insert(?: (?:or )?ignore)? into|update|delete from) (?:[`"]?\w+[`"]?\.)?[`"]?'
+                .'(?:sessions|cache|cache_locks|jobs|job_batches|failed_jobs|password_reset_tokens|bans|logins)\b)/i'
         ),
 
         /*
