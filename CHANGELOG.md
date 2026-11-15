@@ -1,6 +1,8 @@
 # CHANGELOG
 
-## [v1.6.0 (Unreleased)](https://github.com/onlime/laravel-sql-reporter/compare/v1.5.0...main)
+## [v1.6.x (Unreleased)](https://github.com/onlime/laravel-sql-reporter/compare/v1.6.0...main)
+
+## [v1.6.0 (2026-11-15)](https://github.com/onlime/laravel-sql-reporter/compare/v1.5.0...v1.6.0)
 
 - Security | Secrets among the values of logged queries are redacted, in the log and in the `QueryLogWritten` event. The values of the columns in the new `SQL_REPORTER_QUERIES_REDACT_COLUMNS` option are replaced by `[redacted]`. It defaults to `*password,*token,*secret*,two_factor_*,payload,sessions.id,cache.value` (column names or `table.column`, case-insensitive, with wildcards), also if your published config file doesn't have this option yet. Password hashes in the modular crypt format are redacted in any column, except for their algorithm identifier, e.g. `'$2y$[redacted]'`. Add your own rules with `Writer::redactBindingUsing()`. See [Query values](README.md#query-values).
 - The default `SQL_REPORTER_QUERIES_REPORT_PATTERN` now also excludes the modifications of the framework tables `cache`, `cache_locks`, `job_batches`, `failed_jobs` and `password_reset_tokens`, also with a schema (`"public"."jobs"`) and for `insert ignore into` / `insert or ignore into`, e.g. the `database` cache store's writes. With a table prefix (`DB_PREFIX`), add it to the table names in the pattern.
