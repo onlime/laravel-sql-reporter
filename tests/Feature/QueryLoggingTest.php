@@ -35,7 +35,7 @@ beforeEach(function () {
     $this->logFile = $this->directory.'/query-log.sql';
     config([
         'sql-reporter.general.directory' => $this->directory,
-        'sql-reporter.queries.file_name' => 'query-log',
+        'sql-reporter.general.log_file_name' => 'query-log',
     ]);
 
     Schema::create('users', function (Blueprint $table) {

@@ -41,6 +41,7 @@ It reports a lot of metadata like total query count, total execution time, origi
     ```ini
     SQL_REPORTER_DIRECTORY="logs/sql"
     SQL_REPORTER_USE_SECONDS=false
+    SQL_REPORTER_LOG_FILE_NAME="[Y-m]-log"
     SQL_REPORTER_CONSOLE_SUFFIX=
     SQL_REPORTER_LOG_EXTENSION=".sql"
     SQL_REPORTER_QUERIES_ENABLED=true
@@ -52,7 +53,6 @@ It reports a lot of metadata like total query count, total execution time, origi
     SQL_REPORTER_QUERIES_REPORT_PATTERN='/^(?!select\s|start transaction|commit|(?:insert(?: (?:or )?ignore)? into|update|delete from) (?:[`"]?\w+[`"]?\.)?[`"]?(?:sessions|cache|cache_locks|jobs|job_batches|failed_jobs|password_reset_tokens|bans|logins)\b)/i'
     SQL_REPORTER_QUERIES_REDACT_COLUMNS='*password,*token,*secret*,two_factor_*,payload,sessions.id,cache.value'
     SQL_REPORTER_QUERIES_MIN_EXEC_TIME=0
-    SQL_REPORTER_QUERIES_FILE_NAME="[Y-m]-log"
     SQL_REPORTER_FORMAT_HEADER_FIELDS="datetime,origin,route,status,user,guard,env,agent,ip,referer"
     SQL_REPORTER_FORMAT_HEADER_DATETIME_FORMAT="Y-m-d H:i:s P"
     SQL_REPORTER_FORMAT_ENTRY_FORMAT="-- Query [query_nr] [[query_time]]\\n[query]"
@@ -128,7 +128,7 @@ All the other options apply to jobs as well, e.g. the include/exclude patterns a
 Before enabling it, be aware of these impacts:
 
 - **Logging time per job:** Jobs are logged synchronously by the worker, right after each job attempt, not deferred like requests. This adds the time to resolve the header fields and to write the log file to every job, slowing down the processing of your queue a bit. If you enabled the `host` header field, it is the reverse DNS lookup of `127.0.0.1` in a worker, so you may remove it from `SQL_REPORTER_FORMAT_HEADER_FIELDS` for busy queues.
-- **Log file size:** Every job running queries adds a log entry with a full header. On a busy queue, the log file grows much faster than with requests only. Use a daily file name like `SQL_REPORTER_QUERIES_FILE_NAME="[Y-m-d]-log"`, a separate console log file (`SQL_REPORTER_CONSOLE_SUFFIX`), logrotate, or limit the logged queries with `SQL_REPORTER_QUERIES_INCLUDE_PATTERN` / `SQL_REPORTER_QUERIES_EXCLUDE_PATTERN`.
+- **Log file size:** Every job running queries adds a log entry with a full header. On a busy queue, the log file grows much faster than with requests only. Use a daily file name like `SQL_REPORTER_LOG_FILE_NAME="[Y-m-d]-log"`, a separate console log file (`SQL_REPORTER_CONSOLE_SUFFIX`), logrotate, or limit the logged queries with `SQL_REPORTER_QUERIES_INCLUDE_PATTERN` / `SQL_REPORTER_QUERIES_EXCLUDE_PATTERN`.
 - **`QueryLogWritten` event per job:** Your listeners run for every job that ran queries matching the report pattern, inside the worker. If they send notifications (e.g. a report by email), you may get many more of them than before. Exclude noisy jobs with the [`#[DontReportQueries]` attribute](#excluding-artisan-commands-and-queued-jobs), `SQL_REPORTER_QUERIES_REPORT_PATTERN` or `Writer::shouldReportQuery()`.
 - **Feedback loops:** If your `QueryLogWritten` listener queues a job (e.g. a queued listener or notification) which runs queries to report itself, each of these jobs dispatches another `QueryLogWritten` event, and so on. Make sure such jobs are not reported, e.g. with `#[DontReportQueries]` on the queued listener or notification class.
 - **Retries:** Each job attempt is logged separately, so a retried job shows up several times. Failed attempts are logged as well, with the queries up to the exception, and so are timed out jobs, right before the worker kills them.
@@ -394,6 +394,8 @@ or apply the changes listed below by hand, for each version you're upgrading acr
 
 ### v1.6.0
 
+- `general.log_file_name`: renamed from `queries.file_name`, and moved next to the other options of the log file. A published config file with `queries.file_name` still works, so you only need to move it to keep your config file in line with the package's.
+- `SQL_REPORTER_LOG_FILE_NAME`: the new name of `SQL_REPORTER_QUERIES_FILE_NAME`, in line with `SQL_REPORTER_LOG_EXTENSION`. The former name still works if the new one isn't set, so you only need to rename it in your `.env` file to be ready for its removal in a future major version.
 - `queries.redact_columns`: new option, see [Query values](#query-values). Without it, the default columns are redacted anyway.
 - `queries.report_pattern`: the default now also excludes the framework tables `cache`, `cache_locks`, `job_batches`, `failed_jobs` and `password_reset_tokens`, schema-qualified table names (`"public"."jobs"`), and `insert ignore into` / `insert or ignore into`.
 - Also without a published config file: secrets among the query values are now redacted in the log and in the `QueryLogWritten` event. If your listeners or patterns rely on such values, adjust `SQL_REPORTER_QUERIES_REDACT_COLUMNS`, or use the original values in `SqlQuery::$bindings` of a `Writer::shouldReportQuery()` callback.

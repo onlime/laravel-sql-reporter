@@ -30,7 +30,7 @@ it('writes the log entry only when flushing it, and only once', function () {
     $query = SqlQuery::make(1, 'test', 5.41);
     $this->formatter->shouldReceive('getHeader')->once()->withNoArgs()->andReturn('-- header');
     $this->formatter->shouldReceive('getLine')->once()->with($query)->andReturn('Sample log line');
-    config(['sql-reporter.queries.file_name' => 'query-log']);
+    config(['sql-reporter.general.log_file_name' => 'query-log']);
 
     $this->writer->writeQuery($query);
     expect($this->directory)->not->toBeDirectory();
@@ -43,7 +43,7 @@ it('writes the log entry only when flushing it, and only once', function () {
 
 it('names the log file by its options', function (string $fileName, string $suffix, string $extension, bool $console, string $expected) {
     config([
-        'sql-reporter.queries.file_name' => $fileName,
+        'sql-reporter.general.log_file_name' => $fileName,
         'sql-reporter.general.console_log_suffix' => $suffix,
         'sql-reporter.general.extension' => $extension,
     ]);

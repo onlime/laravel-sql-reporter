@@ -16,6 +16,18 @@ return [
         'use_seconds' => env('SQL_REPORTER_USE_SECONDS', false),
 
         /*
+         * Log file name without extension - elements between [ and ] characters will be parsed
+         * according to format used by https://www.php.net/manual/en/function.date.php
+         * SQL_REPORTER_QUERIES_FILE_NAME of older versions still works, if SQL_REPORTER_LOG_FILE_NAME isn't set.
+         *
+         * examples:
+         * '[Y-m]-log' (default) results in YYYY-MM-log.sql logfile (monthly rotations)
+         * '[Y-m-d]-log' results in YYYY-MM-DD-log.sql logfile (daily rotations)
+         * 'query-log' results in query-log.sql (you should use logrotate for rotation)
+         */
+        'log_file_name' => env('SQL_REPORTER_LOG_FILE_NAME', env('SQL_REPORTER_QUERIES_FILE_NAME', '[Y-m]-log')),
+
+        /*
          * Suffix for Artisan queries logs (if it's empty same logfile will be used for Artisan)
          */
         'console_log_suffix' => env('SQL_REPORTER_CONSOLE_SUFFIX', ''),
@@ -178,16 +190,5 @@ return [
          * Only log queries with slow execution time (in milliseconds)
          */
         'min_exec_time' => env('SQL_REPORTER_QUERIES_MIN_EXEC_TIME', 0),
-
-        /*
-         * Log file name without extension - elements between [ and ] characters will be parsed
-         * according to format used by https://www.php.net/manual/en/function.date.php
-         *
-         * examples:
-         * '[Y-m]-log' (default) results in YYYY-MM-log.sql logfile (monthly rotations)
-         * '[Y-m-d]-log' results in YYYY-MM-DD-log.sql logfile (daily rotations)
-         * 'query-log' results in query-log.sql (you should use logrotate for rotation)
-         */
-        'file_name' => env('SQL_REPORTER_QUERIES_FILE_NAME', '[Y-m]-log'),
     ],
 ];

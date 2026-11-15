@@ -155,12 +155,12 @@ class Writer
     }
 
     /**
-     * Get the name of the log file: the file_name option with its date formats, the console suffix (when running in
+     * Get the name of the log file: the log_file_name option with its date formats, the console suffix (when running in
      * console) and the extension, e.g. 2026-11-log-artisan.sql for [Y-m]-log.
      */
     private function logFile(): string
     {
-        return Str::of($this->config->queriesFileName())
+        return Str::of($this->config->logFileName())
             // date formats in brackets, e.g. [Y-m]
             ->replaceMatches('/\[(.*?)\]/', fn (array $matches) => Carbon::now()->format($matches[1]))
             ->append(App::runningInConsole() ? $this->config->consoleSuffix() : '', $this->config->fileExtension())

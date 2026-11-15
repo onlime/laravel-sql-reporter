@@ -133,11 +133,13 @@ class Config
     }
 
     /**
-     * Get file name (without extension) for all queries.
+     * Get the name of the log files (without extension).
      */
-    public function queriesFileName(): string
+    public function logFileName(): string
     {
-        return $this->repository->get('sql-reporter.queries.file_name');
+        // a published config file of an older version has it as file_name in the queries section
+        return $this->repository->get('sql-reporter.general.log_file_name')
+            ?? $this->repository->get('sql-reporter.queries.file_name');
     }
 
     /**

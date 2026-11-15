@@ -86,6 +86,24 @@ it('redacts the values of sensitive columns by default', function () {
     expect(config('sql-reporter.queries.redact_columns'))->toBe(Config::DEFAULT_REDACT_COLUMNS);
 });
 
+it('reads the file name from SQL_REPORTER_LOG_FILE_NAME, or the former SQL_REPORTER_QUERIES_FILE_NAME', function (array $env, string $expected) {
+    $_SERVER = array_merge($_SERVER, $env);
+
+    try {
+        $config = require dirname(__DIR__, 2).'/config/sql-reporter.php';
+        expect($config['general']['log_file_name'])->toBe($expected);
+    } finally {
+        foreach (array_keys($env) as $name) {
+            unset($_SERVER[$name]);
+        }
+    }
+})->with([
+    'none (default)' => [[], '[Y-m]-log'],
+    'the new name' => [['SQL_REPORTER_LOG_FILE_NAME' => 'new-log'], 'new-log'],
+    'the former name' => [['SQL_REPORTER_QUERIES_FILE_NAME' => 'former-log'], 'former-log'],
+    'both, the new name wins' => [['SQL_REPORTER_LOG_FILE_NAME' => 'new-log', 'SQL_REPORTER_QUERIES_FILE_NAME' => 'former-log'], 'new-log'],
+]);
+
 it('can publish the config file', function () {
     $published = config_path('sql-reporter.php');
     @unlink($published);

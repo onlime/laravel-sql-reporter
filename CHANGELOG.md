@@ -7,6 +7,7 @@
 - Security | The values of sensitive long options of Artisan commands are replaced by `[redacted]` in the `origin` header field, e.g. `--password=[redacted]` or `--api-token [redacted]`, with the names of `SQL_REPORTER_FORMAT_REDACT_URL_PARAMETERS`. See [Log header](README.md#log-header).
 - Security | Line breaks in header values, e.g. in a username or an Artisan argument, are replaced by spaces. A header value could otherwise end its `-- ` comment line in the `.sql` log file, and add lines that look like queries or other log entries.
 - Fix | Each log entry (its header and queries) is written to the log file at once, with an exclusive lock, so the log entries of requests, commands or jobs logged at the same time no longer get mixed up. The log directory is only created when a log entry is written. The README explains where the log files go and how their directory is created, see [Log files](README.md#log-files).
+- The `queries.file_name` option is now `general.log_file_name`, next to `extension`, and its `.env` variable `SQL_REPORTER_LOG_FILE_NAME`. The former `SQL_REPORTER_QUERIES_FILE_NAME` and `queries.file_name` in published config files still work.
 - If you published the config file, or rely on query values in your `QueryLogWritten` listeners, see [Upgrading](README.md#v160).
 - README: Clarified the use in production. Logging is enabled wherever the package is installed, so install it with `--dev` or set `SQL_REPORTER_QUERIES_ENABLED=false` to keep it out of production.
 

@@ -88,12 +88,14 @@ it('returns valid file extension', function () {
     expect($this->config->fileExtension())->toBe($value);
 });
 
-it('returns valid queries file name', function () {
-    $value = '[Y-m-d]-sample';
-    $this->repository->shouldReceive('get')->once()->with('sql-reporter.queries.file_name')
-        ->andReturn($value);
-    expect($this->config->queriesFileName())->toBe($value);
-});
+it('returns valid log file name', function (?string $general, ?string $queries, string $expected) {
+    $this->repository->shouldReceive('get')->with('sql-reporter.general.log_file_name')->andReturn($general);
+    $this->repository->shouldReceive('get')->with('sql-reporter.queries.file_name')->andReturn($queries);
+    expect($this->config->logFileName())->toBe($expected);
+})->with([
+    'general section' => ['[Y-m-d]-sample', null, '[Y-m-d]-sample'],
+    'queries section of a published config file of an older version' => [null, 'query-log', 'query-log'],
+]);
 
 it('returns valid value for entry format', function () {
     $this->repository->shouldReceive('get')->once()->with('sql-reporter.formatting.entry_format')
