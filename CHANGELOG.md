@@ -1,6 +1,8 @@
 # CHANGELOG
 
-## [v1.4.0 (Unreleased)](https://github.com/onlime/laravel-sql-reporter/compare/v1.3.6...main)
+## [v1.4.x (Unreleased)](https://github.com/onlime/laravel-sql-reporter/compare/v1.4.0...main)
+
+## [v1.4.0 (2026-11-15)](https://github.com/onlime/laravel-sql-reporter/compare/v1.3.6...v1.4.0)
 
 - PHP 8.6 support
 - Fix | Queries of Artisan commands were not logged since v1.3.2, because Laravel invoked the deferred logging callback before it was registered. Commands are now logged right away, requests are still logged after the response has been sent.
