@@ -53,6 +53,7 @@ return [
          * URL parameters whose values are replaced by [redacted] in the log header, as they might carry secrets like
          * tokens, signatures of signed URLs or OAuth authorization codes: route parameters (e.g. {token}) and query
          * string parameters in the 'origin' header field, query string parameters in the 'referer' header field.
+         * Long options of Artisan commands with these names are redacted as well, e.g. --password=[redacted].
          * Case-insensitive, with * wildcards. A nested query string parameter like filter[token] matches 'token' too.
          * In .env, separate them by commas. Set it to an empty value to redact no parameters at all.
          */

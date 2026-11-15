@@ -241,9 +241,9 @@ The column of a value is found in the query, e.g. `"email" = ?`, `set "email" = 
 
 The include, exclude and report patterns match the redacted queries. A `Writer::shouldReportQuery()` callback still gets the original values in `SqlQuery::$bindings`.
 
-### URLs in the log header
+### Log header
 
-The log header keeps secrets in URLs out of the log. In the origin of a request, the values of sensitive route parameters and query string parameters are replaced by `[redacted]`, e.g. for a password reset link of the route `/reset-password/{token}`:
+The log header keeps secrets in URLs and Artisan commands out of the log. In the origin of a request, the values of sensitive route parameters and query string parameters are replaced by `[redacted]`, e.g. for a password reset link of the route `/reset-password/{token}`:
 
 ```
 -- Origin:   (request) GET https://example.com/reset-password/[redacted]?email=alice%40example.com&signature=[redacted]
@@ -259,6 +259,14 @@ SQL_REPORTER_FORMAT_REDACT_URL_PARAMETERS='*token*,*password*,*secret*,*signatur
 ```
 
 To redact no parameters at all, set it to an empty value: `SQL_REPORTER_FORMAT_REDACT_URL_PARAMETERS=`.
+
+The long options of an Artisan command with these names are redacted as well, with their value given after `=` or as the next argument:
+
+```
+-- Origin:   (console) artisan app:create-user alice --password=[redacted] --api-token [redacted]
+```
+
+Line breaks in header values, e.g. in a username or an Artisan argument, are replaced by spaces, so each header field stays on its own `-- ` comment line.
 
 The `host` header field (reverse DNS lookup of the client IP) and the [GeoIP lookup](#geoip-support) are not enabled by default, as they may send the client IP to DNS servers or a third-party service, and wait for the answer.
 
