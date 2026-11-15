@@ -1,6 +1,8 @@
 # CHANGELOG
 
-## [v1.5.0 (Unreleased)](https://github.com/onlime/laravel-sql-reporter/compare/v1.4.0...main)
+## [v1.5.x (Unreleased)](https://github.com/onlime/laravel-sql-reporter/compare/v1.5.0...main)
+
+## [v1.5.0 (2026-11-15)](https://github.com/onlime/laravel-sql-reporter/compare/v1.4.0...v1.5.0)
 
 - Security | A single query value that can't be escaped as a string (one with a null byte or invalid UTF-8, e.g. binary data) made logging fail for the whole request, command or job. A client could keep its queries from being logged and reported (`QueryLogWritten` event), simply by sending such a value in any parameter. Each query is now built separately, and these values are logged as hex literals (e.g. `x'00ff'`). Queries logged without execution time (`Connection::logQuery()`) no longer make logging fail either.
 - Security | New `SQL_REPORTER_FORMAT_REDACT_URL_PARAMETERS` option: the values of sensitive route parameters and query string parameters are replaced by `[redacted]` in the `origin` header field, e.g. `GET https://example.com/reset-password/[redacted]?email=alice%40example.com&signature=[redacted]`. Secrets like the token of a password reset link, API tokens (`?api_token=`), signatures of signed URLs and OAuth authorization codes are no longer logged and reported. In the `referer` header field, its query string parameters are redacted. Defaults to `*token*,*password*,*secret*,*signature*,*key,code,state,sig` (case-insensitive, with wildcards), also if your published config file doesn't have this option yet. See [Sensitive data](README.md#sensitive-data).
