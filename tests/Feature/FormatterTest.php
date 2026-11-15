@@ -30,8 +30,10 @@ it('formats header in valid way when running via http', function () {
     $request = Mockery::mock(Request::class);
     $app->shouldReceive('make')->twice()->with('request')->andReturn($request);
     $request->shouldReceive('method')->once()->withNoArgs()->andReturn('DELETE');
-    $request->shouldReceive('fullUrl')->once()->withNoArgs()
-        ->andReturn('http://example.com/test');
+    $request->shouldReceive('route')->once()->withNoArgs()->andReturn(null);
+    $request->shouldReceive('path')->once()->withNoArgs()->andReturn('test');
+    $request->shouldReceive('getQueryString')->once()->withNoArgs()->andReturn(null);
+    $request->shouldReceive('root')->once()->withNoArgs()->andReturn('http://example.com');
     $request->shouldReceive('ip')->once()->withNoArgs()->andReturn('127.0.0.1');
     $request->shouldReceive('userAgent')->once()->withNoArgs()->andReturn('Mozilla/5.0');
     $request->shouldReceive('header')->once()->with('referer')->andReturn('');
@@ -254,12 +256,15 @@ it('leaves the user empty for a model without email attribute that prevents acce
     }
 });
 
-it('appends the country to the client IP if stevebauman/location is installed', function (string $ip, string $expected) {
+it('appends the country to the client IP if GeoIP is enabled', function (string $ip, string $expected) {
     $this->app->register(LocationServiceProvider::class);
     Location::fake([
         '93.184.216.34' => Position::make(['isoCode' => 'US', 'countryName' => 'United States']),
     ]);
-    config(['sql-reporter.formatting.header_fields' => ['ip']]);
+    config([
+        'sql-reporter.formatting.header_fields' => ['ip'],
+        'sql-reporter.formatting.geoip' => true,
+    ]);
     $this->app->instance('request', Request::create('/', server: ['REMOTE_ADDR' => $ip]));
 
     expect(app(Formatter::class)->getHeader())->toContain("-- Ip: {$expected}\n");
@@ -267,6 +272,40 @@ it('appends the country to the client IP if stevebauman/location is installed', 
     'known location' => ['93.184.216.34', '93.184.216.34 (US / United States)'],
     'unknown location' => ['198.51.100.7', '198.51.100.7 (XX / Unknown Country)'],
     'localhost is not looked up' => ['127.0.0.1', '127.0.0.1'],
+]);
+
+it('does not look up the country of the client IP by default, even if stevebauman/location is installed', function () {
+    $this->app->register(LocationServiceProvider::class);
+    Location::shouldReceive('get')->never();
+    config(['sql-reporter.formatting.header_fields' => ['ip']]);
+    $this->app->instance('request', Request::create('/', server: ['REMOTE_ADDR' => '93.184.216.34']));
+
+    expect(app(Formatter::class)->getHeader())->toContain("-- Ip: 93.184.216.34\n");
+});
+
+it('redacts sensitive query string parameters in the referer', function (array $parameters, string $referer, string $expected) {
+    config([
+        'sql-reporter.formatting.header_fields' => ['referer'],
+        'sql-reporter.formatting.redact_url_parameters' => $parameters,
+    ]);
+    $this->app->instance('request', Request::create('/', server: ['HTTP_REFERER' => $referer]));
+
+    expect(app(Formatter::class)->getHeader())->toContain("-- Referer: {$expected}\n");
+})->with([
+    'default parameters' => [
+        Config::DEFAULT_REDACT_URL_PARAMETERS,
+        'https://example.com/callback?code=C&state=S&access_token=T&X-Amz-Signature=S&api_key=K&password=P&page=2&keyword=foo&sort=name',
+        'https://example.com/callback?code=[redacted]&state=[redacted]&access_token=[redacted]&X-Amz-Signature=[redacted]&api_key=[redacted]&password=[redacted]&page=2&keyword=foo&sort=name',
+    ],
+    'case-insensitive, with wildcards' => [['*TOKEN'], 'https://example.com/?Api_Token=x&tokens=y', 'https://example.com/?Api_Token=[redacted]&tokens=y'],
+    'nested parameters, by any of their names' => [
+        ['token'],
+        'https://example.com/?filter%5Btoken%5D=x&filter[name]=y&token[]=z&token%5Ba%5D%5Bb%5D=z',
+        'https://example.com/?filter%5Btoken%5D=[redacted]&filter[name]=y&token[]=[redacted]&token%5Ba%5D%5Bb%5D=[redacted]',
+    ],
+    'parameters without a value' => [['token'], 'https://example.com/?token&token=', 'https://example.com/?token&token=[redacted]'],
+    'no parameters to redact' => [[], 'https://example.com/?token=x', 'https://example.com/?token=x'],
+    'no query string' => [['token'], 'https://example.com/token/x', 'https://example.com/token/x'],
 ]);
 
 it('formats the total execution time in seconds', function () {

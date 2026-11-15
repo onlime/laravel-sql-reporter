@@ -101,6 +101,38 @@ it('logs the queries of an HTTP request', function () {
         ->toMatch('/^-- Query 1 \[[\d.]+ms\]\nselect \* from "users";$/m');
 });
 
+it('redacts sensitive route and query string parameters in the origin and referer', function () {
+    serveHttpRequests($this->app);
+    Route::get('/reset-password/{token}', fn () => DB::table('users')->insert(['name' => 'Alice']));
+
+    $this->get('/reset-password/RESET_TOKEN?email=alice%40example.com&signature=SIGNATURE&Api_Token=API_TOKEN', [
+        'Referer' => 'https://example.com/login?filter%5Btoken%5D=REFERER_TOKEN&page=2',
+    ])->assertOk();
+
+    $origin = '-- Origin:   (request) GET http://localhost/reset-password/[redacted]?Api_Token=[redacted]&email=alice%40example.com&signature=[redacted]'.PHP_EOL;
+    $referer = '-- Referer:  https://example.com/login?filter%5Btoken%5D=[redacted]&page=2'.PHP_EOL;
+    expect(file_get_contents($this->logFile))->toContain($origin, $referer)
+        ->not->toContain('_TOKEN')
+        ->not->toContain('SIGNATURE')
+        ->and($this->reported[0]->reportHeader)->toContain($origin, $referer);
+});
+
+it('logs the values of route parameters, unless their names are sensitive', function (string $uri, string $url, string $path) {
+    serveHttpRequests($this->app);
+    Route::get($uri, fn () => DB::table('users')->get())->where('path', '.*');
+
+    $this->get($url)->assertOk();
+
+    expect(file_get_contents($this->logFile))->toContain("-- Origin:   (request) GET http://localhost{$path}".PHP_EOL)
+        ->not->toContain('SECRET');
+})->with([
+    'no sensitive parameters' => ['/users/{user}/posts/{post}', '/users/42/posts/my-first-post', '/users/42/posts/my-first-post'],
+    'case-insensitive' => ['/invitations/{inviteToken}', '/invitations/SECRET', '/invitations/[redacted]'],
+    'other parameters are kept' => ['/downloads/{token}/{name}', '/downloads/SECRET/my%20file.pdf', '/downloads/[redacted]/my%20file.pdf'],
+    'parameters with slashes' => ['/shares/{token}/{path}', '/shares/SECRET/docs/a%20b.pdf', '/shares/[redacted]/docs/a%20b.pdf'],
+    'missing optional parameter' => ['/reset/{token}/{step?}', '/reset/SECRET', '/reset/[redacted]'],
+]);
+
 it('logs and reports a request with values that cannot be escaped as a string', function (string $search, string $literal) {
     // Such a value used to make the whole log of the request fail, so a client could keep its queries from being
     // logged and reported, simply by sending a null byte or invalid UTF-8 in any parameter.

@@ -9,9 +9,9 @@
 This module allows you to log SQL queries to log file in Laravel framework. It's useful mainly
 when developing your application to verify whether your queries are valid and to make sure your application doesn't run too many or too slow database queries.
 
-You may also use this in production as it should not cause a lot of overhead. Logged queries can be limited by query pattern, and logging only occurs at the end of each request, Artisan command, or (optionally) queued job, not per query execution.
+You may also use this in production as it should not cause a lot of overhead, but be aware of the [sensitive data](#sensitive-data) in the log. Logged queries can be limited by query pattern, and logging only occurs at the end of each request, Artisan command, or (optionally) queued job, not per query execution.
 
-It reports a lot of metadata like total query count, total execution time, origin (request URL/console command/queued job), authenticated user, app environment, client browser agent / IP / hostname.
+It reports a lot of metadata like total query count, total execution time, origin (request URL/console command/queued job), authenticated user, app environment, client browser agent / IP / referer.
 
 ## Requirements
 
@@ -52,9 +52,11 @@ It reports a lot of metadata like total query count, total execution time, origi
     SQL_REPORTER_QUERIES_REPORT_PATTERN='/^(?!select\s|start transaction|commit|(insert into|update|delete from) [`"]?(sessions|jobs|bans|logins)\b).*/i'
     SQL_REPORTER_QUERIES_MIN_EXEC_TIME=0
     SQL_REPORTER_QUERIES_FILE_NAME="[Y-m]-log"
-    SQL_REPORTER_FORMAT_HEADER_FIELDS="datetime,origin,status,user,guard,env,agent,ip,host,referer"
+    SQL_REPORTER_FORMAT_HEADER_FIELDS="datetime,origin,status,user,guard,env,agent,ip,referer"
     SQL_REPORTER_FORMAT_HEADER_DATETIME_FORMAT="Y-m-d H:i:s P"
     SQL_REPORTER_FORMAT_ENTRY_FORMAT="-- Query [query_nr] [[query_time]]\\n[query]"
+    SQL_REPORTER_FORMAT_REDACT_URL_PARAMETERS='*token*,*password*,*secret*,*signature*,*key,code,state,sig'
+    SQL_REPORTER_FORMAT_GEOIP=false
     ```
 
     and adjust values to your needs. You can skip variables for which you want to use default values.
@@ -102,7 +104,6 @@ The queries of each processed job are then logged separately, right after the jo
 -- Env:      production
 -- Agent:    Symfony
 -- Ip:       127.0.0.1
--- Host:     localhost
 -- Referer:
 -- --------------------------------------------------
 -- Query 1 [0.89ms]
@@ -118,7 +119,7 @@ All the other options apply to jobs as well, e.g. the include/exclude patterns a
 
 Before enabling it, be aware of these impacts:
 
-- **Logging time per job:** Jobs are logged synchronously by the worker, right after each job attempt, not deferred like requests. This adds the time to resolve the header fields and to write the log file to every job, slowing down the processing of your queue a bit. In a worker, the `host` header field is the reverse DNS lookup of `127.0.0.1`, so you may remove it from `SQL_REPORTER_FORMAT_HEADER_FIELDS` for busy queues.
+- **Logging time per job:** Jobs are logged synchronously by the worker, right after each job attempt, not deferred like requests. This adds the time to resolve the header fields and to write the log file to every job, slowing down the processing of your queue a bit. If you enabled the `host` header field, it is the reverse DNS lookup of `127.0.0.1` in a worker, so you may remove it from `SQL_REPORTER_FORMAT_HEADER_FIELDS` for busy queues.
 - **Log file size:** Every job running queries adds a log entry with a full header. On a busy queue, the log file grows much faster than with requests only. Use a daily file name like `SQL_REPORTER_QUERIES_FILE_NAME="[Y-m-d]-log"`, a separate console log file (`SQL_REPORTER_CONSOLE_SUFFIX`), logrotate, or limit the logged queries with `SQL_REPORTER_QUERIES_INCLUDE_PATTERN` / `SQL_REPORTER_QUERIES_EXCLUDE_PATTERN`.
 - **`QueryLogWritten` event per job:** Your listeners run for every job that ran queries matching the report pattern, inside the worker. If they send notifications (e.g. a report by email), you may get many more of them than before. Exclude noisy jobs with the [`#[DontReportQueries]` attribute](#excluding-artisan-commands-and-queued-jobs), `SQL_REPORTER_QUERIES_REPORT_PATTERN` or `Writer::shouldReportQuery()`.
 - **Feedback loops:** If your `QueryLogWritten` listener queues a job (e.g. a queued listener or notification) which runs queries to report itself, each of these jobs dispatches another `QueryLogWritten` event, and so on. Make sure such jobs are not reported, e.g. with `#[DontReportQueries]` on the queued listener or notification class.
@@ -202,6 +203,29 @@ SQL_REPORTER_QUERIES_EXCLUDE_COMMANDS='Illuminate\Console\Scheduling\ScheduleWor
 
 To exclude no command at all, set it to an empty value: `SQL_REPORTER_QUERIES_EXCLUDE_COMMANDS=`.
 
+## Sensitive data
+
+The log contains the values of all logged queries, as they were sent to the database: personal data, password hashes, tokens stored in plain text (e.g. `remember_token`), the payloads of the `database` session driver, and so on. Protect the log files accordingly, and keep this in mind for your `QueryLogWritten` reports, e.g. if you send them by email. Limit what is logged with `SQL_REPORTER_QUERIES_EXCLUDE_PATTERN`, and what is reported with `SQL_REPORTER_QUERIES_REPORT_PATTERN` or `Writer::shouldReportQuery()`.
+
+The log header keeps secrets in URLs out of the log. In the origin of a request, the values of sensitive route parameters and query string parameters are replaced by `[redacted]`, e.g. for a password reset link of the route `/reset-password/{token}`:
+
+```
+-- Origin:   (request) GET https://example.com/reset-password/[redacted]?email=alice%40example.com&signature=[redacted]
+```
+
+All other parameters are logged as they are, e.g. `GET https://example.com/users/42/edit`. In the referer, only the query string parameters are redacted, as its route is unknown.
+
+The parameters to redact match the names of route parameters (e.g. `{token}`) and query string parameters, case-insensitive, with `*` wildcards. A nested query string parameter like `filter[token]` matches `token` as well. Setting the option replaces the defaults, so include them if you want to keep them:
+
+```ini
+# defaults: tokens, passwords, secrets, signatures (signed URLs), keys, OAuth authorization codes
+SQL_REPORTER_FORMAT_REDACT_URL_PARAMETERS='*token*,*password*,*secret*,*signature*,*key,code,state,sig,invitation'
+```
+
+To redact no parameters at all, set it to an empty value: `SQL_REPORTER_FORMAT_REDACT_URL_PARAMETERS=`.
+
+The `host` header field (reverse DNS lookup of the client IP) and the [GeoIP lookup](#geoip-support) are not enabled by default, as they may send the client IP to DNS servers or a third-party service, and wait for the answer.
+
 ## Optional
 
 ### GeoIP support
@@ -213,7 +237,13 @@ $ composer require stevebauman/location
 $ php artisan vendor:publish --provider="Stevebauman\Location\LocationServiceProvider"
 ```
 
-It will be auto-detected, no configuration needed for this. If you wish to use a different driver than the default [IpApi](https://ip-api.com/), e.g. `MaxMind` make sure you correctly configure it according to the docs: [Available Drivers](https://github.com/stevebauman/location#available-drivers)
+and enable it in your `.env` file:
+
+```ini
+SQL_REPORTER_FORMAT_GEOIP=true
+```
+
+Every logged request then looks up the country of the client IP. The default driver [IpApi](https://ip-api.com/) sends the client IP to ip-api.com over plain HTTP, so you may prefer a driver with a local database, e.g. `MaxMind`. Make sure you correctly configure it according to the docs: [Available Drivers](https://github.com/stevebauman/location#available-drivers)
 
 ### `QueryLogWritten` event
 
@@ -257,7 +287,7 @@ $ composer lint           # check code style (use `composer format` to fix it)
 This package was inspired by [mnabialek/laravel-sql-logger](https://github.com/mnabialek/laravel-sql-logger) and basically does the same thing: Logging your SQL queries. Here's the difference:
 
 - Query logging is not triggered upon each query execution but instead at a final step, using `RequestHandled` and `CommandFinished` events (and optionally per queued job).
-- This allows us to include much more information about the whole query executions like total query count, total execution time, and very detailed header information like origin (request URL/console command/queued job), authenticated user, app environment, client browser agent / IP / hostname.
+- This allows us to include much more information about the whole query executions like total query count, total execution time, and very detailed header information like origin (request URL/console command/queued job), authenticated user, app environment, client browser agent / IP / referer.
 - This package is greatly simplified and only provides support for Laravel 12+ / PHP 8.3+
 - It uses the Laravel built-in query logging (`DB::enableQueryLog()`) which logs all queries in memory, which should perform much better than writing every single query to the log file.
 - By default, `onlime/laravel-sql-reporter` produces much nicer log output, especially since we only write header information before the first query.
@@ -274,7 +304,6 @@ Sample log output:
 -- Env:      local
 -- Agent:    Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:123.0) Gecko/20100101 Firefox/123.0
 -- Ip:       127.0.0.1
--- Host:     localhost
 -- Referer:
 -- --------------------------------------------------
 -- Query 1 [1.45ms]
@@ -313,7 +342,8 @@ All changes are listed in [CHANGELOG](CHANGELOG.md)
 - It's currently not possible to log slow queries into a separate logfile. I wanted to keep that package simple.
 - Only queries of the default database connection are logged.
 - Logging never breaks your application: if the log file can't be written, or a `QueryLogWritten` listener fails, the error is passed to your exception handler (e.g. logged) and the request, command or job continues. By default, web requests and Artisan commands write to the same log file. If they run as different users (e.g. `www-data` and a deploy user), use a separate console log file with `SQL_REPORTER_CONSOLE_SUFFIX`.
-- If you published the config file of an older version, add the new `log_jobs` and `exclude_commands` options from the [package config file](config/sql-reporter.php) to it, otherwise they are disabled (no commands excluded).
+- If you published the config file of an older version, add the new `log_jobs`, `exclude_commands`, `redact_url_parameters` and `geoip` options from the [package config file](config/sql-reporter.php) to it, otherwise they are disabled (no commands excluded, no GeoIP lookup). Without `redact_url_parameters`, the default parameters are redacted. Also remove `host` from its `header_fields`, unless you want the reverse DNS lookup.
+- Values that can't be embedded as a string, e.g. binary data, are logged as hex literals (`x'00ff'` for MySQL and SQLite).
 
 ## TODO
 

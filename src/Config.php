@@ -8,6 +8,16 @@ use Illuminate\Contracts\Config\Repository as ConfigRepository;
 
 class Config
 {
+    /**
+     * Default route and query string parameters to redact in URLs of the log header, also used if the option is missing
+     * in a published config file of an older version.
+     *
+     * @var list<string>
+     */
+    public const DEFAULT_REDACT_URL_PARAMETERS = [
+        '*token*', '*password*', '*secret*', '*signature*', '*key', 'code', 'state', 'sig',
+    ];
+
     public function __construct(
         protected ConfigRepository $repository
     ) {}
@@ -68,14 +78,7 @@ class Config
     public function queriesExcludeCommands(): array
     {
         // a published config file of an older version doesn't have this option yet
-        $commands = $this->repository->get('sql-reporter.queries.exclude_commands', []);
-
-        // comma-separated if set in .env
-        if (is_string($commands)) {
-            $commands = array_filter(array_map(trim(...), explode(',', $commands)));
-        }
-
-        return array_values((array) $commands);
+        return $this->list($this->repository->get('sql-reporter.queries.exclude_commands', []));
     }
 
     /**
@@ -151,5 +154,41 @@ class Config
     public function entryFormat(): string
     {
         return $this->repository->get('sql-reporter.formatting.entry_format');
+    }
+
+    /**
+     * Get the route and query string parameters (with wildcards) to redact in URLs of the log header.
+     *
+     * @return array<int, string>
+     */
+    public function redactUrlParameters(): array
+    {
+        // Unlike other options, a published config file of an older version doesn't disable this one
+        return $this->list($this->repository->get(
+            'sql-reporter.formatting.redact_url_parameters',
+            self::DEFAULT_REDACT_URL_PARAMETERS
+        ));
+    }
+
+    /**
+     * Whether to append the country to the client IP, using stevebauman/location.
+     */
+    public function geoIp(): bool
+    {
+        return (bool) $this->repository->get('sql-reporter.formatting.geoip');
+    }
+
+    /**
+     * Get the values of a list option, which are comma-separated if set in .env.
+     *
+     * @return array<int, string>
+     */
+    private function list(mixed $values): array
+    {
+        if (is_string($values)) {
+            $values = array_filter(array_map(trim(...), explode(',', $values)));
+        }
+
+        return array_values((array) $values);
     }
 }

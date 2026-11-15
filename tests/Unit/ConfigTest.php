@@ -147,3 +147,25 @@ it('returns valid values for queries exclude commands', function (mixed $value, 
     'empty (.env)' => ['', []],
     'missing in a published config file' => [null, []],
 ]);
+
+it('returns valid values for redact url parameters', function (mixed $value, array $expected) {
+    // a published config file of an older version doesn't have this option yet, so it falls back to the defaults
+    $this->repository->shouldReceive('get')->once()
+        ->with('sql-reporter.formatting.redact_url_parameters', Config::DEFAULT_REDACT_URL_PARAMETERS)
+        ->andReturn($value);
+    expect($this->config->redactUrlParameters())->toBe($expected);
+})->with([
+    'array (default)' => [['*token*', 'code'], ['*token*', 'code']],
+    'comma-separated (.env)' => ['*token*, code,,', ['*token*', 'code']],
+    'empty (.env)' => ['', []],
+]);
+
+it('returns valid values for geoip', function () {
+    $this->repository->shouldReceive('get')->once()->with('sql-reporter.formatting.geoip')
+        ->andReturn(1);
+    expect($this->config->geoIp())->toBeTrue();
+
+    $this->repository->shouldReceive('get')->once()->with('sql-reporter.formatting.geoip')
+        ->andReturn(null);
+    expect($this->config->geoIp())->toBeFalse();
+});
