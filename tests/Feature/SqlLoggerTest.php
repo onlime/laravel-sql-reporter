@@ -6,11 +6,12 @@ use Illuminate\Support\Facades\DB;
 use Mockery\Matcher\Closure;
 use Onlime\LaravelSqlReporter\SqlLogger;
 use Onlime\LaravelSqlReporter\SqlQuery;
+use Onlime\LaravelSqlReporter\Support\Redactor;
 use Onlime\LaravelSqlReporter\Writer;
 
 beforeEach(function () {
     $this->writer = Mockery::mock(Writer::class);
-    $this->logger = new SqlLogger($this->writer);
+    $this->logger = new SqlLogger($this->writer, app(Redactor::class));
     DB::flushQueryLog();
 });
 

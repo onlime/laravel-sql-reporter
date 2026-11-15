@@ -160,6 +160,18 @@ it('returns valid values for redact url parameters', function (mixed $value, arr
     'empty (.env)' => ['', []],
 ]);
 
+it('returns valid values for redact columns', function (mixed $value, array $expected) {
+    // a published config file of an older version doesn't have this option yet, so it falls back to the defaults
+    $this->repository->shouldReceive('get')->once()
+        ->with('sql-reporter.queries.redact_columns', Config::DEFAULT_REDACT_COLUMNS)
+        ->andReturn($value);
+    expect($this->config->redactColumns())->toBe($expected);
+})->with([
+    'array (default)' => [['password', 'sessions.id'], ['password', 'sessions.id']],
+    'comma-separated (.env)' => ['password, sessions.id,,', ['password', 'sessions.id']],
+    'empty (.env)' => ['', []],
+]);
+
 it('returns valid values for geoip', function () {
     $this->repository->shouldReceive('get')->once()->with('sql-reporter.formatting.geoip')
         ->andReturn(1);

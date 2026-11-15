@@ -32,6 +32,11 @@ class Writer
      */
     private static ?Closure $shouldReportQuery = null;
 
+    /**
+     * Callback to determine whether a query value should be redacted.
+     */
+    private static ?Closure $redactBinding = null;
+
     public function __construct(
         private readonly Formatter $formatter,
         private readonly Config $config,
@@ -46,6 +51,28 @@ class Writer
     public static function shouldReportQuery(?callable $callback): void
     {
         self::$shouldReportQuery = $callback === null ? null : $callback(...);
+    }
+
+    /**
+     * Set callback to determine whether a query value (binding) should be redacted, in addition to the values of the
+     * columns in the redact_columns option, or null to reset it. It gets the value, its column and table, if known,
+     * and the query with its ? placeholders. Null values are never redacted.
+     *
+     * @param  (callable(mixed $value, ?string $column, ?string $table, string $query): bool)|null  $callback
+     */
+    public static function redactBindingUsing(?callable $callback): void
+    {
+        self::$redactBinding = $callback === null ? null : $callback(...);
+    }
+
+    /**
+     * Whether the callback set with redactBindingUsing() asks to redact a query value.
+     *
+     * @internal
+     */
+    public static function shouldRedactBinding(mixed $value, ?string $column, ?string $table, string $query): bool
+    {
+        return self::$redactBinding !== null && (bool) (self::$redactBinding)($value, $column, $table, $query);
     }
 
     /**

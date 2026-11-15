@@ -155,6 +155,17 @@ return [
         ),
 
         /*
+         * Columns whose values are replaced by [redacted] in logged and reported queries, as they hold secrets like
+         * passwords, tokens or session payloads. Column names (e.g. 'smtp_password') or table.column
+         * (e.g. 'sessions.id'), case-insensitive, with * wildcards. The table prefix is ignored. In .env, separate
+         * them by commas. Set it to an empty value to redact no columns at all. Independent of this option, password
+         * hashes are always redacted except for their algorithm identifier, e.g. '$2y$[redacted]'.
+         */
+        'redact_columns' => env('SQL_REPORTER_QUERIES_REDACT_COLUMNS', [
+            '*password', '*token', '*secret*', 'two_factor_*', 'payload', 'sessions.id', 'cache.value',
+        ]),
+
+        /*
          * Only log queries with slow execution time (in milliseconds)
          */
         'min_exec_time' => env('SQL_REPORTER_QUERIES_MIN_EXEC_TIME', 0),

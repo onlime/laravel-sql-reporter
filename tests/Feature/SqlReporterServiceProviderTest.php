@@ -82,6 +82,10 @@ it('neither resolves the client hostname nor its country by default, and redacts
         ->and(config('sql-reporter.formatting.redact_url_parameters'))->toBe(Config::DEFAULT_REDACT_URL_PARAMETERS);
 });
 
+it('redacts the values of sensitive columns by default', function () {
+    expect(config('sql-reporter.queries.redact_columns'))->toBe(Config::DEFAULT_REDACT_COLUMNS);
+});
+
 it('can publish the config file', function () {
     $published = config_path('sql-reporter.php');
     @unlink($published);

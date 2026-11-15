@@ -50,6 +50,7 @@ It reports a lot of metadata like total query count, total execution time, origi
     SQL_REPORTER_QUERIES_INCLUDE_PATTERN="/.*/i"
     SQL_REPORTER_QUERIES_EXCLUDE_PATTERN="/^\$/"
     SQL_REPORTER_QUERIES_REPORT_PATTERN='/^(?!select\s|start transaction|commit|(insert into|update|delete from) [`"]?(sessions|jobs|bans|logins)\b).*/i'
+    SQL_REPORTER_QUERIES_REDACT_COLUMNS='*password,*token,*secret*,two_factor_*,payload,sessions.id,cache.value'
     SQL_REPORTER_QUERIES_MIN_EXEC_TIME=0
     SQL_REPORTER_QUERIES_FILE_NAME="[Y-m]-log"
     SQL_REPORTER_FORMAT_HEADER_FIELDS="datetime,origin,route,status,user,guard,env,agent,ip,referer"
@@ -206,7 +207,41 @@ To exclude no command at all, set it to an empty value: `SQL_REPORTER_QUERIES_EX
 
 ## Sensitive data
 
-The log contains the values of all logged queries, as they were sent to the database: personal data, password hashes, tokens stored in plain text (e.g. `remember_token`), the payloads of the `database` session driver, and so on. Protect the log files accordingly, and keep this in mind for your `QueryLogWritten` reports, e.g. if you send them by email. Limit what is logged with `SQL_REPORTER_QUERIES_EXCLUDE_PATTERN`, and what is reported with `SQL_REPORTER_QUERIES_REPORT_PATTERN` or `Writer::shouldReportQuery()`.
+The log contains the values of all logged queries, e.g. personal data. Protect the log files accordingly, and keep this in mind for your `QueryLogWritten` reports, e.g. if you send them by email. Limit what is logged with `SQL_REPORTER_QUERIES_EXCLUDE_PATTERN`, and what is reported with `SQL_REPORTER_QUERIES_REPORT_PATTERN` or `Writer::shouldReportQuery()`.
+
+### Query values
+
+Secrets among the values of the queries are replaced by `[redacted]`, in the log file and in the `QueryLogWritten` event:
+
+```sql
+insert into `users` (`name`, `password`, `remember_token`) values ('Alice', '$2y$[redacted]', '[redacted]');
+update `sessions` set `payload` = '[redacted]', `user_id` = 1 where `id` = '[redacted]';
+```
+
+- **Columns:** The values of the columns in `SQL_REPORTER_QUERIES_REDACT_COLUMNS`, which are column names (e.g. `password`) or `table.column` (e.g. `sessions.id`), case-insensitive, with `*` wildcards. The table prefix is ignored. By default: passwords (e.g. `password` or `smtp_password`), tokens (e.g. `remember_token`), secrets, Fortify's two-factor columns, the payloads of the `database` session and queue drivers, session IDs, and the values of the `database` cache store. Setting the option replaces the defaults, so include them if you want to keep them:
+
+  ```ini
+  SQL_REPORTER_QUERIES_REDACT_COLUMNS='*password,*token,*secret*,two_factor_*,payload,sessions.id,cache.value,users.iban'
+  ```
+
+  To redact no columns at all, set it to an empty value: `SQL_REPORTER_QUERIES_REDACT_COLUMNS=`.
+- **Password hashes:** Always redacted except for their algorithm identifier, in any column, e.g. `'$2y$[redacted]'` (bcrypt) or `'$argon2id$[redacted]'`. This works for any hash in the modular crypt format (`$<identifier>$…`), also for legacy ones like `'$6$[redacted]'` (SHA-512-crypt) or `'$P$[redacted]'` (phpass).
+- **Your own rules:** A callback, e.g. in your `AppServiceProvider`. It gets each value (except `null`), its column and table, if known, and the query with its `?` placeholders:
+
+  ```php
+  use Onlime\LaravelSqlReporter\Writer;
+
+  Writer::redactBindingUsing(function (mixed $value, ?string $column, ?string $table, string $query) {
+      // e.g. redact email addresses in any column
+      return is_string($value) && str_contains($value, '@');
+  });
+  ```
+
+The column of a value is found in the query, e.g. `"email" = ?`, `set "email" = ?`, `"id" in (?, ?)` or the columns of an insert. It's unknown for a value in an expression, e.g. `lower("email") = ?`, or among the values of an insert with expressions, e.g. `now()`. Such a value is only redacted if it's a password hash, or if your callback asks for it.
+
+The include, exclude and report patterns match the redacted queries. A `Writer::shouldReportQuery()` callback still gets the original values in `SqlQuery::$bindings`.
+
+### URLs in the log header
 
 The log header keeps secrets in URLs out of the log. In the origin of a request, the values of sensitive route parameters and query string parameters are replaced by `[redacted]`, e.g. for a password reset link of the route `/reset-password/{token}`:
 
@@ -336,6 +371,11 @@ $ php artisan vendor:publish --tag=sql-reporter --force
 ```
 
 or apply the changes listed below by hand, for each version you're upgrading across. Only the versions with changes to the config file (or other changes you need to act on) are listed.
+
+### v1.6.0
+
+- `queries.redact_columns`: new option, see [Query values](#query-values). Without it, the default columns are redacted anyway.
+- Also without a published config file: secrets among the query values are now redacted in the log and in the `QueryLogWritten` event. If your listeners or patterns rely on such values, adjust `SQL_REPORTER_QUERIES_REDACT_COLUMNS`, or use the original values in `SqlQuery::$bindings` of a `Writer::shouldReportQuery()` callback.
 
 ### v1.5.0
 

@@ -13,15 +13,11 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Onlime\LaravelSqlReporter\Support\Redactor;
 use Stevebauman\Location\Facades\Location;
 
 class Formatter
 {
-    /**
-     * Replacement for the values of redacted URL parameters.
-     */
-    private const REDACTED = '[redacted]';
-
     /**
      * Origin shown in the header instead of the request or console command, e.g. a queued job.
      */
@@ -245,7 +241,7 @@ class Formatter
 
             return match (true) {
                 $value === null => '', // a missing optional parameter
-                in_array($matches[1], $redacted, true) => self::REDACTED,
+                in_array($matches[1], $redacted, true) => Redactor::REDACTED,
                 default => str_replace('%2F', '/', rawurlencode($value)),
             };
         }, $route->uri());
@@ -268,7 +264,7 @@ class Formatter
         $parameters = array_map(function (string $parameter) use ($patterns): string {
             $name = Str::before($parameter, '=');
 
-            return $name !== $parameter && $this->isRedacted($name, $patterns) ? $name.'='.self::REDACTED : $parameter;
+            return $name !== $parameter && $this->isRedacted($name, $patterns) ? $name.'='.Redactor::REDACTED : $parameter;
         }, explode('&', $query));
 
         return $base.'?'.implode('&', $parameters);

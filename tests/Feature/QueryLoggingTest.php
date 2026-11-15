@@ -133,6 +133,27 @@ it('logs the values of route parameters, unless their names are sensitive', func
     'missing optional parameter' => ['/reset/{token}/{step?}', '/reset/SECRET', '/reset/[redacted]'],
 ]);
 
+it('redacts secrets in logged and reported queries', function () {
+    Schema::table('users', function (Blueprint $table) {
+        $table->string('password')->nullable();
+        $table->string('remember_token')->nullable();
+    });
+    DB::flushQueryLog();
+    serveHttpRequests($this->app);
+    Route::post('/register', fn () => DB::table('users')->insert([
+        'name' => 'Alice',
+        'password' => password_hash('secret', PASSWORD_BCRYPT, ['cost' => 4]),
+        'remember_token' => 'REMEMBER_TOKEN',
+    ]));
+
+    $this->post('/register')->assertOk();
+
+    $query = 'insert into "users" ("name", "password", "remember_token") values (\'Alice\', \'$2y$[redacted]\', \'[redacted]\');';
+    expect(file_get_contents($this->logFile))->toContain($query)
+        ->not->toContain('REMEMBER_TOKEN')
+        ->and($this->reported[0]->reportQueries[0])->toContain($query);
+});
+
 it('logs and reports a request with values that cannot be escaped as a string', function (string $search, string $literal) {
     // Such a value used to make the whole log of the request fail, so a client could keep its queries from being
     // logged and reported, simply by sending a null byte or invalid UTF-8 in any parameter.

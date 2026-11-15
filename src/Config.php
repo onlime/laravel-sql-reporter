@@ -12,10 +12,20 @@ class Config
      * Default route and query string parameters to redact in URLs of the log header, also used if the option is missing
      * in a published config file of an older version.
      *
-     * @var list<string>
+     * @var string[]
      */
-    public const DEFAULT_REDACT_URL_PARAMETERS = [
+    public const array DEFAULT_REDACT_URL_PARAMETERS = [
         '*token*', '*password*', '*secret*', '*signature*', '*key', 'code', 'state', 'sig',
+    ];
+
+    /**
+     * Default columns (or table.column) whose values are redacted in logged queries, also used if the option is
+     * missing in a published config file of an older version.
+     *
+     * @var string[]
+     */
+    public const array DEFAULT_REDACT_COLUMNS = [
+        '*password', '*token', '*secret*', 'two_factor_*', 'payload', 'sessions.id', 'cache.value',
     ];
 
     public function __construct(
@@ -154,6 +164,20 @@ class Config
     public function entryFormat(): string
     {
         return $this->repository->get('sql-reporter.formatting.entry_format');
+    }
+
+    /**
+     * Get the columns or table.column (with wildcards) whose values are redacted in logged queries.
+     *
+     * @return array<int, string>
+     */
+    public function redactColumns(): array
+    {
+        // Unlike other options, a published config file of an older version doesn't disable this one
+        return $this->list($this->repository->get(
+            'sql-reporter.queries.redact_columns',
+            self::DEFAULT_REDACT_COLUMNS
+        ));
     }
 
     /**

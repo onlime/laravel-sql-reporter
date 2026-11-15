@@ -22,8 +22,9 @@ abstract class TestCase extends Orchestra
 
     protected function tearDown(): void
     {
-        // reset the static report callback, so it doesn't leak into other tests
+        // reset the static callbacks, so they don't leak into other tests
         Writer::shouldReportQuery(null);
+        Writer::redactBindingUsing(null);
 
         parent::tearDown();
     }

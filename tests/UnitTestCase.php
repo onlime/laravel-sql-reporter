@@ -6,6 +6,7 @@ namespace Onlime\LaravelSqlReporter\Tests;
 
 use Carbon\Carbon;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
+use Onlime\LaravelSqlReporter\Writer;
 use PHPUnit\Framework\TestCase as BaseTestCase;
 
 /**
@@ -18,6 +19,7 @@ abstract class UnitTestCase extends BaseTestCase
     protected function tearDown(): void
     {
         Carbon::setTestNow();
+        Writer::redactBindingUsing(null);
 
         parent::tearDown();
     }
