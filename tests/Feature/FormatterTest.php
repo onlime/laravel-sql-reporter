@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\MissingAttributeException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Auth\User;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Onlime\LaravelSqlReporter\Config;
@@ -237,6 +238,20 @@ it('includes the authenticated user and guard', function (GenericUser $user, str
             return 'alice';
         }
     }, 'alice'],
+]);
+
+it('includes the name of the route, if it has one', function (?Route $route, string $expected) {
+    config(['sql-reporter.formatting.header_fields' => ['route']]);
+    $request = Request::create('/reset-password/abc');
+    $request->setRouteResolver(fn () => $route);
+    $this->app->instance('request', $request);
+
+    expect(app(Formatter::class)->getHeader())->toContain($expected.PHP_EOL);
+})->with([
+    'named route' => [fn () => (new Route('GET', 'reset-password/{token}', []))->name('password.reset'), '-- Route: password.reset'],
+    'unnamed route' => [fn () => new Route('GET', 'reset-password/{token}', []), '-- Route:'],
+    'name generated when caching routes' => [fn () => (new Route('GET', 'reset-password/{token}', []))->name('generated::a1B2c3D4e5F6g7H8'), '-- Route:'],
+    'no route (e.g. a 404 or console)' => [null, '-- Route:'],
 ]);
 
 it('leaves the user empty for a model without email attribute that prevents accessing missing attributes', function () {

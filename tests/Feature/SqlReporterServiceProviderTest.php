@@ -77,7 +77,7 @@ it('merges the default config', function () {
 
 it('neither resolves the client hostname nor its country by default, and redacts sensitive URL parameters', function () {
     expect(config('sql-reporter.formatting.header_fields'))
-        ->toBe(['datetime', 'origin', 'status', 'user', 'guard', 'env', 'agent', 'ip', 'referer'])
+        ->toBe(['datetime', 'origin', 'route', 'status', 'user', 'guard', 'env', 'agent', 'ip', 'referer'])
         ->and(config('sql-reporter.formatting.geoip'))->toBeFalse()
         ->and(config('sql-reporter.formatting.redact_url_parameters'))->toBe(Config::DEFAULT_REDACT_URL_PARAMETERS);
 });

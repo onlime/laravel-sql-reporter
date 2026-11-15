@@ -32,6 +32,7 @@ return [
          * - datetime: date and time when the first query was executed
          * - origin: where this query coming from - method and URL of a request (with sensitive parameters redacted,
          *   see 'redact_url_parameters'), Artisan command or queued job
+         * - route: (request-only) name of the route, if it has one
          * - status: total query count and execution time for all queries
          * - user: username of authenticated user
          * - guard: name of the auth guard (defaults to 'web' if not logged in)
@@ -45,7 +46,7 @@ return [
          * The request-only fields would simply report some standard/empty data if origin is an Artisan command.
          */
         'header_fields' => array_filter(explode(',', (string) env('SQL_REPORTER_FORMAT_HEADER_FIELDS',
-            'datetime,origin,status,user,guard,env,agent,ip,referer'
+            'datetime,origin,route,status,user,guard,env,agent,ip,referer'
         ))),
 
         /*

@@ -11,7 +11,7 @@ when developing your application to verify whether your queries are valid and to
 
 You may also use this in production as it should not cause a lot of overhead, but be aware of the [sensitive data](#sensitive-data) in the log. Logged queries can be limited by query pattern, and logging only occurs at the end of each request, Artisan command, or (optionally) queued job, not per query execution.
 
-It reports a lot of metadata like total query count, total execution time, origin (request URL/console command/queued job), authenticated user, app environment, client browser agent / IP / referer.
+It reports a lot of metadata like total query count, total execution time, origin (request URL and route/console command/queued job), authenticated user, app environment, client browser agent / IP / referer.
 
 ## Requirements
 
@@ -52,7 +52,7 @@ It reports a lot of metadata like total query count, total execution time, origi
     SQL_REPORTER_QUERIES_REPORT_PATTERN='/^(?!select\s|start transaction|commit|(insert into|update|delete from) [`"]?(sessions|jobs|bans|logins)\b).*/i'
     SQL_REPORTER_QUERIES_MIN_EXEC_TIME=0
     SQL_REPORTER_QUERIES_FILE_NAME="[Y-m]-log"
-    SQL_REPORTER_FORMAT_HEADER_FIELDS="datetime,origin,status,user,guard,env,agent,ip,referer"
+    SQL_REPORTER_FORMAT_HEADER_FIELDS="datetime,origin,route,status,user,guard,env,agent,ip,referer"
     SQL_REPORTER_FORMAT_HEADER_DATETIME_FORMAT="Y-m-d H:i:s P"
     SQL_REPORTER_FORMAT_ENTRY_FORMAT="-- Query [query_nr] [[query_time]]\\n[query]"
     SQL_REPORTER_FORMAT_REDACT_URL_PARAMETERS='*token*,*password*,*secret*,*signature*,*key,code,state,sig'
@@ -98,6 +98,7 @@ The queries of each processed job are then logged separately, right after the jo
 -- --------------------------------------------------
 -- Datetime: 2026-11-14 21:30:12 +01:00
 -- Origin:   (job) App\Jobs\SyncInvoices
+-- Route:
 -- Status:   Executed 2 queries in 1.37ms
 -- User:
 -- Guard:
@@ -287,7 +288,7 @@ $ composer lint           # check code style (use `composer format` to fix it)
 This package was inspired by [mnabialek/laravel-sql-logger](https://github.com/mnabialek/laravel-sql-logger) and basically does the same thing: Logging your SQL queries. Here's the difference:
 
 - Query logging is not triggered upon each query execution but instead at a final step, using `RequestHandled` and `CommandFinished` events (and optionally per queued job).
-- This allows us to include much more information about the whole query executions like total query count, total execution time, and very detailed header information like origin (request URL/console command/queued job), authenticated user, app environment, client browser agent / IP / referer.
+- This allows us to include much more information about the whole query executions like total query count, total execution time, and very detailed header information like origin (request URL and route/console command/queued job), authenticated user, app environment, client browser agent / IP / referer.
 - This package is greatly simplified and only provides support for Laravel 12+ / PHP 8.3+
 - It uses the Laravel built-in query logging (`DB::enableQueryLog()`) which logs all queries in memory, which should perform much better than writing every single query to the log file.
 - By default, `onlime/laravel-sql-reporter` produces much nicer log output, especially since we only write header information before the first query.
@@ -298,6 +299,7 @@ Sample log output:
 -- --------------------------------------------------
 -- Datetime: 2024-03-11 09:33:22 +01:00
 -- Origin:   (request) GET http://localhost:8000/demo
+-- Route:    demo
 -- Status:   Executed 3 queries in 1.85ms
 -- User:     testuser@example.com
 -- Guard:    web
@@ -342,7 +344,7 @@ All changes are listed in [CHANGELOG](CHANGELOG.md)
 - It's currently not possible to log slow queries into a separate logfile. I wanted to keep that package simple.
 - Only queries of the default database connection are logged.
 - Logging never breaks your application: if the log file can't be written, or a `QueryLogWritten` listener fails, the error is passed to your exception handler (e.g. logged) and the request, command or job continues. By default, web requests and Artisan commands write to the same log file. If they run as different users (e.g. `www-data` and a deploy user), use a separate console log file with `SQL_REPORTER_CONSOLE_SUFFIX`.
-- If you published the config file of an older version, add the new `log_jobs`, `exclude_commands`, `redact_url_parameters` and `geoip` options from the [package config file](config/sql-reporter.php) to it, otherwise they are disabled (no commands excluded, no GeoIP lookup). Without `redact_url_parameters`, the default parameters are redacted. Also remove `host` from its `header_fields`, unless you want the reverse DNS lookup.
+- If you published the config file of an older version, add the new `log_jobs`, `exclude_commands`, `redact_url_parameters` and `geoip` options from the [package config file](config/sql-reporter.php) to it, otherwise they are disabled (no commands excluded, no GeoIP lookup). Without `redact_url_parameters`, the default parameters are redacted. Also add `route` to its `header_fields`, and remove `host` unless you want the reverse DNS lookup.
 - Values that can't be embedded as a string, e.g. binary data, are logged as hex literals (`x'00ff'` for MySQL and SQLite).
 
 ## TODO

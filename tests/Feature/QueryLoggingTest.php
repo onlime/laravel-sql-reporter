@@ -103,7 +103,7 @@ it('logs the queries of an HTTP request', function () {
 
 it('redacts sensitive route and query string parameters in the origin and referer', function () {
     serveHttpRequests($this->app);
-    Route::get('/reset-password/{token}', fn () => DB::table('users')->insert(['name' => 'Alice']));
+    Route::get('/reset-password/{token}', fn () => DB::table('users')->insert(['name' => 'Alice']))->name('password.reset');
 
     $this->get('/reset-password/RESET_TOKEN?email=alice%40example.com&signature=SIGNATURE&Api_Token=API_TOKEN', [
         'Referer' => 'https://example.com/login?filter%5Btoken%5D=REFERER_TOKEN&page=2',
@@ -111,7 +111,7 @@ it('redacts sensitive route and query string parameters in the origin and refere
 
     $origin = '-- Origin:   (request) GET http://localhost/reset-password/[redacted]?Api_Token=[redacted]&email=alice%40example.com&signature=[redacted]'.PHP_EOL;
     $referer = '-- Referer:  https://example.com/login?filter%5Btoken%5D=[redacted]&page=2'.PHP_EOL;
-    expect(file_get_contents($this->logFile))->toContain($origin, $referer)
+    expect(file_get_contents($this->logFile))->toContain($origin.'-- Route:    password.reset'.PHP_EOL, $referer)
         ->not->toContain('_TOKEN')
         ->not->toContain('SIGNATURE')
         ->and($this->reported[0]->reportHeader)->toContain($origin, $referer);

@@ -75,6 +75,7 @@ class Formatter
         $resolvers = [
             'datetime' => fn () => Carbon::now()->format($this->config->headerDatetimeFormat()),
             'origin'   => fn () => $this->originLine(),
+            'route'    => fn () => $this->routeName($request),
             'status'   => fn () => $this->statusLine(),
             'user'     => fn () => $this->username(),
             'guard'    => fn () => Auth::check() ? Auth::getDefaultDriver() : '',
@@ -191,6 +192,18 @@ class Formatter
         $command = $this->app->make('request')->server('argv', []);
 
         return is_array($command) ? implode(' ', $command) : (string) $command;
+    }
+
+    /**
+     * Get the name of the request's route, if it has one. When caching routes, Laravel names unnamed routes with a
+     * random generated::… name, which is omitted.
+     */
+    protected function routeName(Request $request): string
+    {
+        $route = $request->route();
+        $name = $route instanceof Route ? $route->getName() : null;
+
+        return $name === null || str_starts_with($name, 'generated::') ? '' : $name;
     }
 
     /**
